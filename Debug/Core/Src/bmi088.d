@@ -33,8 +33,8 @@ Core/Src/bmi088.o: ../Core/Src/bmi088.c ../Core/Inc/bmi088.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
- ../Core/Inc/configuration.h ../Core/Inc/queternion.h \
- ../Core/Inc/bmi088.h ../Core/Inc/quaternion.h
+ ../Core/Inc/main.h ../Core/Inc/queternion.h ../Core/Inc/bmi088.h \
+ ../Core/Inc/quaternion.h
 ../Core/Inc/bmi088.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
@@ -71,7 +71,7 @@ Core/Src/bmi088.o: ../Core/Src/bmi088.c ../Core/Inc/bmi088.h \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
-../Core/Inc/configuration.h:
+../Core/Inc/main.h:
 ../Core/Inc/queternion.h:
 ../Core/Inc/bmi088.h:
 ../Core/Inc/quaternion.h:

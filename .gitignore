@@ -1,0 +1,39 @@
+# STM32CubeIDE
+.metadata/
+.settings/
+Debug/
+Release/
+.project
+.cproject
+.mxproject
+
+# Build artifacts
+*.o
+*.d
+*.su
+*.cyclo
+*.elf
+*.bin
+*.hex
+*.map
+*.list
+
+# IDE specific
+*.launch
+*.ioc~
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# User specific
+*.bak
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# SEGGER SystemView data
+SEGGER_DATAS/*.SVDat

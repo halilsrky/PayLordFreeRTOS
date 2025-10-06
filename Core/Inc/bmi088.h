@@ -11,7 +11,6 @@
 #include "main.h"
 #include <stdio.h>
 #include <string.h>
-#include "configuration.h"
 
 
 extern float roll, pitch, yaw;
@@ -231,5 +230,9 @@ uint8_t bmi088_getGyroChipId(bmi088_struct_t* BMI);
 void bmi088_accel_dma_complete_callback(bmi088_struct_t* BMI);
 void bmi088_gyro_dma_complete_callback(bmi088_struct_t* BMI);
 void bmi088_temp_dma_complete_callback(bmi088_struct_t* BMI);
+
+// Debug: Frekans hesaplama fonksiyonları
+float bmi088_get_accel_frequency(void);
+float bmi088_get_gyro_frequency(void);
 
 #endif /* INC_BMI088_H_ */

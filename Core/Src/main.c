@@ -19,43 +19,40 @@
 /**
   ******************************************************************************
   * SkyLord2 Flight Computer - Main Application
-  * 
+  *
   * This application implements a comprehensive flight computer system for rocket
   * telemetry and control, featuring:
-  * 
+  *
   * SENSORS:
   * - BME280: Environmental sensor (temperature, humidity, pressure)
   * - BMI088: 6-axis IMU (3-axis accelerometer + 3-axis gyroscope)
   * - HMC1021: Single-axis magnetometer for magnetic field measurement
   * - L86 GPS/GNSS: Position and navigation data
-  * 
+  *
   * COMMUNICATION:
   * - E22 LoRa module: Long-range wireless telemetry transmission
   * - UART: Debug and telemetry output
-  * 
+  *
   * PROCESSING:
   * - Real-time sensor fusion using quaternion-based algorithms
   * - Kalman filtering for noise reduction
   * - Flight state estimation and control
-  * 
+  *
   * TIMING:
   * - 100ms periodic operations for data acquisition
   * - 1s periodic operations for magnetometer calibration
   * - Continuous sensor monitoring and data fusion
-  * 
+  *
   ******************************************************************************
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 #include "fatfs.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
-/* Project configuration */
-#include "configuration.h"
-#include "w25_flash_memory.h"
 
 /* Standard library includes */
 #include <string.h>
@@ -68,27 +65,19 @@
 #include "l86_gnss.h"        // GPS/GNSS module
 
 /* Communication modules */
-#include "e22_lib.h"           // LoRa wireless communication
+#include "e22_lib.h"         // LoRa wireless communication
 #include "packet.h"          // Telemetry packet handling
-#include "data_logger.h"
-
-/* FATFS File System */
-#include "fatfs.h"             // FATFS file system
-
-/* Profiling module */
-//#include "dwt_profiler.h"      // DWT performance profiler
+#include "data_logger.h"     // SD card data logging
 
 /* Algorithm and processing modules */
-#include "queternion.h"         // Quaternion mathematics
-#include "sensor_fusion.h"      // Sensor fusion algorithms
-#include "flight_algorithm.h"   // Flight state detection and control
-
+#include "queternion.h"      // Quaternion mathematics
+#include "sensor_fusion.h"   // Sensor fusion algorithms
+#include "flight_algorithm.h" // Flight state detection and control
 
 /*MATHEMATICAL CONSTANTS*/
 #ifndef M_PI
 #define M_PI 3.14159265358979323846f
 #endif
-
 
 /* USER CODE END Includes */
 
@@ -130,54 +119,93 @@ DMA_HandleTypeDef hdma_uart4_tx;
 DMA_HandleTypeDef hdma_usart2_tx;
 DMA_HandleTypeDef hdma_usart6_rx;
 
+/* Definitions for defaultTask */
+osThreadId_t defaultTaskHandle;
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* USER CODE BEGIN PV */
+/* Definitions for bmiTask */
+osThreadId_t bmiTaskHandle;
+const osThreadAttr_t bmiTask_attributes = {
+  .name = "bmiTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityRealtime,  // En yüksek öncelik
+};
+
+/* Definitions for bmeTask */
+osThreadId_t bmeTaskHandle;
+const osThreadAttr_t bmeTask_attributes = {
+  .name = "bmeTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
+};
+
+/* Definitions for sensorFusionTask */
+osThreadId_t sensorFusionTaskHandle;
+const osThreadAttr_t sensorFusionTask_attributes = {
+  .name = "sensorFusionTask",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityAboveNormal,
+};
+
+/* Definitions for adcTask */
+osThreadId_t adcTaskHandle;
+const osThreadAttr_t adcTask_attributes = {
+  .name = "adcTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+
+/* Definitions for gnssTask */
+osThreadId_t gnssTaskHandle;
+const osThreadAttr_t gnssTask_attributes = {
+  .name = "gnssTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+
+/* Definitions for telemetryTask */
+osThreadId_t telemetryTaskHandle;
+const osThreadAttr_t telemetryTask_attributes = {
+  .name = "telemetryTask",
+  .stack_size = 384 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+
+/* Definitions for dataLoggerTask */
+osThreadId_t dataLoggerTaskHandle;
+const osThreadAttr_t dataLoggerTask_attributes = {
+  .name = "dataLoggerTask",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityBelowNormal,
+};
 
 /*==================== SENSOR STRUCTURES ====================*/
 // Environmental sensor (BME280) - temperature, humidity, pressure
 static BME_280_t BME280_sensor;         // BME280 barometric pressure sensor
 bmi088_struct_t BMI_sensor;             // BMI088 IMU sensor (accelerometer + gyroscope)
 sensor_fusion_t sensor_output;          // Sensor fusion output data
-BME_parameters_t bme_params;             // BME280 calibration parameters
-gps_data_t gnss_data;                  // L86 GNSS receiver data
-static e22_conf_struct_t lora_1;
+BME_parameters_t bme_params;            // BME280 calibration parameters
+gps_data_t gnss_data;                   // L86 GNSS receiver data
+static e22_conf_struct_t lora_1;        // LoRa configuration structure
 
 /*==================== COMMUNICATION BUFFERS ====================*/
 // UART communication buffers
-uint8_t usart1_rx_buffer[36];
 static char uart_buffer[128];
 extern unsigned char normal_paket[50];  // Normal mode telemetry packet
-extern unsigned char sd_paket[64];  // Normal mode telemetry packet
+extern unsigned char sd_paket[64];      // SD card data packet
 
-volatile uint8_t usart4_tx_busy = 0;       // UART4 transmission busy flag
-volatile uint8_t usart2_tx_busy = 0;       // UART2 transmission busy flag
-
-/*==================== TIMING AND STATUS FLAGS ====================*/
-// Timer flags for periodic operations
-volatile uint8_t tx_timer_flag_100ms = 0;
-volatile uint8_t tx_timer_flag_1s = 0;
-
-// Communication status flags
-volatile uint8_t usart1_packet_ready = 0;
-volatile uint16_t usart1_packet_size = 0;
-volatile uint8_t usart1_tx_busy = 0;
-
-// ADC conversion status flags
-volatile uint8_t adc_conversion_complete = 0;
-volatile uint8_t adc_timer_flag_100ms = 0;
-volatile uint8_t sr_in_timer_flag_1s = 0;
+volatile uint8_t usart4_tx_busy = 0;    // UART4 transmission busy flag
+volatile uint8_t usart2_tx_busy = 0;    // UART2 transmission busy flag
 
 /*==================== SENSOR STATUS VARIABLES ====================*/
 // Sensor initialization and health status
 int is_BME_ok = 0;
 int is_BMI_ok = 0;
 int bmi_status_ok = 0;
-uint32_t lastUpdate = 0;
-
-// External configuration variables
-extern volatile uint8_t tx_timer_flag_w25q;
-extern uint8_t sector_erase_started;
-extern uint8_t Gain;
-extern uint8_t gyroOnlyMode;
 
 /*==================== ADC BUFFERS AND MAGNETOMETER DATA ====================*/
 // General ADC buffers
@@ -190,6 +218,18 @@ float voltage_V = 0.0f;
 volatile uint16_t hmc1021_adc_buffer[1];
 float hmc1021_voltage = 0.0f;
 float hmc1021_gauss = 0.0f;
+
+/*==================== INTERRUPT FLAGS ====================*/
+// BMI088 data ready interrupt flags
+volatile uint8_t bmi088_accel_data_ready = 0;  // EXTI4 - Accelerometer data ready
+volatile uint8_t bmi088_gyro_data_ready = 0;   // EXTI3 - Gyroscope data ready
+
+/*==================== FREERTOS SYNCHRONIZATION ====================*/
+// Binary semaphore for BMI088 interrupt-driven reading
+osSemaphoreId_t bmiDataReadySemaphoreHandle = NULL;
+
+// I2C bus mutex for thread-safe access to I2C1 (shared by BME280 and BMI088)
+osMutexId_t i2cMutexHandle = NULL;
 
 /* USER CODE END PV */
 
@@ -208,14 +248,24 @@ static void MX_ADC2_Init(void);
 static void MX_ADC3_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_SPI3_Init(void);
+void StartDefaultTask(void *argument);
+
 /* USER CODE BEGIN PFP */
-static void bme280_begin();
+static void bme280_begin(void);
 uint8_t bmi_imu_init(void);
-void read_value();
 void read_ADC(void);
+void lora_init(void);
 void lora_send_packet_dma(uint8_t *data, uint16_t size);
 void uart2_send_packet_dma(uint8_t *data, uint16_t size);
-void lora_init(void);                 // Initialize LoRa E22 module
+
+// FreeRTOS Task Functions
+void StartBMITask(void *argument);
+void StartBMETask(void *argument);
+void StartSensorFusionTask(void *argument);
+void StartADCTask(void *argument);
+void StartGNSSTask(void *argument);
+void StartTelemetryTask(void *argument);
+void StartDataLoggerTask(void *argument);
 
 /* USER CODE END PFP */
 
@@ -269,20 +319,26 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
 	/*==================== TIMER AND INTERRUPT CONFIGURATION ====================*/
-	// Initialize and start timer for periodic operations (100ms intervals)
-	MX_TIM2_Init();
-	HAL_TIM_Base_Start_IT(&htim2);
-	HAL_NVIC_SetPriority(TIM2_IRQn, 1, 0);
-	HAL_NVIC_EnableIRQ(TIM2_IRQn);
-
 	// Configure external interrupt priorities for sensor data ready signals
-	HAL_NVIC_SetPriority(EXTI3_IRQn, 0, 1);
-	HAL_NVIC_SetPriority(EXTI4_IRQn, 0, 1);
+	// Bu öncelikler FreeRTOS için uygun seviyede ayarlanmıştır (>= configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY)
+	DWT->CTRL |= (1 << 0);
+	SEGGER_SYSVIEW_Conf();
+
+	HAL_NVIC_SetPriority(EXTI3_IRQn, 6, 1);
+	HAL_NVIC_SetPriority(EXTI4_IRQn, 6, 1);
 
 	// Enable external interrupts for sensor data ready signals
 	HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 	HAL_NVIC_EnableIRQ(EXTI3_IRQn);
 
+	/* ==== GPS/GNSS INITIALIZATION ==== */
+	// Initialize L86 GPS/GNSS module
+	HAL_UART_Transmit(&huart6, (uint8_t*)"$PMTK251,57600*2C\r\n", 19, 100);
+	HAL_UART_DeInit(&huart6);
+	huart6.Init.BaudRate = 57600;
+	HAL_UART_Init(&huart6);
+	HAL_DMA_Init(&hdma_usart6_rx);
+	L86_GNSS_Init(&huart6);
 
 	/* ==== SENSOR INITIALIZATION ==== */
 	// Initialize BME280 sensor (temperature, humidity, pressure)
@@ -301,33 +357,90 @@ int main(void)
 	getInitialQuaternion();
 	sensor_fusion_init(&BME280_sensor);
 
-	/*==================== DWT PROFILER INITIALIZATION ====================*/
-	// Initialize DWT profiler for performance monitoring
-	//dwt_profiler_init();
-
 	/* ==== LORA COMMUNICATION SETUP ==== */
-    e22_config_mode(&lora_1);
-    HAL_Delay(20);
+	e22_config_mode(&lora_1);
+	HAL_Delay(20);
 	lora_init();
-    HAL_Delay(20);
+	HAL_Delay(20);
 	e22_transmit_mode(&lora_1);
 
-	/* ==== GPS/GNSS INITIALIZATION ==== */
-	// Initialize L86 GPS/GNSS module
-	HAL_UART_Transmit(&huart6, (uint8_t*)"$PMTK251,57600*2C\r\n", 19, 100);
-    HAL_UART_DeInit(&huart6);
-    huart6.Init.BaudRate = 57600;
-    HAL_UART_Init(&huart6);
-	HAL_DMA_Init(&hdma_usart6_rx);
-	L86_GNSS_Init(&huart6);
+	/* ==== DATA LOGGER INITIALIZATION ==== */
+	//data_logger_init();
+	BME280_sensor.altitude = BME280_sensor.altitude - BME280_sensor.base_altitude;
 
-	data_logger_init();
-	W25Q_Init(&hspi3);
+	// Startup beep to indicate system ready
+	HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, SET);
+	HAL_Delay(300);
+	HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, RESET);
 
-    HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, SET);
-    HAL_Delay(300);
-    HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, RESET);
   /* USER CODE END 2 */
+
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* Create I2C mutex for thread-safe I2C bus access */
+  const osMutexAttr_t i2cMutex_attributes = {
+    .name = "i2cMutex"
+  };
+  i2cMutexHandle = osMutexNew(&i2cMutex_attributes);
+  if(i2cMutexHandle == NULL) {
+    Error_Handler();
+  }
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* Create binary semaphore for BMI088 interrupt synchronization */
+  bmiDataReadySemaphoreHandle = osSemaphoreNew(1, 0, NULL);
+  if(bmiDataReadySemaphoreHandle == NULL) {
+    Error_Handler();
+  }
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of defaultTask */
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* creation of bmiTask */
+  bmiTaskHandle = osThreadNew(StartBMITask, NULL, &bmiTask_attributes);
+  
+  /* creation of bmeTask */
+  bmeTaskHandle = osThreadNew(StartBMETask, NULL, &bmeTask_attributes);
+  
+  /* creation of sensorFusionTask */
+  sensorFusionTaskHandle = osThreadNew(StartSensorFusionTask, NULL, &sensorFusionTask_attributes);
+  
+  /* creation of adcTask */
+  adcTaskHandle = osThreadNew(StartADCTask, NULL, &adcTask_attributes);
+  
+  /* creation of gnssTask */
+  gnssTaskHandle = osThreadNew(StartGNSSTask, NULL, &gnssTask_attributes);
+  
+  /* creation of telemetryTask */
+  telemetryTaskHandle = osThreadNew(StartTelemetryTask, NULL, &telemetryTask_attributes);
+  
+  /* creation of dataLoggerTask */
+  dataLoggerTaskHandle = osThreadNew(StartDataLoggerTask, NULL, &dataLoggerTask_attributes);
+  
+  /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -336,79 +449,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
-		/*CONTINUOUS SENSOR UPDATES*/
-
-		//PROFILE_START(PROF_BMI088_UPDATE);
-		bmi088_update(&BMI_sensor);		// Update IMU sensor data (accelerometer + gyroscope) - High frequency sampling
-		//PROFILE_END(PROF_BMI088_UPDATE);
-		
-		//PROFILE_START(PROF_BME280_UPDATE);
-		bme280_update(); 		// Update barometric pressure sensor data for altitude estimation
-		//PROFILE_END(PROF_BME280_UPDATE);
-
-
-		/*PERIODIC OPERATIONS (100ms)*/
-		if (tx_timer_flag_100ms >= 1) {
-		  tx_timer_flag_100ms = 0;
-
-
-
-		  // Read magnetometer ADC values
-		  //PROFILE_START(PROF_ADC_READ);
-		  read_ADC();
-		  //PROFILE_END(PROF_ADC_READ);
-
-		  // Sensor fusion and flight algorithm processing
-		  //PROFILE_START(PROF_SENSOR_FUSION);
-		  sensor_fusion_update_kalman(&BME280_sensor, &BMI_sensor, &sensor_output);
-		  //PROFILE_END(PROF_SENSOR_FUSION);
-		  
-		  //PROFILE_START(PROF_FLIGHT_ALGORITHM);
-		  flight_algorithm_update(&BME280_sensor, &BMI_sensor, &sensor_output);
-		  //PROFILE_END(PROF_FLIGHT_ALGORITHM);
-		  
-		  // Update GPS/GNSS data
-		  //PROFILE_START(PROF_GNSS_UPDATE);
-		  L86_GNSS_Update(&gnss_data);
-		  //PROFILE_END(PROF_GNSS_UPDATE);
-
-		  // Packet compose
-		  //PROFILE_START(PROF_PACKET_COMPOSE);
-		  addDataPacketNormal(&BME280_sensor, &BMI_sensor, &sensor_output, &gnss_data, hmc1021_gauss, voltage_V, current_mA);
-		  //PROFILE_END(PROF_PACKET_COMPOSE);
-		  
-		  addDataPacketSD(&BME280_sensor, &BMI_sensor, &sensor_output, &gnss_data, hmc1021_gauss, voltage_V, current_mA);
-
-		  //PROFILE_START(PROF_SD_LOGGER);
-		  log_normal_packet_data(sd_paket);
-		  //PROFILE_END(PROF_SD_LOGGER);
-
-		  W25Q_WriteToBufferFlushOnSectorFull(sd_paket);
-
-		  //Send telemetry packet via DMA (non-blocking)
-		  //7PROFILE_START(PROF_UART2_SEND);
-		  uart2_send_packet_dma((uint8_t*)normal_paket, 50);
-		  //PROFILE_END(PROF_UART2_SEND);
-		  
-		  // Output profiling results via UART2
-		  //dwt_profiler_print_compact(uart2_send_packet_dma);
-
-		}
-
-		/*PERIODIC OPERATIONS (1 SECOND)*/
-		// Execute operations every 1 second (10 * 100ms)
-		if (tx_timer_flag_1s >= 2) {
-		  tx_timer_flag_1s = 0;
-
-		  //PROFILE_START(PROF_LORA_SEND);
-		  lora_send_packet_dma((uint8_t*)normal_paket, 50);
-		  //PROFILE_END(PROF_LORA_SEND);
-
-
-		}
-
-  	  }
+    // Main loop is now empty - all work is done in FreeRTOS tasks
+  }
   /* USER CODE END 3 */
 }
 
@@ -914,16 +956,16 @@ static void MX_DMA_Init(void)
 
   /* DMA interrupt init */
   /* DMA1_Stream0_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
   /* DMA1_Stream4_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
   /* DMA1_Stream6_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
   /* DMA2_Stream2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
 
 }
@@ -936,8 +978,8 @@ static void MX_DMA_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+  /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -989,14 +1031,291 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI3_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI3_IRQn);
 
-  HAL_NVIC_SetPriority(EXTI4_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI4_IRQn);
 
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+  /* USER CODE END MX_GPIO_Init_2 */
+}
+
+/* USER CODE BEGIN 4 */
+
+/**
+ * @brief Initialize BMI088 IMU sensor
+ * @return Initialization status
+ * @note Configures both accelerometer and gyroscope with optimal settings
+ */
+uint8_t bmi_imu_init(void)
+{
+  // Accelerometer configuration
+  BMI_sensor.device_config.acc_bandwith = ACC_BWP_OSR4;
+  BMI_sensor.device_config.acc_outputDateRate = ACC_ODR_400;
+  BMI_sensor.device_config.acc_powerMode = ACC_PWR_SAVE_ACTIVE;
+  BMI_sensor.device_config.acc_range = ACC_RANGE_24G;
+
+  // Gyroscope configuration
+  BMI_sensor.device_config.gyro_bandWidth = GYRO_BW_23;
+  BMI_sensor.device_config.gyro_range = GYRO_RANGE_2000;
+  BMI_sensor.device_config.gyro_powerMode = GYRO_LPM_NORMAL;
+
+  // Interrupt and I2C configuration
+  BMI_sensor.device_config.acc_IRQ = EXTI3_IRQn;
+  BMI_sensor.device_config.gyro_IRQ = EXTI4_IRQn;
+  BMI_sensor.device_config.BMI_I2c = &IMU_I2C_HNDLR;
+  BMI_sensor.device_config.offsets = NULL; // Offset data stored in backup SRAM
+
+  return bmi088_init(&BMI_sensor);
+}
+
+/**
+ * @brief GPIO external interrupt callback
+ * @param GPIO_Pin The pin that triggered the interrupt
+ * @note Handles BMI088 accelerometer and gyroscope data ready interrupts
+ * @note Releases semaphore to wake up BMI task (interrupt-driven approach)
+ */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+  if(GPIO_Pin == GPIO_PIN_3)
+  {
+    // Gyroscope data ready interrupt (EXTI3)
+    bmi088_set_gyro_INT(&BMI_sensor);
+
+    // Release semaphore from ISR to wake up BMI task
+    osSemaphoreRelease(bmiDataReadySemaphoreHandle);
+  }
+  if(GPIO_Pin == GPIO_PIN_4)
+  {
+    // Accelerometer data ready interrupt (EXTI4)
+    bmi088_set_accel_INT(&BMI_sensor);
+
+    // Release semaphore from ISR to wake up BMI task
+    osSemaphoreRelease(bmiDataReadySemaphoreHandle);
+  }
+
+  // Request context switch if higher priority task was woken
+  portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+/**
+ * @brief UART transmission complete callback
+ * @param huart UART handle
+ * @note Clears transmission busy flag
+ */
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance == USART2) {
+        usart2_tx_busy = 0;
+    }
+}
+
+/**
+ * @brief Send packet via UART2 using DMA
+ * @param data Pointer to data buffer
+ * @param size Size of data to send
+ * @note Non-blocking transmission using DMA
+ */
+void uart2_send_packet_dma(uint8_t *data, uint16_t size)
+{
+    if (!usart2_tx_busy) {
+        usart2_tx_busy = 1;
+        HAL_UART_Transmit_DMA(&huart2, data, size);
+    }
+}
+
+/**
+ * @brief I2C Memory read complete callback (DMA)
+ * @param hi2c I2C handle
+ * @note Handles BMI088 sensor data DMA transfer completion
+ */
+void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+    // Debug: increment a counter to see if this callback is called
+    static uint32_t i2c_callback_counter = 0;
+    i2c_callback_counter++;
+
+    if (hi2c->Instance == I2C1) {
+        if (hi2c->Devaddress == ACC_I2C_ADD) {
+            // Accelerometer data received (9 bytes: XYZ + sensor time)
+            bmi088_accel_dma_complete_callback(&BMI_sensor);
+        }
+        else if (hi2c->Devaddress == GYRO_I2C_ADD) {
+            // Gyroscope data received (6 bytes: XYZ)
+            bmi088_gyro_dma_complete_callback(&BMI_sensor);
+        }
+    }
+}
+
+/**
+  * @brief  Function implementing the telemetry task.
+  * @param  argument: Not used
+  * @retval None
+  */
+void StartTelemetryTask(void *argument)
+{
+  /* USER CODE BEGIN StartTelemetryTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    // Create telemetry packets
+    addDataPacketNormal(&BME280_sensor, &BMI_sensor, &sensor_output, &gnss_data, hmc1021_gauss, voltage_V, current_mA);
+
+    // Send data via UART2 using DMA
+    uart2_send_packet_dma((uint8_t*)normal_paket, 50);
+
+    // Send data via LoRa using DMA
+    //lora_send_packet_dma((uint8_t*)normal_paket, 50);
+
+    // Wait for 100ms before next transmission (10Hz telemetry rate)
+    osDelay(100);
+  }
+  /* USER CODE END StartTelemetryTask */
+}
+
+/**
+  * @brief  Function implementing the BMI088 sensor task.
+  * @param  argument: Not used
+  * @retval None
+  * @note   Interrupt-driven: Task blocks on semaphore, wakes up on EXTI interrupt
+  * @note   Uses system tick for delta_time calculation (more reliable in FreeRTOS)
+  */
+void StartBMITask(void *argument)
+{
+  /* USER CODE BEGIN StartBMITask */
+  /* Infinite loop */
+  for(;;)
+  {
+    // Block and wait for BMI088 data ready interrupt (semaphore from ISR)
+    if(osSemaphoreAcquire(bmiDataReadySemaphoreHandle, osWaitForever) == osOK)
+    {
+      // Acquire I2C bus mutex for thread-safe access
+      osMutexAcquire(i2cMutexHandle, osWaitForever);
+
+      // Read BMI088 sensor data
+      bmi088_update(&BMI_sensor);
+
+      // Release I2C bus mutex
+      osMutexRelease(i2cMutexHandle);
+    }
+    osDelay(1);
+  }
+  /* USER CODE END StartBMITask */
+}
+
+/**
+  * @brief  Function implementing the BME280 sensor task.
+  * @param  argument: Not used
+  * @retval None
+  */
+void StartBMETask(void *argument)
+{
+  /* USER CODE BEGIN StartBMETask */
+  /* Infinite loop */
+  for(;;)
+  {
+    // Acquire I2C bus mutex for thread-safe access
+    osMutexAcquire(i2cMutexHandle, osWaitForever);
+
+    // Update BME280 barometric pressure sensor data
+    bme280_update();
+
+    // Release I2C bus mutex
+    osMutexRelease(i2cMutexHandle);
+
+    // Short delay - barometer updates don't need to be as fast as IMU
+    osDelay(25);
+  }
+  /* USER CODE END StartBMETask */
+}
+
+/**
+  * @brief  Function implementing the sensor fusion task.
+  * @param  argument: Not used
+  * @retval None
+  */
+void StartSensorFusionTask(void *argument)
+{
+  /* USER CODE BEGIN StartSensorFusionTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    // Perform sensor fusion using Kalman filter
+    sensor_fusion_update_kalman(&BME280_sensor, &BMI_sensor, &sensor_output);
+
+    // Update flight algorithm (launch detection, apogee, etc.)
+    flight_algorithm_update(&BME280_sensor, &BMI_sensor, &sensor_output);
+
+    // Run at 10Hz (100ms period) - matches telemetry rate
+    osDelay(100);
+  }
+  /* USER CODE END StartSensorFusionTask */
+}
+
+/**
+  * @brief  Function implementing the ADC reading task.
+  * @param  argument: Not used
+  * @retval None
+  */
+void StartADCTask(void *argument)
+{
+  /* USER CODE BEGIN StartADCTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    // Read ADC channels (magnetometer, voltage, current)
+    read_ADC();
+
+    // Run at 10Hz (100ms period)
+    osDelay(100);
+  }
+  /* USER CODE END StartADCTask */
+}
+
+/**
+  * @brief  Function implementing the GNSS task.
+  * @param  argument: Not used
+  * @retval None
+  */
+void StartGNSSTask(void *argument)
+{
+  /* USER CODE BEGIN StartGNSSTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    // Update GPS/GNSS data
+    L86_GNSS_Update(&gnss_data);
+
+    // Run at 10Hz (100ms period)
+    osDelay(100);
+  }
+  /* USER CODE END StartGNSSTask */
+}
+
+/**
+  * @brief  Function implementing the data logger task.
+  * @param  argument: Not used
+  * @retval None
+  */
+void StartDataLoggerTask(void *argument)
+{
+  /* USER CODE BEGIN StartDataLoggerTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    // Create SD card data packet
+    addDataPacketSD(&BME280_sensor, &BMI_sensor, &sensor_output, &gnss_data, hmc1021_gauss, voltage_V, current_mA);
+
+    // Log data to SD card
+    log_normal_packet_data(sd_paket);
+
+    // Run at 10Hz (100ms period) - matches telemetry rate
+    osDelay(100);
+  }
+  /* USER CODE END StartDataLoggerTask */
 }
 
 /* USER CODE BEGIN 4 */
@@ -1028,7 +1347,6 @@ void lora_init(void)
 	huart4.Init.BaudRate = 115200;
 	HAL_Delay(20);
 	HAL_UART_Init(&huart4);
-
 }
 
 /**
@@ -1045,196 +1363,50 @@ void bme280_begin()
 }
 
 /**
- * @brief Initialize BMI088 IMU sensor
- * @return Initialization status
- * @note Configures both accelerometer and gyroscope with optimal settings
- */
-uint8_t bmi_imu_init(void)
-{
-  // Accelerometer configuration
-  BMI_sensor.device_config.acc_bandwith = ACC_BWP_OSR4;
-  BMI_sensor.device_config.acc_outputDateRate = ACC_ODR_200;
-  BMI_sensor.device_config.acc_powerMode = ACC_PWR_SAVE_ACTIVE;
-  BMI_sensor.device_config.acc_range = ACC_RANGE_24G;
-
-  // Gyroscope configuration
-  BMI_sensor.device_config.gyro_bandWidth = GYRO_BW_116;
-  BMI_sensor.device_config.gyro_range = GYRO_RANGE_2000;
-  BMI_sensor.device_config.gyro_powerMode = GYRO_LPM_NORMAL;
-
-  // Interrupt and I2C configuration
-  BMI_sensor.device_config.acc_IRQ = EXTI3_IRQn;
-  BMI_sensor.device_config.gyro_IRQ = EXTI4_IRQn;
-  BMI_sensor.device_config.BMI_I2c = &IMU_I2C_HNDLR;
-  BMI_sensor.device_config.offsets = NULL; // Offset data stored in backup SRAM
-
-  return bmi088_init(&BMI_sensor);
-}
-
-/**
- * @brief Read and transmit sensor values via UART
- * @note Formats and sends IMU orientation data and system parameters
- */
-void read_value(){
-  // Quaternion değerlerini test et
-  float yaw = BMI_sensor.datas.yaw;     // Mahony'den
-  float pitch = BMI_sensor.datas.pitch; // Mahony'den  
-  float roll = BMI_sensor.datas.roll;   // Mahony'den
-  float theta = BMI_sensor.datas.theta; // Z açısı
-  float yaw1 = BMI_sensor.datas.yaw1;   // EKF'den
-  float pitch1 = BMI_sensor.datas.pitch1; // EKF'den
-  float roll1 = BMI_sensor.datas.roll1;   // EKF'den
-
-  // Transmit Mahony quaternion data
-  sprintf(uart_buffer, "MAHONY: Y:%.2f P:%.2f R:%.2f T:%.2f\r\n", yaw, pitch, roll, theta);
-  HAL_UART_Transmit(&huart2, (uint8_t*)uart_buffer, strlen(uart_buffer), 100);
-
-  // Transmit EKF quaternion data
-  sprintf(uart_buffer, "EKF: Y:%.2f P:%.2f R:%.2f\r\n", yaw1, pitch1, roll1);
-  HAL_UART_Transmit(&huart2, (uint8_t*)uart_buffer, strlen(uart_buffer), 100);
-
-  // Transmit raw sensor data for debug
-  sprintf(uart_buffer, "GYRO: X:%.3f Y:%.3f Z:%.3f\r\n", BMI_sensor.datas.gyro_x, BMI_sensor.datas.gyro_y, BMI_sensor.datas.gyro_z);
-  HAL_UART_Transmit(&huart2, (uint8_t*)uart_buffer, strlen(uart_buffer), 100);
-
-  sprintf(uart_buffer, "ACC: X:%.3f Y:%.3f Z:%.3f DT:%.3f\r\n", BMI_sensor.datas.acc_x, BMI_sensor.datas.acc_y, BMI_sensor.datas.acc_z, BMI_sensor.datas.delta_time);
-  HAL_UART_Transmit(&huart2, (uint8_t*)uart_buffer, strlen(uart_buffer), 100);
-
-  // Transmit system gain parameter
-  sprintf(uart_buffer, "G %d\r", Gain);
-  HAL_UART_Transmit(&huart2, (uint8_t*)uart_buffer, strlen(uart_buffer), 100);
-
-  // Transmit gyro-only mode status
-  sprintf(uart_buffer, "M %d\r\n", gyroOnlyMode);
-  HAL_UART_Transmit(&huart2, (uint8_t*)uart_buffer, strlen(uart_buffer), 100);
-}
-
-/**
  * @brief Read HMC1021 magnetometer ADC values
- * @note Converts ADC readings to magnetic field strength and transmits data
+ * @note Converts ADC readings to magnetic field strength, voltage and current
  */
 void read_ADC()
 {
-    static uint16_t adc1_raw = 0;  // ADC1 değeri (Channel 9)
-    static uint16_t adc2_raw = 0;  // ADC2 değeri (Channel 10)
-    static uint16_t adc3_raw = 0;  // ADC3 değeri (Channel 11)
+    static uint16_t adc1_raw = 0;  // ADC1 value (Channel 9 - Magnetometer)
+    static uint16_t adc2_raw = 0;  // ADC2 value (Channel 10 - Voltage)
+    static uint16_t adc3_raw = 0;  // ADC3 value (Channel 11 - Current)
 
-    // ADC1 okuma
+    // Read ADC1 (Magnetometer)
     HAL_ADC_Start(&hadc1);
     if (HAL_ADC_PollForConversion(&hadc1, 5) == HAL_OK) {
         adc1_raw = HAL_ADC_GetValue(&hadc1);
     }
     HAL_ADC_Stop(&hadc1);
 
-
-    // ADC2 okuma
+    // Read ADC2 (Voltage)
     HAL_ADC_Start(&hadc2);
     if (HAL_ADC_PollForConversion(&hadc2, 5) == HAL_OK) {
         adc2_raw = HAL_ADC_GetValue(&hadc2);
     }
     HAL_ADC_Stop(&hadc2);
 
-
-    // ADC3 okuma
+    // Read ADC3 (Current)
     HAL_ADC_Start(&hadc3);
     if (HAL_ADC_PollForConversion(&hadc3, 5) == HAL_OK) {
         adc3_raw = HAL_ADC_GetValue(&hadc3);
     }
     HAL_ADC_Stop(&hadc3);
 
+    // Calculate calibrated values
+    hmc1021_voltage = (adc1_raw * 3.3f) / 4096.0f;  // 3.3V reference, 12-bit ADC
+    voltage_V = (adc2_raw * 13.2f) / 4096.0f;        // Voltage divider calculation
+    current_mA = (adc3_raw * CRNT_COEF);             // Current sensor calibration
+    hmc1021_gauss = (hmc1021_voltage - 1.65f) / 1.0f; // 1V/Gauss sensitivity
 
-    // Kalibrasyonlu değerleri hesapla
-    hmc1021_voltage = (adc1_raw * 3.3f) / 4096.0f;  // 3.3V referans, 12-bit ADC
-    voltage_V = (adc2_raw * 13.2f) / 4096.0f;  // 3.3V referans, 12-bit ADC
-    current_mA = (adc3_raw * CRNT_COEF); // Gerekirse akım sensörüne göre kalibre edin
-    hmc1021_gauss = (hmc1021_voltage - 1.65f) / 1.0f;  // 1V/Gauss sensitivity
-
-	if(voltage_V < 7.0){
-		e22_sleep_mode(&lora_1);
-
-	}else if(voltage_V >= 7.0){
-		e22_transmit_mode(&lora_1);
-	}
-}
-
-/**
- * @brief GPIO external interrupt callback
- * @param GPIO_Pin The pin that triggered the interrupt
- * @note Handles BMI088 accelerometer and gyroscope data ready interrupts
- */
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-  if(GPIO_Pin == GPIO_PIN_3)
-  {
-    // Accelerometer data ready interrupt
-    bmi088_set_accel_INT(&BMI_sensor);
-  }
-  if(GPIO_Pin == GPIO_PIN_4)
-  {
-    // Gyroscope data ready interrupt
-    bmi088_set_gyro_INT(&BMI_sensor);
-  }
-}
-
-/**
- * @brief Timer period elapsed callback
- * @param htim Timer handle
- * @note Increments timing flags for periodic operations
- */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-  if (htim->Instance == TIM2) {
-    tx_timer_flag_100ms++;   // 100ms flag
-    tx_timer_flag_1s++;      // 1s flag (counts to 10)
-  }
-}
-/**
- * @brief UART transmission complete callback
- * @param huart UART handle
- * @note Clears transmission busy flag
- */
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
-{
-	if (huart->Instance == UART4) {
-		usart4_tx_busy = 0;
-	}
-	if (huart->Instance == USART2) {
-		usart2_tx_busy = 0;
-	}
-}
-
-/**
- * @brief I2C Memory read complete callback (DMA)
- * @param hi2c I2C handle
- * @note Handles BMI088 sensor data DMA transfer completion
- */
-void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c)
-{
-    if (hi2c->Instance == I2C1) {
-        if (hi2c->Devaddress == ACC_I2C_ADD) {
-            // Accelerometer data received (9 bytes: XYZ + sensor time)
-            bmi088_accel_dma_complete_callback(&BMI_sensor);
-        }
-        else if (hi2c->Devaddress == GYRO_I2C_ADD) {
-            // Gyroscope data received (6 bytes: XYZ)
-            bmi088_gyro_dma_complete_callback(&BMI_sensor);
-        }
+    // LoRa power management based on battery voltage
+    if(voltage_V < 7.0){
+        e22_sleep_mode(&lora_1);
+    }else if(voltage_V >= 7.0){
+        e22_transmit_mode(&lora_1);
     }
 }
 
-/**
- * @brief Send packet via UART4 using DMA
- * @param data Pointer to data buffer
- * @param size Size of data to send
- * @note Non-blocking transmission using DMA
- */
-void uart2_send_packet_dma(uint8_t *data, uint16_t size)
-{
-	if (!usart2_tx_busy) {
-		usart2_tx_busy = 1;
-		HAL_UART_Transmit_DMA(&huart2, data, size);
-	}
-}
 
 /**
  * @brief Send packet with LORA using DMA
@@ -1252,6 +1424,49 @@ void lora_send_packet_dma(uint8_t *data, uint16_t size)
 
 /* USER CODE END 4 */
 
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the BMI088 sensor update task.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Start SEGGER SystemView once at the beginning */
+  SEGGER_SYSVIEW_Start();
+
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(100); // 100ms delay - reduced frequency for lighter task
+  }
+  /* USER CODE END 5 */
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM6 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM6)
+  {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
+
 /**
   * @brief  This function is executed in case of error occurrence.
   * @retval None
@@ -1266,8 +1481,7 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.

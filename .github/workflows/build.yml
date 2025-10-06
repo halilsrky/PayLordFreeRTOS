@@ -1,0 +1,70 @@
+name: STM32 Build CI
+
+# Workflow ne zaman çalışacak
+on:
+  push:
+    branches: [ main, develop ]  # main veya develop branch'e push olunca
+  pull_request:
+    branches: [ main, develop ]  # main veya develop'a PR açılınca
+  workflow_dispatch:  # Manuel olarak da çalıştırabilirsiniz
+
+jobs:
+  build:
+    name: Build STM32 Firmware
+    runs-on: ubuntu-latest  # Ubuntu sanal makinesinde çalışacak
+    
+    steps:
+    # 1. Kod repository'sini klonla
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive  # Git submodule'ler varsa onları da çek
+    
+    # 2. ARM GCC Toolchain'i kur
+    - name: 🔧 Install ARM GCC Toolchain
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-arm-none-eabi binutils-arm-none-eabi
+    
+    # 3. Toolchain versiyonunu göster (debug için)
+    - name: 📋 Check Toolchain Version
+      run: |
+        arm-none-eabi-gcc --version
+        make --version
+    
+    # 4. Projeyi derle
+    - name: 🏗️ Build Project
+      run: |
+        cd Debug
+        make clean
+        make -j$(nproc)  # Paralel derleme (hızlı)
+    
+    # 5. Binary dosyaları oluştur (.bin ve .hex)
+    - name: 📦 Create Binary Files
+      run: |
+        cd Debug
+        arm-none-eabi-objcopy -O binary PayLordFreeRTOS.elf PayLordFreeRTOS.bin
+        arm-none-eabi-objcopy -O ihex PayLordFreeRTOS.elf PayLordFreeRTOS.hex
+        arm-none-eabi-size PayLordFreeRTOS.elf
+    
+    # 6. Build sonuçlarını artifact olarak kaydet
+    - name: 📤 Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: firmware-${{ github.sha }}
+        path: |
+          Debug/PayLordFreeRTOS.elf
+          Debug/PayLordFreeRTOS.bin
+          Debug/PayLordFreeRTOS.hex
+          Debug/PayLordFreeRTOS.map
+        retention-days: 30  # 30 gün sakla
+    
+    # 7. Build bilgilerini göster
+    - name: 📊 Display Build Info
+      run: |
+        echo "✅ Build completed successfully!"
+        echo "📦 Firmware size:"
+        arm-none-eabi-size Debug/PayLordFreeRTOS.elf
+        echo ""
+        echo "📁 Generated files:"
+        ls -lh Debug/*.elf Debug/*.bin Debug/*.hex 2>/dev/null || true

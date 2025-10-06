@@ -120,7 +120,7 @@ void flight_algorithm_update(BME_280_t* bme, bmi088_struct_t* bmi, sensor_fusion
                 status_bits |= 0x0001; // Set Bit 0: Rocket launch detected
                 durum_verisi = 2;
             }
-            else if(sensor_fusion->velocity > RISING_VELOCITY_TRESHOLD){
+            else if(sensor_fusion->velocity > 50.0){
             	current_phase = PHASE_BOOST;
 				is_rising = 1;
 				flight_start_time = HAL_GetTick();

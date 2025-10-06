@@ -30,7 +30,7 @@ void addDataPacketNormal(BME_280_t* BME, bmi088_struct_t* BMI, sensor_fusion_t* 
   normal_paket[4] = irtifa_float32_uint8_donusturucu.array[3];
 
   FLOAT32_UINT8_DONUSTURUCU roket_gps_irtifa_float32_uint8_donusturucu;
-  roket_gps_irtifa_float32_uint8_donusturucu.sayi = (GPS->altitude); // Roket GPS Irtifa degerinin atamasini yapiyoruz.
+  roket_gps_irtifa_float32_uint8_donusturucu.sayi = (bmi088_get_accel_frequency()); // Roket GPS Irtifa degerinin atamasini yapiyoruz.
   normal_paket[5] = roket_gps_irtifa_float32_uint8_donusturucu.array[0];
   normal_paket[6] = roket_gps_irtifa_float32_uint8_donusturucu.array[1];
   normal_paket[7] = roket_gps_irtifa_float32_uint8_donusturucu.array[2];
@@ -38,7 +38,7 @@ void addDataPacketNormal(BME_280_t* BME, bmi088_struct_t* BMI, sensor_fusion_t* 
 
    // Roket Enlem
   FLOAT32_UINT8_DONUSTURUCU roket_enlem_float32_uint8_donusturucu;
-  roket_enlem_float32_uint8_donusturucu.sayi = (GPS->latitude); // Roket enlem degerinin atamasini yapiyoruz.
+  roket_enlem_float32_uint8_donusturucu.sayi = (bmi088_get_gyro_frequency()); // Roket enlem degerinin atamasini yapiyoruz.
   normal_paket[9] = roket_enlem_float32_uint8_donusturucu.array[0];
   normal_paket[10] = roket_enlem_float32_uint8_donusturucu.array[1];
   normal_paket[11] = roket_enlem_float32_uint8_donusturucu.array[2];

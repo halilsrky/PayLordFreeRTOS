@@ -1,0 +1,55 @@
+name: Code Quality & Analysis
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+    
+    # Static Code Analysis için cppcheck
+    - name: 🔍 Install Cppcheck
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cppcheck
+    
+    - name: 🧪 Run Static Analysis
+      run: |
+        cppcheck --enable=all --inconclusive --std=c11 \
+          --suppress=missingIncludeSystem \
+          --suppress=unmatchedSuppression \
+          --quiet \
+          Core/Src/ Core/Inc/ 2>&1 | tee cppcheck-report.txt
+    
+    - name: 📊 Upload Analysis Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: cppcheck-report
+        path: cppcheck-report.txt
+        retention-days: 30
+    
+    # Kod istatistikleri
+    - name: 📈 Code Statistics
+      run: |
+        echo "=== Code Statistics ==="
+        echo ""
+        echo "📁 Source Files:"
+        find Core/Src -name "*.c" | wc -l
+        echo ""
+        echo "📄 Header Files:"
+        find Core/Inc -name "*.h" | wc -l
+        echo ""
+        echo "📝 Lines of Code:"
+        find Core/Src -name "*.c" -exec wc -l {} + | tail -1
+        echo ""
+        echo "📋 Detailed File Sizes:"
+        find Core/Src -name "*.c" -exec wc -l {} + | sort -rn | head -10
