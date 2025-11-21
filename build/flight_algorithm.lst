@@ -1,0 +1,1501 @@
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 6
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"flight_algorithm.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Core/Src/flight_algorithm.c"
+  20              		.section	.bss.current_phase,"aw",%nobits
+  23              	current_phase:
+  24 0000 00       		.space	1
+  25              		.section	.data.launch_accel_threshold,"aw"
+  26              		.align	2
+  29              	launch_accel_threshold:
+  30 0000 0000C841 		.word	1103626240
+  31              		.section	.data.min_arming_altitude,"aw"
+  32              		.align	2
+  35              	min_arming_altitude:
+  36 0000 0000E144 		.word	1155596288
+  37              		.section	.data.main_chute_altitude,"aw"
+  38              		.align	2
+  41              	main_chute_altitude:
+  42 0000 0000FA43 		.word	1140457472
+  43              		.section	.data.max_angle_threshold,"aw"
+  44              		.align	2
+  47              	max_angle_threshold:
+  48 0000 00008C42 		.word	1116471296
+  49              		.section	.bss.is_rising,"aw",%nobits
+  52              	is_rising:
+  53 0000 00       		.space	1
+  54              		.section	.data.is_stabilized,"aw"
+  57              	is_stabilized:
+  58 0000 01       		.byte	1
+  59              		.section	.bss.is_armed,"aw",%nobits
+  62              	is_armed:
+  63 0000 00       		.space	1
+  64              		.section	.data.deployed_angle,"aw"
+  67              	deployed_angle:
+  68 0000 01       		.byte	1
+  69              		.section	.data.deployed_velocity,"aw"
+  72              	deployed_velocity:
+  73 0000 01       		.byte	1
+  74              		.section	.bss.drogue_deployed,"aw",%nobits
+  77              	drogue_deployed:
+  78 0000 00       		.space	1
+  79              		.section	.bss.main_deployed,"aw",%nobits
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 2
+
+
+  82              	main_deployed:
+  83 0000 00       		.space	1
+  84              		.global	apogee_counter
+  85              		.section	.bss.apogee_counter,"aw",%nobits
+  86              		.align	2
+  89              	apogee_counter:
+  90 0000 00000000 		.space	4
+  91              		.global	burnout_counter
+  92              		.section	.data.burnout_counter,"aw"
+  93              		.align	2
+  96              	burnout_counter:
+  97 0000 01000000 		.word	1
+  98              		.global	prev_velocity
+  99              		.section	.bss.prev_velocity,"aw",%nobits
+ 100              		.align	2
+ 103              	prev_velocity:
+ 104 0000 00000000 		.space	4
+ 105              		.section	.bss.flight_start_time,"aw",%nobits
+ 106              		.align	2
+ 109              	flight_start_time:
+ 110 0000 00000000 		.space	4
+ 111              		.section	.bss.altitude_decrease_count,"aw",%nobits
+ 114              	altitude_decrease_count:
+ 115 0000 00       		.space	1
+ 116              		.section	.bss.prev_altitude,"aw",%nobits
+ 117              		.align	2
+ 120              	prev_altitude:
+ 121 0000 00000000 		.space	4
+ 122              		.section	.bss.status_bits,"aw",%nobits
+ 123              		.align	1
+ 126              	status_bits:
+ 127 0000 0000     		.space	2
+ 128              		.section	.data.durum_verisi,"aw"
+ 131              	durum_verisi:
+ 132 0000 01       		.byte	1
+ 133              		.section	.bss.drogue_pulse_active,"aw",%nobits
+ 136              	drogue_pulse_active:
+ 137 0000 00       		.space	1
+ 138              		.section	.bss.drogue_pulse_start_time,"aw",%nobits
+ 139              		.align	2
+ 142              	drogue_pulse_start_time:
+ 143 0000 00000000 		.space	4
+ 144              		.section	.bss.main_pulse_active,"aw",%nobits
+ 147              	main_pulse_active:
+ 148 0000 00       		.space	1
+ 149              		.section	.bss.main_pulse_start_time,"aw",%nobits
+ 150              		.align	2
+ 153              	main_pulse_start_time:
+ 154 0000 00000000 		.space	4
+ 155              		.section	.text.flight_algorithm_init,"ax",%progbits
+ 156              		.align	1
+ 157              		.global	flight_algorithm_init
+ 158              		.syntax unified
+ 159              		.thumb
+ 160              		.thumb_func
+ 162              	flight_algorithm_init:
+ 163              	.LFB242:
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 3
+
+
+   1:Core/Src/flight_algorithm.c **** /**
+   2:Core/Src/flight_algorithm.c ****  * @file flight_algorithm.c
+   3:Core/Src/flight_algorithm.c ****  * @brief Core flight algorithm for rocket flight control system
+   4:Core/Src/flight_algorithm.c ****  * @date 2025-07-03
+   5:Core/Src/flight_algorithm.c ****  * @author halilsrky
+   6:Core/Src/flight_algorithm.c ****  */
+   7:Core/Src/flight_algorithm.c **** 
+   8:Core/Src/flight_algorithm.c **** #include "flight_algorithm.h"
+   9:Core/Src/flight_algorithm.c **** #include "queternion.h"
+  10:Core/Src/flight_algorithm.c **** #include "bme280.h"
+  11:Core/Src/flight_algorithm.c **** #include "main.h"
+  12:Core/Src/flight_algorithm.c **** #include <math.h>
+  13:Core/Src/flight_algorithm.c **** 
+  14:Core/Src/flight_algorithm.c **** // External dependencies
+  15:Core/Src/flight_algorithm.c **** extern int is_BME_ok;
+  16:Core/Src/flight_algorithm.c **** 
+  17:Core/Src/flight_algorithm.c **** // Private defines
+  18:Core/Src/flight_algorithm.c **** #define ALT_DECREASE_THRESHOLD   3     // consecutive altitude decreases
+  19:Core/Src/flight_algorithm.c **** 
+  20:Core/Src/flight_algorithm.c **** // Private variables
+  21:Core/Src/flight_algorithm.c **** static FlightPhase_t current_phase = PHASE_IDLE;
+  22:Core/Src/flight_algorithm.c **** 
+  23:Core/Src/flight_algorithm.c **** // Flight parameters (configurable)
+  24:Core/Src/flight_algorithm.c **** static float launch_accel_threshold = 25.0f;  // m/s²
+  25:Core/Src/flight_algorithm.c **** static float min_arming_altitude = 1800.0f;   // meters
+  26:Core/Src/flight_algorithm.c **** static float main_chute_altitude = 500.0f;    // meters
+  27:Core/Src/flight_algorithm.c **** static float max_angle_threshold = 70.0f;     // degrees
+  28:Core/Src/flight_algorithm.c **** 
+  29:Core/Src/flight_algorithm.c **** // Flight state tracking
+  30:Core/Src/flight_algorithm.c **** static uint8_t is_rising = 0;
+  31:Core/Src/flight_algorithm.c **** static uint8_t is_stabilized = 1;
+  32:Core/Src/flight_algorithm.c **** static uint8_t is_armed = 0;
+  33:Core/Src/flight_algorithm.c **** static uint8_t deployed_angle = 1;
+  34:Core/Src/flight_algorithm.c **** static uint8_t deployed_velocity = 1;
+  35:Core/Src/flight_algorithm.c **** static uint8_t drogue_deployed = 0;
+  36:Core/Src/flight_algorithm.c **** static uint8_t main_deployed = 0;
+  37:Core/Src/flight_algorithm.c **** int apogee_counter = 0;
+  38:Core/Src/flight_algorithm.c **** int burnout_counter = 1;
+  39:Core/Src/flight_algorithm.c **** float prev_velocity = 0;
+  40:Core/Src/flight_algorithm.c **** 
+  41:Core/Src/flight_algorithm.c **** static uint32_t flight_start_time = 0;
+  42:Core/Src/flight_algorithm.c **** static uint8_t altitude_decrease_count = 0;
+  43:Core/Src/flight_algorithm.c **** static float prev_altitude = 0.0f;
+  44:Core/Src/flight_algorithm.c **** 
+  45:Core/Src/flight_algorithm.c **** // Status tracking
+  46:Core/Src/flight_algorithm.c **** static uint16_t status_bits = 0;
+  47:Core/Src/flight_algorithm.c **** static uint8_t durum_verisi = 1;
+  48:Core/Src/flight_algorithm.c **** 
+  49:Core/Src/flight_algorithm.c **** // Private function prototypes
+  50:Core/Src/flight_algorithm.c **** static float calculate_total_acceleration(bmi088_struct_t* bmi);
+  51:Core/Src/flight_algorithm.c **** void deploy_drogue_parachute(void);
+  52:Core/Src/flight_algorithm.c **** void deploy_main_parachute(void);
+  53:Core/Src/flight_algorithm.c **** // Drogue parachute deployment state
+  54:Core/Src/flight_algorithm.c **** static uint8_t drogue_pulse_active = 0;
+  55:Core/Src/flight_algorithm.c **** static uint32_t drogue_pulse_start_time = 0;
+  56:Core/Src/flight_algorithm.c **** 
+  57:Core/Src/flight_algorithm.c **** // Main parachute deployment state
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 4
+
+
+  58:Core/Src/flight_algorithm.c **** static uint8_t main_pulse_active = 0;
+  59:Core/Src/flight_algorithm.c **** static uint32_t main_pulse_start_time = 0;
+  60:Core/Src/flight_algorithm.c **** 
+  61:Core/Src/flight_algorithm.c **** 
+  62:Core/Src/flight_algorithm.c **** 
+  63:Core/Src/flight_algorithm.c **** 
+  64:Core/Src/flight_algorithm.c **** 
+  65:Core/Src/flight_algorithm.c **** /**
+  66:Core/Src/flight_algorithm.c ****  * @brief Initialize the flight algorithm
+  67:Core/Src/flight_algorithm.c ****  */
+  68:Core/Src/flight_algorithm.c **** void flight_algorithm_init(void)
+  69:Core/Src/flight_algorithm.c **** {
+ 164              		.loc 1 69 1
+ 165              		.cfi_startproc
+ 166              		@ args = 0, pretend = 0, frame = 0
+ 167              		@ frame_needed = 1, uses_anonymous_args = 0
+ 168 0000 80B5     		push	{r7, lr}
+ 169              		.cfi_def_cfa_offset 8
+ 170              		.cfi_offset 7, -8
+ 171              		.cfi_offset 14, -4
+ 172 0002 00AF     		add	r7, sp, #0
+ 173              		.cfi_def_cfa_register 7
+  70:Core/Src/flight_algorithm.c ****     flight_algorithm_reset();
+ 174              		.loc 1 70 5
+ 175 0004 FFF7FEFF 		bl	flight_algorithm_reset
+  71:Core/Src/flight_algorithm.c **** }
+ 176              		.loc 1 71 1
+ 177 0008 00BF     		nop
+ 178 000a 80BD     		pop	{r7, pc}
+ 179              		.cfi_endproc
+ 180              	.LFE242:
+ 182              		.section	.text.flight_algorithm_reset,"ax",%progbits
+ 183              		.align	1
+ 184              		.global	flight_algorithm_reset
+ 185              		.syntax unified
+ 186              		.thumb
+ 187              		.thumb_func
+ 189              	flight_algorithm_reset:
+ 190              	.LFB243:
+  72:Core/Src/flight_algorithm.c **** 
+  73:Core/Src/flight_algorithm.c **** /**
+  74:Core/Src/flight_algorithm.c ****  * @brief Reset flight algorithm to initial state
+  75:Core/Src/flight_algorithm.c ****  */
+  76:Core/Src/flight_algorithm.c **** void flight_algorithm_reset(void)
+  77:Core/Src/flight_algorithm.c **** {
+ 191              		.loc 1 77 1
+ 192              		.cfi_startproc
+ 193              		@ args = 0, pretend = 0, frame = 0
+ 194              		@ frame_needed = 1, uses_anonymous_args = 0
+ 195              		@ link register save eliminated.
+ 196 0000 80B4     		push	{r7}
+ 197              		.cfi_def_cfa_offset 4
+ 198              		.cfi_offset 7, -4
+ 199 0002 00AF     		add	r7, sp, #0
+ 200              		.cfi_def_cfa_register 7
+  78:Core/Src/flight_algorithm.c ****     current_phase = PHASE_IDLE;
+ 201              		.loc 1 78 19
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 5
+
+
+ 202 0004 214B     		ldr	r3, .L3
+ 203 0006 0022     		movs	r2, #0
+ 204 0008 1A70     		strb	r2, [r3]
+  79:Core/Src/flight_algorithm.c ****     is_rising = 0;
+ 205              		.loc 1 79 15
+ 206 000a 214B     		ldr	r3, .L3+4
+ 207 000c 0022     		movs	r2, #0
+ 208 000e 1A70     		strb	r2, [r3]
+  80:Core/Src/flight_algorithm.c ****     is_stabilized = 1;
+ 209              		.loc 1 80 19
+ 210 0010 204B     		ldr	r3, .L3+8
+ 211 0012 0122     		movs	r2, #1
+ 212 0014 1A70     		strb	r2, [r3]
+  81:Core/Src/flight_algorithm.c ****     is_armed = 0;
+ 213              		.loc 1 81 14
+ 214 0016 204B     		ldr	r3, .L3+12
+ 215 0018 0022     		movs	r2, #0
+ 216 001a 1A70     		strb	r2, [r3]
+  82:Core/Src/flight_algorithm.c ****     drogue_deployed = 0;
+ 217              		.loc 1 82 21
+ 218 001c 1F4B     		ldr	r3, .L3+16
+ 219 001e 0022     		movs	r2, #0
+ 220 0020 1A70     		strb	r2, [r3]
+  83:Core/Src/flight_algorithm.c ****     main_deployed = 0;
+ 221              		.loc 1 83 19
+ 222 0022 1F4B     		ldr	r3, .L3+20
+ 223 0024 0022     		movs	r2, #0
+ 224 0026 1A70     		strb	r2, [r3]
+  84:Core/Src/flight_algorithm.c ****     altitude_decrease_count = 0;
+ 225              		.loc 1 84 29
+ 226 0028 1E4B     		ldr	r3, .L3+24
+ 227 002a 0022     		movs	r2, #0
+ 228 002c 1A70     		strb	r2, [r3]
+  85:Core/Src/flight_algorithm.c ****     status_bits = 0;
+ 229              		.loc 1 85 17
+ 230 002e 1E4B     		ldr	r3, .L3+28
+ 231 0030 0022     		movs	r2, #0
+ 232 0032 1A80     		strh	r2, [r3]	@ movhi
+  86:Core/Src/flight_algorithm.c ****     prev_altitude = 0.0f;
+ 233              		.loc 1 86 19
+ 234 0034 1D4B     		ldr	r3, .L3+32
+ 235 0036 4FF00002 		mov	r2, #0
+ 236 003a 1A60     		str	r2, [r3]	@ float
+  87:Core/Src/flight_algorithm.c ****     flight_start_time = 0;
+ 237              		.loc 1 87 23
+ 238 003c 1C4B     		ldr	r3, .L3+36
+ 239 003e 0022     		movs	r2, #0
+ 240 0040 1A60     		str	r2, [r3]
+  88:Core/Src/flight_algorithm.c ****     deployed_velocity = 1;
+ 241              		.loc 1 88 23
+ 242 0042 1C4B     		ldr	r3, .L3+40
+ 243 0044 0122     		movs	r2, #1
+ 244 0046 1A70     		strb	r2, [r3]
+  89:Core/Src/flight_algorithm.c ****     deployed_angle = 1;
+ 245              		.loc 1 89 20
+ 246 0048 1B4B     		ldr	r3, .L3+44
+ 247 004a 0122     		movs	r2, #1
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 6
+
+
+ 248 004c 1A70     		strb	r2, [r3]
+  90:Core/Src/flight_algorithm.c ****     apogee_counter = 0;
+ 249              		.loc 1 90 20
+ 250 004e 1B4B     		ldr	r3, .L3+48
+ 251 0050 0022     		movs	r2, #0
+ 252 0052 1A60     		str	r2, [r3]
+  91:Core/Src/flight_algorithm.c ****     prev_velocity = 0;
+ 253              		.loc 1 91 19
+ 254 0054 1A4B     		ldr	r3, .L3+52
+ 255 0056 4FF00002 		mov	r2, #0
+ 256 005a 1A60     		str	r2, [r3]	@ float
+  92:Core/Src/flight_algorithm.c ****     durum_verisi = 1;
+ 257              		.loc 1 92 18
+ 258 005c 194B     		ldr	r3, .L3+56
+ 259 005e 0122     		movs	r2, #1
+ 260 0060 1A70     		strb	r2, [r3]
+  93:Core/Src/flight_algorithm.c ****     drogue_pulse_active = 0;
+ 261              		.loc 1 93 25
+ 262 0062 194B     		ldr	r3, .L3+60
+ 263 0064 0022     		movs	r2, #0
+ 264 0066 1A70     		strb	r2, [r3]
+  94:Core/Src/flight_algorithm.c ****     drogue_pulse_start_time = 0;
+ 265              		.loc 1 94 29
+ 266 0068 184B     		ldr	r3, .L3+64
+ 267 006a 0022     		movs	r2, #0
+ 268 006c 1A60     		str	r2, [r3]
+  95:Core/Src/flight_algorithm.c ****     main_pulse_active = 0;
+ 269              		.loc 1 95 23
+ 270 006e 184B     		ldr	r3, .L3+68
+ 271 0070 0022     		movs	r2, #0
+ 272 0072 1A70     		strb	r2, [r3]
+  96:Core/Src/flight_algorithm.c ****     main_pulse_start_time = 0;
+ 273              		.loc 1 96 27
+ 274 0074 174B     		ldr	r3, .L3+72
+ 275 0076 0022     		movs	r2, #0
+ 276 0078 1A60     		str	r2, [r3]
+  97:Core/Src/flight_algorithm.c ****     burnout_counter = 1;
+ 277              		.loc 1 97 21
+ 278 007a 174B     		ldr	r3, .L3+76
+ 279 007c 0122     		movs	r2, #1
+ 280 007e 1A60     		str	r2, [r3]
+  98:Core/Src/flight_algorithm.c **** }
+ 281              		.loc 1 98 1
+ 282 0080 00BF     		nop
+ 283 0082 BD46     		mov	sp, r7
+ 284              		.cfi_def_cfa_register 13
+ 285              		@ sp needed
+ 286 0084 5DF8047B 		ldr	r7, [sp], #4
+ 287              		.cfi_restore 7
+ 288              		.cfi_def_cfa_offset 0
+ 289 0088 7047     		bx	lr
+ 290              	.L4:
+ 291 008a 00BF     		.align	2
+ 292              	.L3:
+ 293 008c 00000000 		.word	current_phase
+ 294 0090 00000000 		.word	is_rising
+ 295 0094 00000000 		.word	is_stabilized
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 7
+
+
+ 296 0098 00000000 		.word	is_armed
+ 297 009c 00000000 		.word	drogue_deployed
+ 298 00a0 00000000 		.word	main_deployed
+ 299 00a4 00000000 		.word	altitude_decrease_count
+ 300 00a8 00000000 		.word	status_bits
+ 301 00ac 00000000 		.word	prev_altitude
+ 302 00b0 00000000 		.word	flight_start_time
+ 303 00b4 00000000 		.word	deployed_velocity
+ 304 00b8 00000000 		.word	deployed_angle
+ 305 00bc 00000000 		.word	apogee_counter
+ 306 00c0 00000000 		.word	prev_velocity
+ 307 00c4 00000000 		.word	durum_verisi
+ 308 00c8 00000000 		.word	drogue_pulse_active
+ 309 00cc 00000000 		.word	drogue_pulse_start_time
+ 310 00d0 00000000 		.word	main_pulse_active
+ 311 00d4 00000000 		.word	main_pulse_start_time
+ 312 00d8 00000000 		.word	burnout_counter
+ 313              		.cfi_endproc
+ 314              	.LFE243:
+ 316              		.section	.text.flight_algorithm_update,"ax",%progbits
+ 317              		.align	1
+ 318              		.global	flight_algorithm_update
+ 319              		.syntax unified
+ 320              		.thumb
+ 321              		.thumb_func
+ 323              	flight_algorithm_update:
+ 324              	.LFB244:
+  99:Core/Src/flight_algorithm.c **** 
+ 100:Core/Src/flight_algorithm.c **** /**
+ 101:Core/Src/flight_algorithm.c ****  * @brief Update flight algorithm with sensor data
+ 102:Core/Src/flight_algorithm.c ****  */
+ 103:Core/Src/flight_algorithm.c **** void flight_algorithm_update(BME_280_t* bme, bmi088_struct_t* bmi, sensor_fusion_t* sensor_fusion)
+ 104:Core/Src/flight_algorithm.c **** {
+ 325              		.loc 1 104 1
+ 326              		.cfi_startproc
+ 327              		@ args = 0, pretend = 0, frame = 24
+ 328              		@ frame_needed = 1, uses_anonymous_args = 0
+ 329 0000 80B5     		push	{r7, lr}
+ 330              		.cfi_def_cfa_offset 8
+ 331              		.cfi_offset 7, -8
+ 332              		.cfi_offset 14, -4
+ 333 0002 86B0     		sub	sp, sp, #24
+ 334              		.cfi_def_cfa_offset 32
+ 335 0004 00AF     		add	r7, sp, #0
+ 336              		.cfi_def_cfa_register 7
+ 337 0006 F860     		str	r0, [r7, #12]
+ 338 0008 B960     		str	r1, [r7, #8]
+ 339 000a 7A60     		str	r2, [r7, #4]
+ 105:Core/Src/flight_algorithm.c ****     // Calculate key metrics
+ 106:Core/Src/flight_algorithm.c ****     float total_acceleration = calculate_total_acceleration(bmi);
+ 340              		.loc 1 106 32
+ 341 000c B868     		ldr	r0, [r7, #8]
+ 342 000e FFF7FEFF 		bl	calculate_total_acceleration
+ 343 0012 87ED050A 		vstr.32	s0, [r7, #20]
+ 107:Core/Src/flight_algorithm.c ****     //float theta = sensor_fusion->angle; // Use sensor fusion output
+ 108:Core/Src/flight_algorithm.c **** 
+ 109:Core/Src/flight_algorithm.c ****     // Status bits are cumulative - once set they remain set
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 8
+
+
+ 110:Core/Src/flight_algorithm.c ****     // Each phase builds on the previous phase's status bits
+ 111:Core/Src/flight_algorithm.c **** 
+ 112:Core/Src/flight_algorithm.c ****     // State machine for flight phases
+ 113:Core/Src/flight_algorithm.c ****     switch (current_phase) {
+ 344              		.loc 1 113 5
+ 345 0016 A24B     		ldr	r3, .L44
+ 346 0018 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 347 001a 042B     		cmp	r3, #4
+ 348 001c 00F26781 		bhi	.L6
+ 349 0020 01A2     		adr	r2, .L8
+ 350 0022 52F823F0 		ldr	pc, [r2, r3, lsl #2]
+ 351 0026 00BF     		.p2align 2
+ 352              	.L8:
+ 353 0028 3D000000 		.word	.L12+1
+ 354 002c BF000000 		.word	.L11+1
+ 355 0030 3F010000 		.word	.L10+1
+ 356 0034 EF020000 		.word	.L6+1
+ 357 0038 EF020000 		.word	.L6+1
+ 358              		.p2align 1
+ 359              	.L12:
+ 114:Core/Src/flight_algorithm.c ****         case PHASE_IDLE:
+ 115:Core/Src/flight_algorithm.c ****             // Detect launch using acceleration threshold
+ 116:Core/Src/flight_algorithm.c ****             if (total_acceleration > launch_accel_threshold) {
+ 360              		.loc 1 116 36
+ 361 003c 994B     		ldr	r3, .L44+4
+ 362 003e D3ED007A 		vldr.32	s15, [r3]
+ 363              		.loc 1 116 16
+ 364 0042 97ED057A 		vldr.32	s14, [r7, #20]
+ 365 0046 B4EEE77A 		vcmpe.f32	s14, s15
+ 366 004a F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 367 004e 15DD     		ble	.L40
+ 117:Core/Src/flight_algorithm.c ****                 current_phase = PHASE_BOOST;
+ 368              		.loc 1 117 31
+ 369 0050 934B     		ldr	r3, .L44
+ 370 0052 0122     		movs	r2, #1
+ 371 0054 1A70     		strb	r2, [r3]
+ 118:Core/Src/flight_algorithm.c ****                 is_rising = 1;
+ 372              		.loc 1 118 27
+ 373 0056 944B     		ldr	r3, .L44+8
+ 374 0058 0122     		movs	r2, #1
+ 375 005a 1A70     		strb	r2, [r3]
+ 119:Core/Src/flight_algorithm.c ****                 flight_start_time = HAL_GetTick();
+ 376              		.loc 1 119 37
+ 377 005c FFF7FEFF 		bl	HAL_GetTick
+ 378 0060 0346     		mov	r3, r0
+ 379              		.loc 1 119 35
+ 380 0062 924A     		ldr	r2, .L44+12
+ 381 0064 1360     		str	r3, [r2]
+ 120:Core/Src/flight_algorithm.c ****                 status_bits |= 0x0001; // Set Bit 0: Rocket launch detected
+ 382              		.loc 1 120 29
+ 383 0066 924B     		ldr	r3, .L44+16
+ 384 0068 1B88     		ldrh	r3, [r3]
+ 385 006a 43F00103 		orr	r3, r3, #1
+ 386 006e 9AB2     		uxth	r2, r3
+ 387 0070 8F4B     		ldr	r3, .L44+16
+ 388 0072 1A80     		strh	r2, [r3]	@ movhi
+ 121:Core/Src/flight_algorithm.c ****                 durum_verisi = 2;
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 9
+
+
+ 389              		.loc 1 121 30
+ 390 0074 8F4B     		ldr	r3, .L44+20
+ 391 0076 0222     		movs	r2, #2
+ 392 0078 1A70     		strb	r2, [r3]
+ 122:Core/Src/flight_algorithm.c ****             }
+ 123:Core/Src/flight_algorithm.c ****             else if(sensor_fusion->velocity > 50.0){
+ 124:Core/Src/flight_algorithm.c ****             	current_phase = PHASE_BOOST;
+ 125:Core/Src/flight_algorithm.c **** 				is_rising = 1;
+ 126:Core/Src/flight_algorithm.c **** 				flight_start_time = HAL_GetTick();
+ 127:Core/Src/flight_algorithm.c **** 				status_bits |= 0x0001; // Set Bit 0: Rocket launch detected
+ 128:Core/Src/flight_algorithm.c **** 				durum_verisi = 2;
+ 129:Core/Src/flight_algorithm.c ****             }
+ 130:Core/Src/flight_algorithm.c ****             break;
+ 393              		.loc 1 130 13
+ 394 007a 38E1     		b	.L6
+ 395              	.L40:
+ 123:Core/Src/flight_algorithm.c ****             	current_phase = PHASE_BOOST;
+ 396              		.loc 1 123 34
+ 397 007c 7B68     		ldr	r3, [r7, #4]
+ 398 007e D3ED017A 		vldr.32	s15, [r3, #4]
+ 123:Core/Src/flight_algorithm.c ****             	current_phase = PHASE_BOOST;
+ 399              		.loc 1 123 20
+ 400 0082 9FED8D7A 		vldr.32	s14, .L44+24
+ 401 0086 F4EEC77A 		vcmpe.f32	s15, s14
+ 402 008a F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 403 008e 00DC     		bgt	.L33
+ 404              		.loc 1 130 13
+ 405 0090 2DE1     		b	.L6
+ 406              	.L33:
+ 124:Core/Src/flight_algorithm.c **** 				is_rising = 1;
+ 407              		.loc 1 124 28
+ 408 0092 834B     		ldr	r3, .L44
+ 409 0094 0122     		movs	r2, #1
+ 410 0096 1A70     		strb	r2, [r3]
+ 125:Core/Src/flight_algorithm.c **** 				flight_start_time = HAL_GetTick();
+ 411              		.loc 1 125 15
+ 412 0098 834B     		ldr	r3, .L44+8
+ 413 009a 0122     		movs	r2, #1
+ 414 009c 1A70     		strb	r2, [r3]
+ 126:Core/Src/flight_algorithm.c **** 				status_bits |= 0x0001; // Set Bit 0: Rocket launch detected
+ 415              		.loc 1 126 25
+ 416 009e FFF7FEFF 		bl	HAL_GetTick
+ 417 00a2 0346     		mov	r3, r0
+ 126:Core/Src/flight_algorithm.c **** 				status_bits |= 0x0001; // Set Bit 0: Rocket launch detected
+ 418              		.loc 1 126 23
+ 419 00a4 814A     		ldr	r2, .L44+12
+ 420 00a6 1360     		str	r3, [r2]
+ 127:Core/Src/flight_algorithm.c **** 				durum_verisi = 2;
+ 421              		.loc 1 127 17
+ 422 00a8 814B     		ldr	r3, .L44+16
+ 423 00aa 1B88     		ldrh	r3, [r3]
+ 424 00ac 43F00103 		orr	r3, r3, #1
+ 425 00b0 9AB2     		uxth	r2, r3
+ 426 00b2 7F4B     		ldr	r3, .L44+16
+ 427 00b4 1A80     		strh	r2, [r3]	@ movhi
+ 128:Core/Src/flight_algorithm.c ****             }
+ 428              		.loc 1 128 18
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 10
+
+
+ 429 00b6 7F4B     		ldr	r3, .L44+20
+ 430 00b8 0222     		movs	r2, #2
+ 431 00ba 1A70     		strb	r2, [r3]
+ 432              		.loc 1 130 13
+ 433 00bc 17E1     		b	.L6
+ 434              	.L11:
+ 131:Core/Src/flight_algorithm.c **** 
+ 132:Core/Src/flight_algorithm.c ****         case PHASE_BOOST:
+ 133:Core/Src/flight_algorithm.c ****             // After boost phase (typically 7-9 seconds)
+ 134:Core/Src/flight_algorithm.c ****             if (HAL_GetTick() - flight_start_time > 8000) {
+ 435              		.loc 1 134 17
+ 436 00be FFF7FEFF 		bl	HAL_GetTick
+ 437 00c2 0246     		mov	r2, r0
+ 438              		.loc 1 134 31
+ 439 00c4 794B     		ldr	r3, .L44+12
+ 440 00c6 1B68     		ldr	r3, [r3]
+ 441 00c8 D31A     		subs	r3, r2, r3
+ 442              		.loc 1 134 16
+ 443 00ca B3F5FA5F 		cmp	r3, #8000
+ 444 00ce 0FD9     		bls	.L17
+ 135:Core/Src/flight_algorithm.c ****                 current_phase = PHASE_COAST;
+ 445              		.loc 1 135 31
+ 446 00d0 734B     		ldr	r3, .L44
+ 447 00d2 0222     		movs	r2, #2
+ 448 00d4 1A70     		strb	r2, [r3]
+ 136:Core/Src/flight_algorithm.c ****                 is_stabilized = 1;
+ 449              		.loc 1 136 31
+ 450 00d6 794B     		ldr	r3, .L44+28
+ 451 00d8 0122     		movs	r2, #1
+ 452 00da 1A70     		strb	r2, [r3]
+ 137:Core/Src/flight_algorithm.c ****                 status_bits |= 0x0002; // Set Bit 1: Motor burn prevention period ended
+ 453              		.loc 1 137 29
+ 454 00dc 744B     		ldr	r3, .L44+16
+ 455 00de 1B88     		ldrh	r3, [r3]
+ 456 00e0 43F00203 		orr	r3, r3, #2
+ 457 00e4 9AB2     		uxth	r2, r3
+ 458 00e6 724B     		ldr	r3, .L44+16
+ 459 00e8 1A80     		strh	r2, [r3]	@ movhi
+ 138:Core/Src/flight_algorithm.c ****                 durum_verisi = 3;
+ 460              		.loc 1 138 30
+ 461 00ea 724B     		ldr	r3, .L44+20
+ 462 00ec 0322     		movs	r2, #3
+ 463 00ee 1A70     		strb	r2, [r3]
+ 464              	.L17:
+ 139:Core/Src/flight_algorithm.c ****             }
+ 140:Core/Src/flight_algorithm.c ****             if(bmi->datas.acc_x < 0.0 && burnout_counter < 10){
+ 465              		.loc 1 140 26
+ 466 00f0 BB68     		ldr	r3, [r7, #8]
+ 467 00f2 D3ED177A 		vldr.32	s15, [r3, #92]
+ 468              		.loc 1 140 15
+ 469 00f6 F5EEC07A 		vcmpe.f32	s15, #0
+ 470 00fa F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 471 00fe 08D5     		bpl	.L18
+ 472              		.loc 1 140 58 discriminator 1
+ 473 0100 6F4B     		ldr	r3, .L44+32
+ 474 0102 1B68     		ldr	r3, [r3]
+ 475              		.loc 1 140 39 discriminator 1
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 11
+
+
+ 476 0104 092B     		cmp	r3, #9
+ 477 0106 04DC     		bgt	.L18
+ 141:Core/Src/flight_algorithm.c ****             	burnout_counter++;
+ 478              		.loc 1 141 29
+ 479 0108 6D4B     		ldr	r3, .L44+32
+ 480 010a 1B68     		ldr	r3, [r3]
+ 481 010c 0133     		adds	r3, r3, #1
+ 482 010e 6C4A     		ldr	r2, .L44+32
+ 483 0110 1360     		str	r3, [r2]
+ 484              	.L18:
+ 142:Core/Src/flight_algorithm.c ****             }
+ 143:Core/Src/flight_algorithm.c ****             if(burnout_counter == 10){
+ 485              		.loc 1 143 32
+ 486 0112 6B4B     		ldr	r3, .L44+32
+ 487 0114 1B68     		ldr	r3, [r3]
+ 488              		.loc 1 143 15
+ 489 0116 0A2B     		cmp	r3, #10
+ 490 0118 40F0C080 		bne	.L41
+ 144:Core/Src/flight_algorithm.c ****                 current_phase = PHASE_COAST;
+ 491              		.loc 1 144 31
+ 492 011c 604B     		ldr	r3, .L44
+ 493 011e 0222     		movs	r2, #2
+ 494 0120 1A70     		strb	r2, [r3]
+ 145:Core/Src/flight_algorithm.c ****                 is_stabilized = 1;
+ 495              		.loc 1 145 31
+ 496 0122 664B     		ldr	r3, .L44+28
+ 497 0124 0122     		movs	r2, #1
+ 498 0126 1A70     		strb	r2, [r3]
+ 146:Core/Src/flight_algorithm.c ****                 status_bits |= 0x0002; // Set Bit 1: Motor burn prevention period ended
+ 499              		.loc 1 146 29
+ 500 0128 614B     		ldr	r3, .L44+16
+ 501 012a 1B88     		ldrh	r3, [r3]
+ 502 012c 43F00203 		orr	r3, r3, #2
+ 503 0130 9AB2     		uxth	r2, r3
+ 504 0132 5F4B     		ldr	r3, .L44+16
+ 505 0134 1A80     		strh	r2, [r3]	@ movhi
+ 147:Core/Src/flight_algorithm.c ****                 durum_verisi = 3;
+ 506              		.loc 1 147 30
+ 507 0136 5F4B     		ldr	r3, .L44+20
+ 508 0138 0322     		movs	r2, #3
+ 509 013a 1A70     		strb	r2, [r3]
+ 148:Core/Src/flight_algorithm.c ****             }
+ 149:Core/Src/flight_algorithm.c ****             break;
+ 510              		.loc 1 149 13
+ 511 013c AEE0     		b	.L41
+ 512              	.L10:
+ 150:Core/Src/flight_algorithm.c **** 
+ 151:Core/Src/flight_algorithm.c ****         case PHASE_COAST:
+ 152:Core/Src/flight_algorithm.c ****             // Check minimum arming altitude
+ 153:Core/Src/flight_algorithm.c ****             if (bme->altitude > min_arming_altitude && !is_armed) {
+ 513              		.loc 1 153 20
+ 514 013e FB68     		ldr	r3, [r7, #12]
+ 515 0140 93ED087A 		vldr.32	s14, [r3, #32]
+ 516              		.loc 1 153 31
+ 517 0144 5F4B     		ldr	r3, .L44+36
+ 518 0146 D3ED007A 		vldr.32	s15, [r3]
+ 519              		.loc 1 153 16
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 12
+
+
+ 520 014a B4EEE77A 		vcmpe.f32	s14, s15
+ 521 014e F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 522 0152 10DD     		ble	.L21
+ 523              		.loc 1 153 56 discriminator 1
+ 524 0154 5C4B     		ldr	r3, .L44+40
+ 525 0156 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 526              		.loc 1 153 53 discriminator 1
+ 527 0158 002B     		cmp	r3, #0
+ 528 015a 0CD1     		bne	.L21
+ 154:Core/Src/flight_algorithm.c ****                 is_armed = 1;
+ 529              		.loc 1 154 26
+ 530 015c 5A4B     		ldr	r3, .L44+40
+ 531 015e 0122     		movs	r2, #1
+ 532 0160 1A70     		strb	r2, [r3]
+ 155:Core/Src/flight_algorithm.c ****                 status_bits |= 0x0004; // Set Bit 2: Minimum altitude threshold exceeded
+ 533              		.loc 1 155 29
+ 534 0162 534B     		ldr	r3, .L44+16
+ 535 0164 1B88     		ldrh	r3, [r3]
+ 536 0166 43F00403 		orr	r3, r3, #4
+ 537 016a 9AB2     		uxth	r2, r3
+ 538 016c 504B     		ldr	r3, .L44+16
+ 539 016e 1A80     		strh	r2, [r3]	@ movhi
+ 156:Core/Src/flight_algorithm.c ****                 durum_verisi = 4;
+ 540              		.loc 1 156 30
+ 541 0170 504B     		ldr	r3, .L44+20
+ 542 0172 0422     		movs	r2, #4
+ 543 0174 1A70     		strb	r2, [r3]
+ 544              	.L21:
+ 157:Core/Src/flight_algorithm.c ****             }
+ 158:Core/Src/flight_algorithm.c **** 
+ 159:Core/Src/flight_algorithm.c ****             // Check if angle exceeds threshold
+ 160:Core/Src/flight_algorithm.c ****             if (is_armed && (fabs(bmi->datas.theta) > max_angle_threshold) && deployed_angle) {
+ 545              		.loc 1 160 17
+ 546 0176 544B     		ldr	r3, .L44+40
+ 547 0178 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 548              		.loc 1 160 16
+ 549 017a 002B     		cmp	r3, #0
+ 550 017c 20D0     		beq	.L23
+ 551              		.loc 1 160 45 discriminator 1
+ 552 017e BB68     		ldr	r3, [r7, #8]
+ 553 0180 D3ED0D7A 		vldr.32	s15, [r3, #52]
+ 554              		.loc 1 160 30 discriminator 1
+ 555 0184 B0EEE77A 		vabs.f32	s14, s15
+ 556              		.loc 1 160 53 discriminator 1
+ 557 0188 504B     		ldr	r3, .L44+44
+ 558 018a D3ED007A 		vldr.32	s15, [r3]
+ 559              		.loc 1 160 26 discriminator 1
+ 560 018e B4EEE77A 		vcmpe.f32	s14, s15
+ 561 0192 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 562 0196 13DD     		ble	.L23
+ 563              		.loc 1 160 76 discriminator 2
+ 564 0198 4D4B     		ldr	r3, .L44+48
+ 565 019a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 566 019c 002B     		cmp	r3, #0
+ 567 019e 0FD0     		beq	.L23
+ 161:Core/Src/flight_algorithm.c ****                 drogue_deployed = 1;
+ 568              		.loc 1 161 33
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 13
+
+
+ 569 01a0 4C4B     		ldr	r3, .L44+52
+ 570 01a2 0122     		movs	r2, #1
+ 571 01a4 1A70     		strb	r2, [r3]
+ 162:Core/Src/flight_algorithm.c ****                 deployed_angle = 0;
+ 572              		.loc 1 162 32
+ 573 01a6 4A4B     		ldr	r3, .L44+48
+ 574 01a8 0022     		movs	r2, #0
+ 575 01aa 1A70     		strb	r2, [r3]
+ 163:Core/Src/flight_algorithm.c ****                 status_bits |= 0x0008; // Set Bit 3: Rocket body angle exceeds threshold
+ 576              		.loc 1 163 29
+ 577 01ac 404B     		ldr	r3, .L44+16
+ 578 01ae 1B88     		ldrh	r3, [r3]
+ 579 01b0 43F00803 		orr	r3, r3, #8
+ 580 01b4 9AB2     		uxth	r2, r3
+ 581 01b6 3E4B     		ldr	r3, .L44+16
+ 582 01b8 1A80     		strh	r2, [r3]	@ movhi
+ 164:Core/Src/flight_algorithm.c ****                 durum_verisi = 5;
+ 583              		.loc 1 164 30
+ 584 01ba 3E4B     		ldr	r3, .L44+20
+ 585 01bc 0522     		movs	r2, #5
+ 586 01be 1A70     		strb	r2, [r3]
+ 587              	.L23:
+ 165:Core/Src/flight_algorithm.c ****             }
+ 166:Core/Src/flight_algorithm.c **** 
+ 167:Core/Src/flight_algorithm.c ****             /*     // Detect altitude decrease (apogee)
+ 168:Core/Src/flight_algorithm.c ****             if (is_armed && sensor_fusion->apogeeDetect == 1 && deployed_velocity) {
+ 169:Core/Src/flight_algorithm.c ****                 status_bits |= 0x0010; // Set Bit 4: Rocket altitude started decreasing
+ 170:Core/Src/flight_algorithm.c ****                 status_bits |= 0x0020; // Set Bit 5: Drag parachute deployment command generated
+ 171:Core/Src/flight_algorithm.c ****                 drogue_deployed = 1;
+ 172:Core/Src/flight_algorithm.c ****                 deployed_velocity = 0;
+ 173:Core/Src/flight_algorithm.c ****                 // deploy_drogue_parachute(); // Actual deployment command
+ 174:Core/Src/flight_algorithm.c ****             }*/
+ 175:Core/Src/flight_algorithm.c **** 
+ 176:Core/Src/flight_algorithm.c ****             if (is_armed && sensor_fusion->velocity < 0.0f && sensor_fusion->velocity < prev_veloci
+ 588              		.loc 1 176 17
+ 589 01c0 414B     		ldr	r3, .L44+40
+ 590 01c2 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 591              		.loc 1 176 16
+ 592 01c4 002B     		cmp	r3, #0
+ 593 01c6 37D0     		beq	.L25
+ 594              		.loc 1 176 42 discriminator 1
+ 595 01c8 7B68     		ldr	r3, [r7, #4]
+ 596 01ca D3ED017A 		vldr.32	s15, [r3, #4]
+ 597              		.loc 1 176 26 discriminator 1
+ 598 01ce F5EEC07A 		vcmpe.f32	s15, #0
+ 599 01d2 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 600 01d6 2FD5     		bpl	.L25
+ 601              		.loc 1 176 76 discriminator 2
+ 602 01d8 7B68     		ldr	r3, [r7, #4]
+ 603 01da 93ED017A 		vldr.32	s14, [r3, #4]
+ 604              		.loc 1 176 87 discriminator 2
+ 605 01de 3E4B     		ldr	r3, .L44+56
+ 606 01e0 D3ED007A 		vldr.32	s15, [r3]
+ 607              		.loc 1 176 60 discriminator 2
+ 608 01e4 B4EEE77A 		vcmpe.f32	s14, s15
+ 609 01e8 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 610 01ec 24D5     		bpl	.L25
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 14
+
+
+ 611              		.loc 1 176 103 discriminator 3
+ 612 01ee 3B4B     		ldr	r3, .L44+60
+ 613 01f0 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 614 01f2 002B     		cmp	r3, #0
+ 615 01f4 20D0     		beq	.L25
+ 177:Core/Src/flight_algorithm.c ****                 apogee_counter++;
+ 616              		.loc 1 177 31
+ 617 01f6 3A4B     		ldr	r3, .L44+64
+ 618 01f8 1B68     		ldr	r3, [r3]
+ 619 01fa 0133     		adds	r3, r3, #1
+ 620 01fc 384A     		ldr	r2, .L44+64
+ 621 01fe 1360     		str	r3, [r2]
+ 178:Core/Src/flight_algorithm.c ****                 if (apogee_counter >= 9) {  // Confirm apogee after 5 consecutive samples
+ 622              		.loc 1 178 36
+ 623 0200 374B     		ldr	r3, .L44+64
+ 624 0202 1B68     		ldr	r3, [r3]
+ 625              		.loc 1 178 20
+ 626 0204 082B     		cmp	r3, #8
+ 627 0206 1ADD     		ble	.L29
+ 179:Core/Src/flight_algorithm.c ****                     status_bits |= 0x0010; // Set Bit 4: Rocket altitude started decreasing
+ 628              		.loc 1 179 33
+ 629 0208 294B     		ldr	r3, .L44+16
+ 630 020a 1B88     		ldrh	r3, [r3]
+ 631 020c 43F01003 		orr	r3, r3, #16
+ 632 0210 9AB2     		uxth	r2, r3
+ 633 0212 274B     		ldr	r3, .L44+16
+ 634 0214 1A80     		strh	r2, [r3]	@ movhi
+ 180:Core/Src/flight_algorithm.c ****                     status_bits |= 0x0020; // Set Bit 5: Drag parachute deployment command generate
+ 635              		.loc 1 180 33
+ 636 0216 264B     		ldr	r3, .L44+16
+ 637 0218 1B88     		ldrh	r3, [r3]
+ 638 021a 43F02003 		orr	r3, r3, #32
+ 639 021e 9AB2     		uxth	r2, r3
+ 640 0220 234B     		ldr	r3, .L44+16
+ 641 0222 1A80     		strh	r2, [r3]	@ movhi
+ 181:Core/Src/flight_algorithm.c ****                     drogue_deployed = 1;
+ 642              		.loc 1 181 37
+ 643 0224 2B4B     		ldr	r3, .L44+52
+ 644 0226 0122     		movs	r2, #1
+ 645 0228 1A70     		strb	r2, [r3]
+ 182:Core/Src/flight_algorithm.c ****                     deployed_velocity = 0;
+ 646              		.loc 1 182 39
+ 647 022a 2C4B     		ldr	r3, .L44+60
+ 648 022c 0022     		movs	r2, #0
+ 649 022e 1A70     		strb	r2, [r3]
+ 183:Core/Src/flight_algorithm.c ****                     durum_verisi = 6;
+ 650              		.loc 1 183 34
+ 651 0230 204B     		ldr	r3, .L44+20
+ 652 0232 0622     		movs	r2, #6
+ 653 0234 1A70     		strb	r2, [r3]
+ 178:Core/Src/flight_algorithm.c ****                     status_bits |= 0x0010; // Set Bit 4: Rocket altitude started decreasing
+ 654              		.loc 1 178 20
+ 655 0236 02E0     		b	.L29
+ 656              	.L25:
+ 184:Core/Src/flight_algorithm.c ****                 }
+ 185:Core/Src/flight_algorithm.c ****             } else {
+ 186:Core/Src/flight_algorithm.c ****                 apogee_counter = 0;
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 15
+
+
+ 657              		.loc 1 186 32
+ 658 0238 294B     		ldr	r3, .L44+64
+ 659 023a 0022     		movs	r2, #0
+ 660 023c 1A60     		str	r2, [r3]
+ 661              	.L29:
+ 187:Core/Src/flight_algorithm.c ****             }
+ 188:Core/Src/flight_algorithm.c ****             prev_velocity = sensor_fusion->velocity;
+ 662              		.loc 1 188 42
+ 663 023e 7B68     		ldr	r3, [r7, #4]
+ 664 0240 5B68     		ldr	r3, [r3, #4]	@ float
+ 665              		.loc 1 188 27
+ 666 0242 254A     		ldr	r2, .L44+56
+ 667 0244 1360     		str	r3, [r2]	@ float
+ 189:Core/Src/flight_algorithm.c **** 
+ 190:Core/Src/flight_algorithm.c ****             // Deploy main parachute at designated altitude
+ 191:Core/Src/flight_algorithm.c ****             if (drogue_deployed && bme->altitude < main_chute_altitude) {
+ 668              		.loc 1 191 17
+ 669 0246 234B     		ldr	r3, .L44+52
+ 670 0248 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 671              		.loc 1 191 16
+ 672 024a 002B     		cmp	r3, #0
+ 673 024c 4ED0     		beq	.L42
+ 674              		.loc 1 191 39 discriminator 1
+ 675 024e FB68     		ldr	r3, [r7, #12]
+ 676 0250 93ED087A 		vldr.32	s14, [r3, #32]
+ 677              		.loc 1 191 50 discriminator 1
+ 678 0254 234B     		ldr	r3, .L44+68
+ 679 0256 D3ED007A 		vldr.32	s15, [r3]
+ 680              		.loc 1 191 33 discriminator 1
+ 681 025a B4EEE77A 		vcmpe.f32	s14, s15
+ 682 025e F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 683 0262 00D4     		bmi	.L39
+ 192:Core/Src/flight_algorithm.c ****                 current_phase = PHASE_MAIN_DESCENT;
+ 193:Core/Src/flight_algorithm.c ****                 status_bits |= 0x0040; // Set Bit 6: Rocket altitude below specified altitude
+ 194:Core/Src/flight_algorithm.c ****                 status_bits |= 0x0080; // Set Bit 7: Main parachute deployment command generated
+ 195:Core/Src/flight_algorithm.c ****                 main_deployed = 1;
+ 196:Core/Src/flight_algorithm.c ****                 drogue_deployed = 0;
+ 197:Core/Src/flight_algorithm.c ****                 durum_verisi = 7;
+ 198:Core/Src/flight_algorithm.c ****             }
+ 199:Core/Src/flight_algorithm.c ****             break;
+ 684              		.loc 1 199 13 discriminator 1
+ 685 0264 42E0     		b	.L42
+ 686              	.L39:
+ 192:Core/Src/flight_algorithm.c ****                 current_phase = PHASE_MAIN_DESCENT;
+ 687              		.loc 1 192 31
+ 688 0266 0E4B     		ldr	r3, .L44
+ 689 0268 0322     		movs	r2, #3
+ 690 026a 1A70     		strb	r2, [r3]
+ 193:Core/Src/flight_algorithm.c ****                 status_bits |= 0x0080; // Set Bit 7: Main parachute deployment command generated
+ 691              		.loc 1 193 29
+ 692 026c 104B     		ldr	r3, .L44+16
+ 693 026e 1B88     		ldrh	r3, [r3]
+ 694 0270 43F04003 		orr	r3, r3, #64
+ 695 0274 9AB2     		uxth	r2, r3
+ 696 0276 0E4B     		ldr	r3, .L44+16
+ 697 0278 1A80     		strh	r2, [r3]	@ movhi
+ 194:Core/Src/flight_algorithm.c ****                 main_deployed = 1;
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 16
+
+
+ 698              		.loc 1 194 29
+ 699 027a 0D4B     		ldr	r3, .L44+16
+ 700 027c 1B88     		ldrh	r3, [r3]
+ 701 027e 43F08003 		orr	r3, r3, #128
+ 702 0282 9AB2     		uxth	r2, r3
+ 703 0284 0A4B     		ldr	r3, .L44+16
+ 704 0286 1A80     		strh	r2, [r3]	@ movhi
+ 195:Core/Src/flight_algorithm.c ****                 drogue_deployed = 0;
+ 705              		.loc 1 195 31
+ 706 0288 174B     		ldr	r3, .L44+72
+ 707 028a 0122     		movs	r2, #1
+ 708 028c 1A70     		strb	r2, [r3]
+ 196:Core/Src/flight_algorithm.c ****                 durum_verisi = 7;
+ 709              		.loc 1 196 33
+ 710 028e 114B     		ldr	r3, .L44+52
+ 711 0290 0022     		movs	r2, #0
+ 712 0292 1A70     		strb	r2, [r3]
+ 197:Core/Src/flight_algorithm.c ****             }
+ 713              		.loc 1 197 30
+ 714 0294 074B     		ldr	r3, .L44+20
+ 715 0296 0722     		movs	r2, #7
+ 716 0298 1A70     		strb	r2, [r3]
+ 717              		.loc 1 199 13
+ 718 029a 27E0     		b	.L42
+ 719              	.L41:
+ 149:Core/Src/flight_algorithm.c **** 
+ 720              		.loc 1 149 13
+ 721 029c 00BF     		nop
+ 722 029e 26E0     		b	.L6
+ 723              	.L45:
+ 724              		.align	2
+ 725              	.L44:
+ 726 02a0 00000000 		.word	current_phase
+ 727 02a4 00000000 		.word	launch_accel_threshold
+ 728 02a8 00000000 		.word	is_rising
+ 729 02ac 00000000 		.word	flight_start_time
+ 730 02b0 00000000 		.word	status_bits
+ 731 02b4 00000000 		.word	durum_verisi
+ 732 02b8 00004842 		.word	1112014848
+ 733 02bc 00000000 		.word	is_stabilized
+ 734 02c0 00000000 		.word	burnout_counter
+ 735 02c4 00000000 		.word	min_arming_altitude
+ 736 02c8 00000000 		.word	is_armed
+ 737 02cc 00000000 		.word	max_angle_threshold
+ 738 02d0 00000000 		.word	deployed_angle
+ 739 02d4 00000000 		.word	drogue_deployed
+ 740 02d8 00000000 		.word	prev_velocity
+ 741 02dc 00000000 		.word	deployed_velocity
+ 742 02e0 00000000 		.word	apogee_counter
+ 743 02e4 00000000 		.word	main_chute_altitude
+ 744 02e8 00000000 		.word	main_deployed
+ 745              	.L42:
+ 746              		.loc 1 199 13
+ 747 02ec 00BF     		nop
+ 748              	.L6:
+ 200:Core/Src/flight_algorithm.c **** 
+ 201:Core/Src/flight_algorithm.c ****         case PHASE_MAIN_DESCENT:
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 17
+
+
+ 202:Core/Src/flight_algorithm.c ****             // Monitor descent under main parachute
+ 203:Core/Src/flight_algorithm.c ****             break;
+ 204:Core/Src/flight_algorithm.c **** 
+ 205:Core/Src/flight_algorithm.c ****         case PHASE_LANDED:
+ 206:Core/Src/flight_algorithm.c ****             // No additional status bits to set after landing
+ 207:Core/Src/flight_algorithm.c ****             break;
+ 208:Core/Src/flight_algorithm.c ****     }
+ 209:Core/Src/flight_algorithm.c ****     prev_altitude = bme->altitude;
+ 749              		.loc 1 209 24
+ 750 02ee FB68     		ldr	r3, [r7, #12]
+ 751 02f0 1B6A     		ldr	r3, [r3, #32]	@ float
+ 752              		.loc 1 209 19
+ 753 02f2 034A     		ldr	r2, .L46
+ 754 02f4 1360     		str	r3, [r2]	@ float
+ 210:Core/Src/flight_algorithm.c **** }
+ 755              		.loc 1 210 1
+ 756 02f6 00BF     		nop
+ 757 02f8 1837     		adds	r7, r7, #24
+ 758              		.cfi_def_cfa_offset 8
+ 759 02fa BD46     		mov	sp, r7
+ 760              		.cfi_def_cfa_register 13
+ 761              		@ sp needed
+ 762 02fc 80BD     		pop	{r7, pc}
+ 763              	.L47:
+ 764 02fe 00BF     		.align	2
+ 765              	.L46:
+ 766 0300 00000000 		.word	prev_altitude
+ 767              		.cfi_endproc
+ 768              	.LFE244:
+ 770              		.section	.text.calculate_total_acceleration,"ax",%progbits
+ 771              		.align	1
+ 772              		.syntax unified
+ 773              		.thumb
+ 774              		.thumb_func
+ 776              	calculate_total_acceleration:
+ 777              	.LFB245:
+ 211:Core/Src/flight_algorithm.c **** 
+ 212:Core/Src/flight_algorithm.c **** 
+ 213:Core/Src/flight_algorithm.c **** /**
+ 214:Core/Src/flight_algorithm.c ****  * @brief Calculate total acceleration magnitude
+ 215:Core/Src/flight_algorithm.c ****  */
+ 216:Core/Src/flight_algorithm.c **** static float calculate_total_acceleration(bmi088_struct_t* bmi)
+ 217:Core/Src/flight_algorithm.c **** {
+ 778              		.loc 1 217 1
+ 779              		.cfi_startproc
+ 780              		@ args = 0, pretend = 0, frame = 8
+ 781              		@ frame_needed = 1, uses_anonymous_args = 0
+ 782 0000 80B5     		push	{r7, lr}
+ 783              		.cfi_def_cfa_offset 8
+ 784              		.cfi_offset 7, -8
+ 785              		.cfi_offset 14, -4
+ 786 0002 82B0     		sub	sp, sp, #8
+ 787              		.cfi_def_cfa_offset 16
+ 788 0004 00AF     		add	r7, sp, #0
+ 789              		.cfi_def_cfa_register 7
+ 790 0006 7860     		str	r0, [r7, #4]
+ 218:Core/Src/flight_algorithm.c ****     return sqrtf((bmi->datas.acc_x * bmi->datas.acc_x) +
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 18
+
+
+ 791              		.loc 1 218 29
+ 792 0008 7B68     		ldr	r3, [r7, #4]
+ 793 000a 93ED177A 		vldr.32	s14, [r3, #92]
+ 794              		.loc 1 218 48
+ 795 000e 7B68     		ldr	r3, [r7, #4]
+ 796 0010 D3ED177A 		vldr.32	s15, [r3, #92]
+ 797              		.loc 1 218 36
+ 798 0014 27EE277A 		vmul.f32	s14, s14, s15
+ 219:Core/Src/flight_algorithm.c ****                  (bmi->datas.acc_y * bmi->datas.acc_y) +
+ 799              		.loc 1 219 29
+ 800 0018 7B68     		ldr	r3, [r7, #4]
+ 801 001a D3ED186A 		vldr.32	s13, [r3, #96]
+ 802              		.loc 1 219 48
+ 803 001e 7B68     		ldr	r3, [r7, #4]
+ 804 0020 D3ED187A 		vldr.32	s15, [r3, #96]
+ 805              		.loc 1 219 36
+ 806 0024 66EEA77A 		vmul.f32	s15, s13, s15
+ 218:Core/Src/flight_algorithm.c ****     return sqrtf((bmi->datas.acc_x * bmi->datas.acc_x) +
+ 807              		.loc 1 218 56
+ 808 0028 37EE277A 		vadd.f32	s14, s14, s15
+ 220:Core/Src/flight_algorithm.c ****                  (bmi->datas.acc_z * bmi->datas.acc_z));
+ 809              		.loc 1 220 29
+ 810 002c 7B68     		ldr	r3, [r7, #4]
+ 811 002e D3ED196A 		vldr.32	s13, [r3, #100]
+ 812              		.loc 1 220 48
+ 813 0032 7B68     		ldr	r3, [r7, #4]
+ 814 0034 D3ED197A 		vldr.32	s15, [r3, #100]
+ 815              		.loc 1 220 36
+ 816 0038 66EEA77A 		vmul.f32	s15, s13, s15
+ 218:Core/Src/flight_algorithm.c ****     return sqrtf((bmi->datas.acc_x * bmi->datas.acc_x) +
+ 817              		.loc 1 218 12
+ 818 003c 77EE277A 		vadd.f32	s15, s14, s15
+ 819 0040 B0EE670A 		vmov.f32	s0, s15
+ 820 0044 FFF7FEFF 		bl	sqrtf
+ 821 0048 F0EE407A 		vmov.f32	s15, s0
+ 221:Core/Src/flight_algorithm.c **** }
+ 822              		.loc 1 221 1
+ 823 004c B0EE670A 		vmov.f32	s0, s15
+ 824 0050 0837     		adds	r7, r7, #8
+ 825              		.cfi_def_cfa_offset 8
+ 826 0052 BD46     		mov	sp, r7
+ 827              		.cfi_def_cfa_register 13
+ 828              		@ sp needed
+ 829 0054 80BD     		pop	{r7, pc}
+ 830              		.cfi_endproc
+ 831              	.LFE245:
+ 833              		.section	.text.flight_algorithm_get_phase,"ax",%progbits
+ 834              		.align	1
+ 835              		.global	flight_algorithm_get_phase
+ 836              		.syntax unified
+ 837              		.thumb
+ 838              		.thumb_func
+ 840              	flight_algorithm_get_phase:
+ 841              	.LFB246:
+ 222:Core/Src/flight_algorithm.c **** 
+ 223:Core/Src/flight_algorithm.c **** /**
+ 224:Core/Src/flight_algorithm.c ****  * @brief Get the current flight phase
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 19
+
+
+ 225:Core/Src/flight_algorithm.c ****  */
+ 226:Core/Src/flight_algorithm.c **** FlightPhase_t flight_algorithm_get_phase(void)
+ 227:Core/Src/flight_algorithm.c **** {
+ 842              		.loc 1 227 1
+ 843              		.cfi_startproc
+ 844              		@ args = 0, pretend = 0, frame = 0
+ 845              		@ frame_needed = 1, uses_anonymous_args = 0
+ 846              		@ link register save eliminated.
+ 847 0000 80B4     		push	{r7}
+ 848              		.cfi_def_cfa_offset 4
+ 849              		.cfi_offset 7, -4
+ 850 0002 00AF     		add	r7, sp, #0
+ 851              		.cfi_def_cfa_register 7
+ 228:Core/Src/flight_algorithm.c ****     return current_phase;
+ 852              		.loc 1 228 12
+ 853 0004 034B     		ldr	r3, .L52
+ 854 0006 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 229:Core/Src/flight_algorithm.c **** }
+ 855              		.loc 1 229 1
+ 856 0008 1846     		mov	r0, r3
+ 857 000a BD46     		mov	sp, r7
+ 858              		.cfi_def_cfa_register 13
+ 859              		@ sp needed
+ 860 000c 5DF8047B 		ldr	r7, [sp], #4
+ 861              		.cfi_restore 7
+ 862              		.cfi_def_cfa_offset 0
+ 863 0010 7047     		bx	lr
+ 864              	.L53:
+ 865 0012 00BF     		.align	2
+ 866              	.L52:
+ 867 0014 00000000 		.word	current_phase
+ 868              		.cfi_endproc
+ 869              	.LFE246:
+ 871              		.section	.text.flight_algorithm_get_status_bits,"ax",%progbits
+ 872              		.align	1
+ 873              		.global	flight_algorithm_get_status_bits
+ 874              		.syntax unified
+ 875              		.thumb
+ 876              		.thumb_func
+ 878              	flight_algorithm_get_status_bits:
+ 879              	.LFB247:
+ 230:Core/Src/flight_algorithm.c **** 
+ 231:Core/Src/flight_algorithm.c **** /**
+ 232:Core/Src/flight_algorithm.c ****  * @brief Get the current status bits
+ 233:Core/Src/flight_algorithm.c ****  */
+ 234:Core/Src/flight_algorithm.c **** uint16_t flight_algorithm_get_status_bits(void)
+ 235:Core/Src/flight_algorithm.c **** {
+ 880              		.loc 1 235 1
+ 881              		.cfi_startproc
+ 882              		@ args = 0, pretend = 0, frame = 0
+ 883              		@ frame_needed = 1, uses_anonymous_args = 0
+ 884              		@ link register save eliminated.
+ 885 0000 80B4     		push	{r7}
+ 886              		.cfi_def_cfa_offset 4
+ 887              		.cfi_offset 7, -4
+ 888 0002 00AF     		add	r7, sp, #0
+ 889              		.cfi_def_cfa_register 7
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 20
+
+
+ 236:Core/Src/flight_algorithm.c ****     return status_bits;
+ 890              		.loc 1 236 12
+ 891 0004 034B     		ldr	r3, .L56
+ 892 0006 1B88     		ldrh	r3, [r3]
+ 237:Core/Src/flight_algorithm.c **** }
+ 893              		.loc 1 237 1
+ 894 0008 1846     		mov	r0, r3
+ 895 000a BD46     		mov	sp, r7
+ 896              		.cfi_def_cfa_register 13
+ 897              		@ sp needed
+ 898 000c 5DF8047B 		ldr	r7, [sp], #4
+ 899              		.cfi_restore 7
+ 900              		.cfi_def_cfa_offset 0
+ 901 0010 7047     		bx	lr
+ 902              	.L57:
+ 903 0012 00BF     		.align	2
+ 904              	.L56:
+ 905 0014 00000000 		.word	status_bits
+ 906              		.cfi_endproc
+ 907              	.LFE247:
+ 909              		.section	.text.flight_algorithm_get_durum_verisi,"ax",%progbits
+ 910              		.align	1
+ 911              		.global	flight_algorithm_get_durum_verisi
+ 912              		.syntax unified
+ 913              		.thumb
+ 914              		.thumb_func
+ 916              	flight_algorithm_get_durum_verisi:
+ 917              	.LFB248:
+ 238:Core/Src/flight_algorithm.c **** 
+ 239:Core/Src/flight_algorithm.c **** uint8_t flight_algorithm_get_durum_verisi(void)
+ 240:Core/Src/flight_algorithm.c **** {
+ 918              		.loc 1 240 1
+ 919              		.cfi_startproc
+ 920              		@ args = 0, pretend = 0, frame = 0
+ 921              		@ frame_needed = 1, uses_anonymous_args = 0
+ 922              		@ link register save eliminated.
+ 923 0000 80B4     		push	{r7}
+ 924              		.cfi_def_cfa_offset 4
+ 925              		.cfi_offset 7, -4
+ 926 0002 00AF     		add	r7, sp, #0
+ 927              		.cfi_def_cfa_register 7
+ 241:Core/Src/flight_algorithm.c ****     return durum_verisi;
+ 928              		.loc 1 241 12
+ 929 0004 034B     		ldr	r3, .L60
+ 930 0006 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 242:Core/Src/flight_algorithm.c **** }
+ 931              		.loc 1 242 1
+ 932 0008 1846     		mov	r0, r3
+ 933 000a BD46     		mov	sp, r7
+ 934              		.cfi_def_cfa_register 13
+ 935              		@ sp needed
+ 936 000c 5DF8047B 		ldr	r7, [sp], #4
+ 937              		.cfi_restore 7
+ 938              		.cfi_def_cfa_offset 0
+ 939 0010 7047     		bx	lr
+ 940              	.L61:
+ 941 0012 00BF     		.align	2
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 21
+
+
+ 942              	.L60:
+ 943 0014 00000000 		.word	durum_verisi
+ 944              		.cfi_endproc
+ 945              	.LFE248:
+ 947              		.section	.text.flight_algorithm_set_parameters,"ax",%progbits
+ 948              		.align	1
+ 949              		.global	flight_algorithm_set_parameters
+ 950              		.syntax unified
+ 951              		.thumb
+ 952              		.thumb_func
+ 954              	flight_algorithm_set_parameters:
+ 955              	.LFB249:
+ 243:Core/Src/flight_algorithm.c **** 
+ 244:Core/Src/flight_algorithm.c **** /**
+ 245:Core/Src/flight_algorithm.c ****  * @brief Set flight parameters
+ 246:Core/Src/flight_algorithm.c ****  */
+ 247:Core/Src/flight_algorithm.c **** void flight_algorithm_set_parameters(float launch_accel_threshold_param,
+ 248:Core/Src/flight_algorithm.c ****                                    float min_arming_altitude_param,
+ 249:Core/Src/flight_algorithm.c ****                                    float main_chute_altitude_param,
+ 250:Core/Src/flight_algorithm.c ****                                    float max_angle_threshold_param)
+ 251:Core/Src/flight_algorithm.c **** {
+ 956              		.loc 1 251 1
+ 957              		.cfi_startproc
+ 958              		@ args = 0, pretend = 0, frame = 16
+ 959              		@ frame_needed = 1, uses_anonymous_args = 0
+ 960              		@ link register save eliminated.
+ 961 0000 80B4     		push	{r7}
+ 962              		.cfi_def_cfa_offset 4
+ 963              		.cfi_offset 7, -4
+ 964 0002 85B0     		sub	sp, sp, #20
+ 965              		.cfi_def_cfa_offset 24
+ 966 0004 00AF     		add	r7, sp, #0
+ 967              		.cfi_def_cfa_register 7
+ 968 0006 87ED030A 		vstr.32	s0, [r7, #12]
+ 969 000a C7ED020A 		vstr.32	s1, [r7, #8]
+ 970 000e 87ED011A 		vstr.32	s2, [r7, #4]
+ 971 0012 C7ED001A 		vstr.32	s3, [r7]
+ 252:Core/Src/flight_algorithm.c ****     launch_accel_threshold = launch_accel_threshold_param;
+ 972              		.loc 1 252 28
+ 973 0016 094A     		ldr	r2, .L63
+ 974 0018 FB68     		ldr	r3, [r7, #12]	@ float
+ 975 001a 1360     		str	r3, [r2]	@ float
+ 253:Core/Src/flight_algorithm.c ****     min_arming_altitude = min_arming_altitude_param;
+ 976              		.loc 1 253 25
+ 977 001c 084A     		ldr	r2, .L63+4
+ 978 001e BB68     		ldr	r3, [r7, #8]	@ float
+ 979 0020 1360     		str	r3, [r2]	@ float
+ 254:Core/Src/flight_algorithm.c ****     main_chute_altitude = main_chute_altitude_param;
+ 980              		.loc 1 254 25
+ 981 0022 084A     		ldr	r2, .L63+8
+ 982 0024 7B68     		ldr	r3, [r7, #4]	@ float
+ 983 0026 1360     		str	r3, [r2]	@ float
+ 255:Core/Src/flight_algorithm.c ****     max_angle_threshold = max_angle_threshold_param;
+ 984              		.loc 1 255 25
+ 985 0028 074A     		ldr	r2, .L63+12
+ 986 002a 3B68     		ldr	r3, [r7]	@ float
+ 987 002c 1360     		str	r3, [r2]	@ float
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 22
+
+
+ 256:Core/Src/flight_algorithm.c **** }
+ 988              		.loc 1 256 1
+ 989 002e 00BF     		nop
+ 990 0030 1437     		adds	r7, r7, #20
+ 991              		.cfi_def_cfa_offset 4
+ 992 0032 BD46     		mov	sp, r7
+ 993              		.cfi_def_cfa_register 13
+ 994              		@ sp needed
+ 995 0034 5DF8047B 		ldr	r7, [sp], #4
+ 996              		.cfi_restore 7
+ 997              		.cfi_def_cfa_offset 0
+ 998 0038 7047     		bx	lr
+ 999              	.L64:
+ 1000 003a 00BF     		.align	2
+ 1001              	.L63:
+ 1002 003c 00000000 		.word	launch_accel_threshold
+ 1003 0040 00000000 		.word	min_arming_altitude
+ 1004 0044 00000000 		.word	main_chute_altitude
+ 1005 0048 00000000 		.word	max_angle_threshold
+ 1006              		.cfi_endproc
+ 1007              	.LFE249:
+ 1009              		.section	.text.flight_algorithm_get_start_time,"ax",%progbits
+ 1010              		.align	1
+ 1011              		.global	flight_algorithm_get_start_time
+ 1012              		.syntax unified
+ 1013              		.thumb
+ 1014              		.thumb_func
+ 1016              	flight_algorithm_get_start_time:
+ 1017              	.LFB250:
+ 257:Core/Src/flight_algorithm.c **** 
+ 258:Core/Src/flight_algorithm.c **** uint32_t flight_algorithm_get_start_time(void)
+ 259:Core/Src/flight_algorithm.c **** {
+ 1018              		.loc 1 259 1
+ 1019              		.cfi_startproc
+ 1020              		@ args = 0, pretend = 0, frame = 0
+ 1021              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1022              		@ link register save eliminated.
+ 1023 0000 80B4     		push	{r7}
+ 1024              		.cfi_def_cfa_offset 4
+ 1025              		.cfi_offset 7, -4
+ 1026 0002 00AF     		add	r7, sp, #0
+ 1027              		.cfi_def_cfa_register 7
+ 260:Core/Src/flight_algorithm.c ****     return flight_start_time;
+ 1028              		.loc 1 260 12
+ 1029 0004 034B     		ldr	r3, .L67
+ 1030 0006 1B68     		ldr	r3, [r3]
+ 261:Core/Src/flight_algorithm.c **** }
+ 1031              		.loc 1 261 1
+ 1032 0008 1846     		mov	r0, r3
+ 1033 000a BD46     		mov	sp, r7
+ 1034              		.cfi_def_cfa_register 13
+ 1035              		@ sp needed
+ 1036 000c 5DF8047B 		ldr	r7, [sp], #4
+ 1037              		.cfi_restore 7
+ 1038              		.cfi_def_cfa_offset 0
+ 1039 0010 7047     		bx	lr
+ 1040              	.L68:
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 23
+
+
+ 1041 0012 00BF     		.align	2
+ 1042              	.L67:
+ 1043 0014 00000000 		.word	flight_start_time
+ 1044              		.cfi_endproc
+ 1045              	.LFE250:
+ 1047              		.text
+ 1048              	.Letext0:
+ 1049              		.file 2 "Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f446xx.h"
+ 1050              		.file 3 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 1051              		.file 4 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 1052              		.file 5 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h"
+ 1053              		.file 6 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma.h"
+ 1054              		.file 7 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_i2c.h"
+ 1055              		.file 8 "Core/Inc/bme280.h"
+ 1056              		.file 9 "Core/Inc/bmi088.h"
+ 1057              		.file 10 "Core/Inc/sensor_fusion.h"
+ 1058              		.file 11 "Core/Inc/flight_algorithm.h"
+ 1059              		.file 12 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltoo
+ 1060              		.file 13 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h"
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 24
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 flight_algorithm.c
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:23     .bss.current_phase:00000000 current_phase
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:24     .bss.current_phase:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:26     .data.launch_accel_threshold:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:29     .data.launch_accel_threshold:00000000 launch_accel_threshold
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:32     .data.min_arming_altitude:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:35     .data.min_arming_altitude:00000000 min_arming_altitude
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:38     .data.main_chute_altitude:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:41     .data.main_chute_altitude:00000000 main_chute_altitude
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:44     .data.max_angle_threshold:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:47     .data.max_angle_threshold:00000000 max_angle_threshold
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:52     .bss.is_rising:00000000 is_rising
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:53     .bss.is_rising:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:57     .data.is_stabilized:00000000 is_stabilized
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:62     .bss.is_armed:00000000 is_armed
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:63     .bss.is_armed:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:67     .data.deployed_angle:00000000 deployed_angle
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:72     .data.deployed_velocity:00000000 deployed_velocity
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:77     .bss.drogue_deployed:00000000 drogue_deployed
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:78     .bss.drogue_deployed:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:82     .bss.main_deployed:00000000 main_deployed
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:83     .bss.main_deployed:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:89     .bss.apogee_counter:00000000 apogee_counter
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:86     .bss.apogee_counter:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:96     .data.burnout_counter:00000000 burnout_counter
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:93     .data.burnout_counter:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:103    .bss.prev_velocity:00000000 prev_velocity
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:100    .bss.prev_velocity:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:106    .bss.flight_start_time:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:109    .bss.flight_start_time:00000000 flight_start_time
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:114    .bss.altitude_decrease_count:00000000 altitude_decrease_count
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:115    .bss.altitude_decrease_count:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:117    .bss.prev_altitude:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:120    .bss.prev_altitude:00000000 prev_altitude
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:123    .bss.status_bits:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:126    .bss.status_bits:00000000 status_bits
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:131    .data.durum_verisi:00000000 durum_verisi
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:136    .bss.drogue_pulse_active:00000000 drogue_pulse_active
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:137    .bss.drogue_pulse_active:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:139    .bss.drogue_pulse_start_time:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:142    .bss.drogue_pulse_start_time:00000000 drogue_pulse_start_time
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:147    .bss.main_pulse_active:00000000 main_pulse_active
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:148    .bss.main_pulse_active:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:150    .bss.main_pulse_start_time:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:153    .bss.main_pulse_start_time:00000000 main_pulse_start_time
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:156    .text.flight_algorithm_init:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:162    .text.flight_algorithm_init:00000000 flight_algorithm_init
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:189    .text.flight_algorithm_reset:00000000 flight_algorithm_reset
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:183    .text.flight_algorithm_reset:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:293    .text.flight_algorithm_reset:0000008c $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:317    .text.flight_algorithm_update:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:323    .text.flight_algorithm_update:00000000 flight_algorithm_update
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:776    .text.calculate_total_acceleration:00000000 calculate_total_acceleration
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:353    .text.flight_algorithm_update:00000028 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:358    .text.flight_algorithm_update:0000003c $t
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:726    .text.flight_algorithm_update:000002a0 $d
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 25
+
+
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:747    .text.flight_algorithm_update:000002ec $t
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:766    .text.flight_algorithm_update:00000300 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:771    .text.calculate_total_acceleration:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:834    .text.flight_algorithm_get_phase:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:840    .text.flight_algorithm_get_phase:00000000 flight_algorithm_get_phase
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:867    .text.flight_algorithm_get_phase:00000014 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:872    .text.flight_algorithm_get_status_bits:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:878    .text.flight_algorithm_get_status_bits:00000000 flight_algorithm_get_status_bits
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:905    .text.flight_algorithm_get_status_bits:00000014 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:910    .text.flight_algorithm_get_durum_verisi:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:916    .text.flight_algorithm_get_durum_verisi:00000000 flight_algorithm_get_durum_verisi
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:943    .text.flight_algorithm_get_durum_verisi:00000014 $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:948    .text.flight_algorithm_set_parameters:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:954    .text.flight_algorithm_set_parameters:00000000 flight_algorithm_set_parameters
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:1002   .text.flight_algorithm_set_parameters:0000003c $d
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:1010   .text.flight_algorithm_get_start_time:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:1016   .text.flight_algorithm_get_start_time:00000000 flight_algorithm_get_start_time
+C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s:1043   .text.flight_algorithm_get_start_time:00000014 $d
+                           .group:00000000 wm4.0.fbeba72283fbbed79c5ed62adcf8946b
+                           .group:00000000 wm4.stm32f4xx_hal_conf.h.25.834fd89df99f7f3fe75169badeed02aa
+                           .group:00000000 wm4.stm32f4xx.h.38.63e3ea23bd63a94457417730025259b6
+                           .group:00000000 wm4.stm32f446xx.h.34.dd43cebd7192f96bce7a5ff975201274
+                           .group:00000000 wm4._newlib_version.h.4.6d111ab2e95434b664b53815e5c8ccba
+                           .group:00000000 wm4.features.h.33.3e67abe6fb64142d4f6fa9496796153c
+                           .group:00000000 wm4._default_types.h.15.247e5cd201eca3442cbf5404108c4935
+                           .group:00000000 wm4._intsup.h.10.48bafbb683905c4daa4565a85aeeb264
+                           .group:00000000 wm4._stdint.h.10.c24fa3af3bc1706662bb5593a907e841
+                           .group:00000000 wm4.stdint.h.23.d53047a68f4a85177f80b422d52785ed
+                           .group:00000000 wm4.cmsis_version.h.32.0ac195c83bb4537824e6ad1c47474b79
+                           .group:00000000 wm4.core_cm4.h.66.e4ff136c4a17abc46741866f64f8e729
+                           .group:00000000 wm4.cmsis_gcc.h.26.498d0ad17a45fc9ef20fdc01caf02259
+                           .group:00000000 wm4.core_cm4.h.174.62be9b4588d49bed18171771001331df
+                           .group:00000000 wm4.mpu_armv7.h.32.83326921a797fa9d6f70449916b4b839
+                           .group:00000000 wm4.stm32f446xx.h.917.13927c85cbbf4787955bc4173c54fa12
+                           .group:00000000 wm4.stm32f4xx.h.195.a4b8bf80f37cc96981498656ffe5f588
+                           .group:00000000 wm4.stm32_hal_legacy.h.22.8b7d303dc46a0b7ac6d3edf19ce2608d
+                           .group:00000000 wm4.stddef.h.39.3e0425629195acf083c9561151306b4d
+                           .group:00000000 wm4.stm32f4xx_hal_def.h.58.3cb484e92e5ccf2e55312a4714e27917
+                           .group:00000000 wm4.stm32f4xx_hal_rcc_ex.h.20.9b6e314009d4800dd71c0ec1c264a1ea
+                           .group:00000000 wm4.stm32f4xx_hal_rcc.h.106.0887cf5d985ae88e345b0aed0ceb4729
+                           .group:00000000 wm4.stm32f4xx_hal_gpio.h.21.22da6a14b6049d6ac156577be74df1d7
+                           .group:00000000 wm4.stm32f4xx_hal_gpio_ex.h.21.33ea7ea24fd170b1d3dce3d23330c9d3
+                           .group:00000000 wm4.stm32f4xx_hal_gpio.h.254.d7e07832f748fe8bcb575db0b8373592
+                           .group:00000000 wm4.stm32f4xx_hal_exti.h.21.4fc7f37c3cc97fb821b368ede79414b6
+                           .group:00000000 wm4.stm32f4xx_hal_dma.h.21.8e4b1421c914345c23be719e5e528779
+                           .group:00000000 wm4.stm32f4xx_hal_dma.h.720.ac2d7eef74792e4026acc4d2923c5da4
+                           .group:00000000 wm4.stm32f4xx_hal_cortex.h.20.03673e4f79386680bf73ba399c19306b
+                           .group:00000000 wm4.stm32f4xx_ll_adc.h.21.8ab9bf4d55f678506dbbe8102cb12bbc
+                           .group:00000000 wm4.stm32f4xx_hal_adc.h.159.62530d9b3382796f19493a9679ef426c
+                           .group:00000000 wm4.stm32f4xx_hal_adc_ex.h.21.94e87945640619cdd4cff40627e1380a
+                           .group:00000000 wm4.stm32f4xx_hal_adc.h.639.c30c49256117cbda0ada83149c65b3d8
+                           .group:00000000 wm4.stm32f4xx_hal_flash.h.20.2f1e0d1b7010b3a81a7980aaf712e7e5
+                           .group:00000000 wm4.stm32f4xx_hal_flash_ex.h.20.77cb3e5c0f1e426426a4cbc884a1eed8
+                           .group:00000000 wm4.stm32f4xx_hal_flash.h.361.23bc19b9eac79b0956d913651841ede8
+                           .group:00000000 wm4.stm32f4xx_hal_i2c.h.21.147e96a27b1f7b1f2f8ee22132703ee3
+                           .group:00000000 wm4.stm32f4xx_hal_i2c_ex.h.21.951ef5bfa13cf131d2015c338e82e461
+                           .group:00000000 wm4.stm32f4xx_hal_i2c.h.647.ade9c3447780b1cc0ece02f0ce83aedc
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccnX2GG0.s 			page 26
+
+
+                           .group:00000000 wm4.stm32f4xx_hal_pwr.h.20.1905a0783a9c83adefd7df0c4b501e40
+                           .group:00000000 wm4.stm32f4xx_hal_pwr_ex.h.20.9786dbd699c850465fa7b77273740267
+                           .group:00000000 wm4.stm32f4xx_hal_pwr.h.338.debc0a4a62ba54688e63ab53dd99c4ea
+                           .group:00000000 wm4.stm32f4xx_hal_spi.h.21.8b27a8d792c565f72ddd4cfad797986f
+                           .group:00000000 wm4.stm32f4xx_hal_tim.h.21.c31cbc03c25f07a932427770396c59d2
+                           .group:00000000 wm4.stm32f4xx_hal_tim_ex.h.21.3ff8ebb44e16ac9d5b95e2b3533221b9
+                           .group:00000000 wm4.stm32f4xx_hal_uart.h.21.ba8e24dd05c77faac3f3d48472e636ba
+                           .group:00000000 wm4.stm32f4xx_hal.h.71.02372bc31d47d29d3f67fbfe1429649e
+                           .group:00000000 wm4.main.h.61.69da45f81907557a0774729345d5d811
+                           .group:00000000 wm4.bme280.h.15.88e478fc5eeab150f523397b78536efe
+                           .group:00000000 wm4.newlib.h.7.f9f25f80f86429f653675286e7973cb9
+                           .group:00000000 wm4.ieeefp.h.77.9dc6728f2d488a554e7c0cabef1b6c33
+                           .group:00000000 wm4.config.h.224.10ee1ad185d877c6e334e6581faab44d
+                           .group:00000000 wm4._ansi.h.31.de524f58584151836e90d8620a16f8e8
+                           .group:00000000 wm4.stdio.h.31.7c0e28c411445f3f9c5b11accf882760
+                           .group:00000000 wm4.stddef.h.158.bfed30416c9480cd13bc4a25427d538f
+                           .group:00000000 wm4.cdefs.h.49.f93868eb904b9ca05b5c0257d31128ca
+                           .group:00000000 wm4.stdarg.h.34.3a23a216c0c293b3d2ea2e89281481e6
+                           .group:00000000 wm4._types.h.20.dd0d04dca3800a0d2a6129b87f3adbb2
+                           .group:00000000 wm4.stddef.h.158.5f30652bb2ea05b142c1bbee9108c999
+                           .group:00000000 wm4._types.h.127.3bdfe3ff8ea2d0985b03d9cbe93480e3
+                           .group:00000000 wm4.reent.h.17.e292bf8b0bec6c96e131a54347145a30
+                           .group:00000000 wm4.lock.h.2.1461d1fff82dffe8bfddc23307f6484f
+                           .group:00000000 wm4.reent.h.77.89f7dde66c62b1f1dee32bdb6ab2d544
+                           .group:00000000 wm4.stdio.h.67.0cf8a9c281ab0b348aef5c02e7e48825
+                           .group:00000000 wm4.stdio.h.2.4aa87247282eca6c8f36f9de33d8df1a
+                           .group:00000000 wm4.stdio.h.87.a1e20d2651f9bfb66e51bfbe849db00a
+                           .group:00000000 wm4.string.h.8.c4b8571ce60dff2817f43fec8b86aecd
+                           .group:00000000 wm4.string.h.177.59a005921fa78485abc80a0267de5752
+                           .group:00000000 wm4.bmi088.h.24.39da1258636463617ae199ce9c348de5
+                           .group:00000000 wm4.flight_algorithm.h.17.39c37277ff32f77a5f159fddac275549
+                           .group:00000000 wm4.math.h.13.35ad80917fddb38312d53499dad31194
+
+UNDEFINED SYMBOLS
+HAL_GetTick
+sqrtf

@@ -96,6 +96,9 @@
 #define IMU_I2C_HNDLR	hi2c1 //put your I2C handler
 
 #define CRNT_COEF					(float)0.0008056641	// Current coefficient (A)
+
+#define ACCEL_DMA_FLAG		(0x0001U)
+#define GYRO_DMA_FLAG		(0x0002U)
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -225,8 +228,7 @@ volatile uint8_t bmi088_accel_data_ready = 0;  // EXTI4 - Accelerometer data rea
 volatile uint8_t bmi088_gyro_data_ready = 0;   // EXTI3 - Gyroscope data ready
 
 /*==================== FREERTOS SYNCHRONIZATION ====================*/
-// Binary semaphore for BMI088 interrupt-driven reading
-osSemaphoreId_t bmiDataReadySemaphoreHandle = NULL;
+// BMI088 uses thread flags for synchronization; no semaphore required
 
 // I2C bus mutex for thread-safe access to I2C1 (shared by BME280 and BMI088)
 osMutexId_t i2cMutexHandle = NULL;
@@ -390,11 +392,6 @@ int main(void)
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
-  /* Create binary semaphore for BMI088 interrupt synchronization */
-  bmiDataReadySemaphoreHandle = osSemaphoreNew(1, 0, NULL);
-  if(bmiDataReadySemaphoreHandle == NULL) {
-    Error_Handler();
-  }
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* USER CODE BEGIN RTOS_TIMERS */
@@ -1052,12 +1049,12 @@ uint8_t bmi_imu_init(void)
 {
   // Accelerometer configuration
   BMI_sensor.device_config.acc_bandwith = ACC_BWP_OSR4;
-  BMI_sensor.device_config.acc_outputDateRate = ACC_ODR_400;
+  BMI_sensor.device_config.acc_outputDateRate = ACC_ODR_12_5;
   BMI_sensor.device_config.acc_powerMode = ACC_PWR_SAVE_ACTIVE;
   BMI_sensor.device_config.acc_range = ACC_RANGE_24G;
 
   // Gyroscope configuration
-  BMI_sensor.device_config.gyro_bandWidth = GYRO_BW_23;
+  BMI_sensor.device_config.gyro_bandWidth = GYRO_BW_12;
   BMI_sensor.device_config.gyro_range = GYRO_RANGE_2000;
   BMI_sensor.device_config.gyro_powerMode = GYRO_LPM_NORMAL;
 
@@ -1074,31 +1071,22 @@ uint8_t bmi_imu_init(void)
  * @brief GPIO external interrupt callback
  * @param GPIO_Pin The pin that triggered the interrupt
  * @note Handles BMI088 accelerometer and gyroscope data ready interrupts
- * @note Releases semaphore to wake up BMI task (interrupt-driven approach)
+ * @note Starts corresponding DMA transfers directly from the ISR context
  */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-
   if(GPIO_Pin == GPIO_PIN_3)
   {
     // Gyroscope data ready interrupt (EXTI3)
     bmi088_set_gyro_INT(&BMI_sensor);
-
-    // Release semaphore from ISR to wake up BMI task
-    osSemaphoreRelease(bmiDataReadySemaphoreHandle);
+    bmi088_start_gyro_dma(&BMI_sensor);
   }
   if(GPIO_Pin == GPIO_PIN_4)
   {
     // Accelerometer data ready interrupt (EXTI4)
     bmi088_set_accel_INT(&BMI_sensor);
-
-    // Release semaphore from ISR to wake up BMI task
-    osSemaphoreRelease(bmiDataReadySemaphoreHandle);
+    bmi088_start_accel_dma(&BMI_sensor);
   }
-
-  // Request context switch if higher priority task was woken
-  portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
 /**
@@ -1139,14 +1127,22 @@ void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c)
     i2c_callback_counter++;
 
     if (hi2c->Instance == I2C1) {
-        if (hi2c->Devaddress == ACC_I2C_ADD) {
-            // Accelerometer data received (9 bytes: XYZ + sensor time)
-            bmi088_accel_dma_complete_callback(&BMI_sensor);
+      if (hi2c->Devaddress == ACC_I2C_ADD) {
+        // Accelerometer data received (9 bytes: XYZ + sensor time)
+        bmi088_accel_dma_complete_callback(&BMI_sensor);
+        if(bmiTaskHandle != NULL)
+        {
+          osThreadFlagsSet(bmiTaskHandle, ACCEL_DMA_FLAG);
         }
-        else if (hi2c->Devaddress == GYRO_I2C_ADD) {
-            // Gyroscope data received (6 bytes: XYZ)
-            bmi088_gyro_dma_complete_callback(&BMI_sensor);
+      }
+      else if (hi2c->Devaddress == GYRO_I2C_ADD) {
+        // Gyroscope data received (6 bytes: XYZ)
+        bmi088_gyro_dma_complete_callback(&BMI_sensor);
+        if(bmiTaskHandle != NULL)
+        {
+          osThreadFlagsSet(bmiTaskHandle, GYRO_DMA_FLAG);
         }
+      }
     }
 }
 
@@ -1180,28 +1176,31 @@ void StartTelemetryTask(void *argument)
   * @brief  Function implementing the BMI088 sensor task.
   * @param  argument: Not used
   * @retval None
-  * @note   Interrupt-driven: Task blocks on semaphore, wakes up on EXTI interrupt
+  * @note   Interrupt-driven: Task waits on thread flags raised by DMA completion
   * @note   Uses system tick for delta_time calculation (more reliable in FreeRTOS)
   */
 void StartBMITask(void *argument)
 {
   /* USER CODE BEGIN StartBMITask */
   /* Infinite loop */
+  uint32_t notifiedFlags;
   for(;;)
   {
-    // Block and wait for BMI088 data ready interrupt (semaphore from ISR)
-    if(osSemaphoreAcquire(bmiDataReadySemaphoreHandle, osWaitForever) == osOK)
+    notifiedFlags = osThreadFlagsWait(ACCEL_DMA_FLAG | GYRO_DMA_FLAG, osFlagsWaitAny, osWaitForever);
+    if(((int32_t)notifiedFlags) < 0)
     {
-      // Acquire I2C bus mutex for thread-safe access
-      osMutexAcquire(i2cMutexHandle, osWaitForever);
-
-      // Read BMI088 sensor data
-      bmi088_update(&BMI_sensor);
-
-      // Release I2C bus mutex
-      osMutexRelease(i2cMutexHandle);
+      continue;
     }
-    osDelay(1);
+
+    if((notifiedFlags & ACCEL_DMA_FLAG) != 0U)
+    {
+      bmi088_process_accel_data(&BMI_sensor);
+    }
+
+    if((notifiedFlags & GYRO_DMA_FLAG) != 0U)
+    {
+      bmi088_process_gyro_data(&BMI_sensor);
+    }
   }
   /* USER CODE END StartBMITask */
 }
@@ -1358,7 +1357,7 @@ void bme280_begin()
   BME280_sensor.device_config.bme280_filter = BME280_FILTER_2;
   BME280_sensor.device_config.bme280_mode = BME280_MODE_NORMAL;
   BME280_sensor.device_config.bme280_output_speed = BME280_OS_4;
-  BME280_sensor.device_config.bme280_standby_time = BME280_STBY_125;
+  BME280_sensor.device_config.bme280_standby_time = BME280_STBY_250;
   bme280_init(&BME280_sensor, &hi2c3);
 }
 

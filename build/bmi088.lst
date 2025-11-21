@@ -1,0 +1,2886 @@
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 6
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"bmi088.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Core/Src/bmi088.c"
+  20              		.section	.bss.is_time_updated,"aw",%nobits
+  23              	is_time_updated:
+  24 0000 00       		.space	1
+  25              		.section	.bss.is_starded,"aw",%nobits
+  28              	is_starded:
+  29 0000 00       		.space	1
+  30              		.section	.bss.is_gyro_renewed,"aw",%nobits
+  33              	is_gyro_renewed:
+  34 0000 00       		.space	1
+  35              		.section	.bss.errorLine,"aw",%nobits
+  36              		.align	2
+  39              	errorLine:
+  40 0000 00000000 		.space	4
+  41              		.section	.bss.accel_read_count,"aw",%nobits
+  42              		.align	2
+  45              	accel_read_count:
+  46 0000 00000000 		.space	4
+  47              		.section	.bss.gyro_read_count,"aw",%nobits
+  48              		.align	2
+  51              	gyro_read_count:
+  52 0000 00000000 		.space	4
+  53              		.section	.bss.accel_freq_last_time,"aw",%nobits
+  54              		.align	2
+  57              	accel_freq_last_time:
+  58 0000 00000000 		.space	4
+  59              		.section	.bss.gyro_freq_last_time,"aw",%nobits
+  60              		.align	2
+  63              	gyro_freq_last_time:
+  64 0000 00000000 		.space	4
+  65              		.section	.bss.accel_frequency_hz,"aw",%nobits
+  66              		.align	2
+  69              	accel_frequency_hz:
+  70 0000 00000000 		.space	4
+  71              		.section	.bss.gyro_frequency_hz,"aw",%nobits
+  72              		.align	2
+  75              	gyro_frequency_hz:
+  76 0000 00000000 		.space	4
+  77              		.section	.bss.last_hal_tick,"aw",%nobits
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 2
+
+
+  78              		.align	2
+  81              	last_hal_tick:
+  82 0000 00000000 		.space	4
+  83              		.section	.text.bmi088_init,"ax",%progbits
+  84              		.align	1
+  85              		.global	bmi088_init
+  86              		.syntax unified
+  87              		.thumb
+  88              		.thumb_func
+  90              	bmi088_init:
+  91              	.LFB242:
+   1:Core/Src/bmi088.c **** /*
+   2:Core/Src/bmi088.c ****  * bmi088.c
+   3:Core/Src/bmi088.c ****  *
+   4:Core/Src/bmi088.c ****  *  Created on: May 6, 2024
+   5:Core/Src/bmi088.c ****  *      Author: yahya
+   6:Core/Src/bmi088.c ****  */
+   7:Core/Src/bmi088.c **** 
+   8:Core/Src/bmi088.c **** #include "bmi088.h"
+   9:Core/Src/bmi088.c **** #include "main.h"
+  10:Core/Src/bmi088.c **** #include "math.h"
+  11:Core/Src/bmi088.c **** #include "stdlib.h"
+  12:Core/Src/bmi088.c **** #include "stdint.h"
+  13:Core/Src/bmi088.c **** #include "queternion.h"
+  14:Core/Src/bmi088.c **** #include "quaternion.h"
+  15:Core/Src/bmi088.c **** 
+  16:Core/Src/bmi088.c **** //#define SELFTEST_ENABLED
+  17:Core/Src/bmi088.c **** 
+  18:Core/Src/bmi088.c **** static volatile uint8_t is_time_updated = 0;
+  19:Core/Src/bmi088.c **** static volatile uint8_t is_starded = 0;
+  20:Core/Src/bmi088.c **** static volatile uint8_t is_gyro_renewed = 0;
+  21:Core/Src/bmi088.c **** 
+  22:Core/Src/bmi088.c **** static int errorLine = 0;
+  23:Core/Src/bmi088.c **** 
+  24:Core/Src/bmi088.c **** // Debug: Frekans hesaplama değişkenleri
+  25:Core/Src/bmi088.c **** static uint32_t accel_read_count = 0;
+  26:Core/Src/bmi088.c **** static uint32_t gyro_read_count = 0;
+  27:Core/Src/bmi088.c **** static uint32_t accel_freq_last_time = 0;
+  28:Core/Src/bmi088.c **** static uint32_t gyro_freq_last_time = 0;
+  29:Core/Src/bmi088.c **** static float accel_frequency_hz = 0.0f;
+  30:Core/Src/bmi088.c **** static float gyro_frequency_hz = 0.0f;
+  31:Core/Src/bmi088.c **** 
+  32:Core/Src/bmi088.c **** // Delta time için HAL_GetTick() kullanımı
+  33:Core/Src/bmi088.c **** static uint32_t last_hal_tick = 0;
+  34:Core/Src/bmi088.c **** 
+  35:Core/Src/bmi088.c **** 
+  36:Core/Src/bmi088.c **** #ifdef SELFTEST_ENABLED
+  37:Core/Src/bmi088.c **** #include <string.h>
+  38:Core/Src/bmi088.c **** #include <stdio.h>
+  39:Core/Src/bmi088.c **** #endif
+  40:Core/Src/bmi088.c **** 
+  41:Core/Src/bmi088.c **** #ifdef SELFTEST_ENABLED
+  42:Core/Src/bmi088.c **** static void bmi088_selfTest()
+  43:Core/Src/bmi088.c **** {
+  44:Core/Src/bmi088.c **** 	HAL_Delay(100);
+  45:Core/Src/bmi088.c **** 
+  46:Core/Src/bmi088.c **** 	HAL_StatusTypeDef retVal = HAL_OK;
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 3
+
+
+  47:Core/Src/bmi088.c **** 
+  48:Core/Src/bmi088.c **** 	uint8_t buf[1];
+  49:Core/Src/bmi088.c **** 
+  50:Core/Src/bmi088.c **** 	buf[0] = ACC_RESET;
+  51:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI_I2c, ACC_I2C_ADD, ACC_SOFTRESET, I2C_MEMADD_SIZE_8BIT, buf, 1, 20)
+  52:Core/Src/bmi088.c **** 	HAL_Delay(100);
+  53:Core/Src/bmi088.c **** 
+  54:Core/Src/bmi088.c **** 	buf[0] = ACC_RANGE_24G;
+  55:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI_I2c, ACC_I2C_ADD, ACC_RANGE, I2C_MEMADD_SIZE_8BIT, buf, 1, 20); //
+  56:Core/Src/bmi088.c **** 
+  57:Core/Src/bmi088.c **** 	buf[0] = (0x01 << 7) | (0x02 << 4) | ACC_ODR_1600;
+  58:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI_I2c, ACC_I2C_ADD, ACC_CONF, I2C_MEMADD_SIZE_8BIT, buf, 1, 20); //a
+  59:Core/Src/bmi088.c **** 	HAL_Delay(4); // wait for 3 ms
+  60:Core/Src/bmi088.c **** 
+  61:Core/Src/bmi088.c **** 	//positive self test for accel
+  62:Core/Src/bmi088.c **** 	buf[0] = ACC_SELF_TEST_POSITIVE;
+  63:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI_I2c, ACC_I2C_ADD, ACC_SELF_TEST, I2C_MEMADD_SIZE_8BIT, buf, 1, 20)
+  64:Core/Src/bmi088.c **** 	HAL_Delay(70); // wait for min 50ms
+  65:Core/Src/bmi088.c **** 
+  66:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Read(BMI_I2c, ACC_I2C_ADD, ACC_X_LSB, I2C_MEMADD_SIZE_8BIT, BMI->rawDatas.ac
+  67:Core/Src/bmi088.c **** 	BMI->testVals.selfTest_acc_z = (BMI->rawDatas.accel[5] << 8) | BMI->rawDatas.accel[4];
+  68:Core/Src/bmi088.c **** 	BMI->testVals.selfTest_acc_y = (BMI->rawDatas.accel[3] << 8) | BMI->rawDatas.accel[2];
+  69:Core/Src/bmi088.c **** 	BMI->testVals.selfTest_acc_x = (BMI->rawDatas.accel[1] << 8) | BMI->rawDatas.accel[0];
+  70:Core/Src/bmi088.c **** 
+  71:Core/Src/bmi088.c **** 	BMI->testVals.acc_z[0] = (double)BMI->testVals.selfTest_acc_z / 32768.0 * 1000.0 * 1.5 * pow(2.0, 
+  72:Core/Src/bmi088.c **** 	BMI->testVals.acc_y[0] = (double)BMI->testVals.selfTest_acc_y / 32768.0 * 1000.0 * 1.5 * pow(2.0, 
+  73:Core/Src/bmi088.c **** 	BMI->testVals.acc_x[0] = (double)BMI->testVals.selfTest_acc_x / 32768.0 * 1000.0 * 1.5 * pow(2.0, 
+  74:Core/Src/bmi088.c **** 
+  75:Core/Src/bmi088.c **** 	//negative self test for accel
+  76:Core/Src/bmi088.c **** 	buf[0] = ACC_SELF_TEST_NEGATIVE;
+  77:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI_I2c, ACC_I2C_ADD, ACC_SELF_TEST, I2C_MEMADD_SIZE_8BIT, buf, 1, 20)
+  78:Core/Src/bmi088.c **** 	HAL_Delay(70); // wait for min 50ms
+  79:Core/Src/bmi088.c **** 
+  80:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Read(BMI_I2c, ACC_I2C_ADD, ACC_X_LSB, I2C_MEMADD_SIZE_8BIT, BMI->rawDatas.ac
+  81:Core/Src/bmi088.c **** 	BMI->testVals.selfTest_acc_z = (BMI->rawDatas.accel[5] << 8) | BMI->rawDatas.accel[4];
+  82:Core/Src/bmi088.c **** 	BMI->testVals.selfTest_acc_y = (BMI->rawDatas.accel[3] << 8) | BMI->rawDatas.accel[2];
+  83:Core/Src/bmi088.c **** 	BMI->testVals.selfTest_acc_x = (BMI->rawDatas.accel[1] << 8) | BMI->rawDatas.accel[0];
+  84:Core/Src/bmi088.c **** 
+  85:Core/Src/bmi088.c **** 	BMI->testVals.acc_z[1] = (float)BMI->testVals.selfTest_acc_z / 32768.0 * 1000.0 * 1.5 * pow(2.0, (
+  86:Core/Src/bmi088.c **** 	BMI->testVals.acc_y[1] = (float)BMI->testVals.selfTest_acc_y / 32768.0 * 1000.0 * 1.5 * pow(2.0, (
+  87:Core/Src/bmi088.c **** 	BMI->testVals.acc_x[1] = (float)BMI->testVals.selfTest_acc_x / 32768.0 * 1000.0 * 1.5 * pow(2.0, (
+  88:Core/Src/bmi088.c **** 
+  89:Core/Src/bmi088.c **** 	buf[0] = ACC_SELF_TEST_OFF;
+  90:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI_I2c, ACC_I2C_ADD, ACC_SELF_TEST, I2C_MEMADD_SIZE_8BIT, buf, 1, 20)
+  91:Core/Src/bmi088.c **** 	HAL_Delay(70);	//wait for steady state.
+  92:Core/Src/bmi088.c **** 	if(retVal != HAL_OK)
+  93:Core/Src/bmi088.c **** 		Error_Handler();
+  94:Core/Src/bmi088.c **** 
+  95:Core/Src/bmi088.c **** 
+  96:Core/Src/bmi088.c **** 
+  97:Core/Src/bmi088.c **** #ifdef SELFTEST_ENABLED
+  98:Core/Src/bmi088.c **** 	bmi088_selfTest();
+  99:Core/Src/bmi088.c **** 	uint8_t buffer[100];
+ 100:Core/Src/bmi088.c **** 	sprintf((char*)buffer, "self test positive:  a_x: %f  a_y: %f  a_z: %f\r\n", BMI->testVals.acc_x[0
+ 101:Core/Src/bmi088.c **** 	HAL_UART_Transmit(&huart1, buffer, strlen((char*) buffer), 50);
+ 102:Core/Src/bmi088.c **** 	sprintf((char*)buffer, "self test negative:  a_x: %f  a_y: %f  a_z: %f\r\n", BMI->testVals.acc_x[1
+ 103:Core/Src/bmi088.c **** 	HAL_UART_Transmit(&huart1, buffer, strlen((char*) buffer), 50);
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 4
+
+
+ 104:Core/Src/bmi088.c **** 	while(1);
+ 105:Core/Src/bmi088.c **** #endif
+ 106:Core/Src/bmi088.c **** 
+ 107:Core/Src/bmi088.c **** }
+ 108:Core/Src/bmi088.c **** #endif
+ 109:Core/Src/bmi088.c **** 
+ 110:Core/Src/bmi088.c **** #define GYRO_X_OFFSET (float)0.0
+ 111:Core/Src/bmi088.c **** #define GYRO_Y_OFFSET (float)0.0
+ 112:Core/Src/bmi088.c **** #define GYRO_Z_OFFSET (float)0.0
+ 113:Core/Src/bmi088.c **** /*
+ 114:Core/Src/bmi088.c **** static void bmi088_poke()
+ 115:Core/Src/bmi088.c **** {
+ 116:Core/Src/bmi088.c **** 
+ 117:Core/Src/bmi088.c **** 	HAL_I2C_DeInit(BMI_I2c);
+ 118:Core/Src/bmi088.c **** 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, RESET);
+ 119:Core/Src/bmi088.c **** 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, RESET);
+ 120:Core/Src/bmi088.c **** 	HAL_Delay(1000);
+ 121:Core/Src/bmi088.c **** 	HAL_I2C_Init(BMI_I2c);
+ 122:Core/Src/bmi088.c **** 
+ 123:Core/Src/bmi088.c **** }
+ 124:Core/Src/bmi088.c **** */
+ 125:Core/Src/bmi088.c **** uint8_t bmi088_init(bmi088_struct_t* BMI)
+ 126:Core/Src/bmi088.c **** {
+  92              		.loc 1 126 1
+  93              		.cfi_startproc
+  94              		@ args = 0, pretend = 0, frame = 16
+  95              		@ frame_needed = 1, uses_anonymous_args = 0
+  96 0000 80B5     		push	{r7, lr}
+  97              		.cfi_def_cfa_offset 8
+  98              		.cfi_offset 7, -8
+  99              		.cfi_offset 14, -4
+ 100 0002 88B0     		sub	sp, sp, #32
+ 101              		.cfi_def_cfa_offset 40
+ 102 0004 04AF     		add	r7, sp, #16
+ 103              		.cfi_def_cfa 7, 24
+ 104 0006 7860     		str	r0, [r7, #4]
+ 127:Core/Src/bmi088.c **** 	//quaternionSet_zero();
+ 128:Core/Src/bmi088.c **** 	uint8_t ret_val = 0;
+ 105              		.loc 1 128 10
+ 106 0008 0023     		movs	r3, #0
+ 107 000a FB73     		strb	r3, [r7, #15]
+ 129:Core/Src/bmi088.c **** 	BMI->flags.isGyroUpdated = 0;
+ 108              		.loc 1 129 27
+ 109 000c 7B68     		ldr	r3, [r7, #4]
+ 110 000e 0022     		movs	r2, #0
+ 111 0010 1A70     		strb	r2, [r3]
+ 130:Core/Src/bmi088.c **** 	BMI->flags.isAccelUpdated = 0;
+ 112              		.loc 1 130 28
+ 113 0012 7B68     		ldr	r3, [r7, #4]
+ 114 0014 0022     		movs	r2, #0
+ 115 0016 5A70     		strb	r2, [r3, #1]
+ 131:Core/Src/bmi088.c **** 	BMI->flags.isAccelDmaComplete = 0;
+ 116              		.loc 1 131 32
+ 117 0018 7B68     		ldr	r3, [r7, #4]
+ 118 001a 0022     		movs	r2, #0
+ 119 001c 9A70     		strb	r2, [r3, #2]
+ 132:Core/Src/bmi088.c **** 	BMI->flags.isGyroDmaComplete = 0;
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 5
+
+
+ 120              		.loc 1 132 31
+ 121 001e 7B68     		ldr	r3, [r7, #4]
+ 122 0020 0022     		movs	r2, #0
+ 123 0022 DA70     		strb	r2, [r3, #3]
+ 133:Core/Src/bmi088.c **** 	BMI->flags.isDmaTransferActive = 0;
+ 124              		.loc 1 133 33
+ 125 0024 7B68     		ldr	r3, [r7, #4]
+ 126 0026 0022     		movs	r2, #0
+ 127 0028 1A71     		strb	r2, [r3, #4]
+ 134:Core/Src/bmi088.c **** 	is_time_updated = 0;
+ 128              		.loc 1 134 18
+ 129 002a 244B     		ldr	r3, .L6
+ 130 002c 0022     		movs	r2, #0
+ 131 002e 1A70     		strb	r2, [r3]
+ 135:Core/Src/bmi088.c **** 	is_starded = 0;
+ 132              		.loc 1 135 13
+ 133 0030 234B     		ldr	r3, .L6+4
+ 134 0032 0022     		movs	r2, #0
+ 135 0034 1A70     		strb	r2, [r3]
+ 136:Core/Src/bmi088.c **** 	uint8_t buf[2];
+ 137:Core/Src/bmi088.c **** 	buf[0] = 0;
+ 136              		.loc 1 137 9
+ 137 0036 0023     		movs	r3, #0
+ 138 0038 3B73     		strb	r3, [r7, #12]
+ 138:Core/Src/bmi088.c **** 
+ 139:Core/Src/bmi088.c **** 	if(BMI->device_config.offsets == NULL)
+ 139              		.loc 1 139 23
+ 140 003a 7B68     		ldr	r3, [r7, #4]
+ 141 003c 9B69     		ldr	r3, [r3, #24]
+ 142              		.loc 1 139 4
+ 143 003e 002B     		cmp	r3, #0
+ 144 0040 07D1     		bne	.L2
+ 140:Core/Src/bmi088.c **** 	{
+ 141:Core/Src/bmi088.c **** 		BMI->device_config.offsets = calloc(sizeof(*BMI->device_config.offsets), 1);
+ 145              		.loc 1 141 32
+ 146 0042 0121     		movs	r1, #1
+ 147 0044 1820     		movs	r0, #24
+ 148 0046 FFF7FEFF 		bl	calloc
+ 149 004a 0346     		mov	r3, r0
+ 150 004c 1A46     		mov	r2, r3
+ 151              		.loc 1 141 30
+ 152 004e 7B68     		ldr	r3, [r7, #4]
+ 153 0050 9A61     		str	r2, [r3, #24]
+ 154              	.L2:
+ 142:Core/Src/bmi088.c **** 
+ 143:Core/Src/bmi088.c **** 	}
+ 144:Core/Src/bmi088.c **** 
+ 145:Core/Src/bmi088.c **** 	HAL_StatusTypeDef ret = HAL_I2C_Mem_Read(BMI->device_config.BMI_I2c, ACC_I2C_ADD, ACC_CHIP_ID, I2C
+ 155              		.loc 1 145 26
+ 156 0052 7B68     		ldr	r3, [r7, #4]
+ 157 0054 1869     		ldr	r0, [r3, #16]
+ 158 0056 3223     		movs	r3, #50
+ 159 0058 0293     		str	r3, [sp, #8]
+ 160 005a 0123     		movs	r3, #1
+ 161 005c 0193     		str	r3, [sp, #4]
+ 162 005e 07F10C03 		add	r3, r7, #12
+ 163 0062 0093     		str	r3, [sp]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 6
+
+
+ 164 0064 0123     		movs	r3, #1
+ 165 0066 0022     		movs	r2, #0
+ 166 0068 3021     		movs	r1, #48
+ 167 006a FFF7FEFF 		bl	HAL_I2C_Mem_Read
+ 168 006e 0346     		mov	r3, r0
+ 169 0070 BB73     		strb	r3, [r7, #14]
+ 146:Core/Src/bmi088.c **** 	ret = HAL_I2C_Mem_Read(BMI->device_config.BMI_I2c, GYRO_I2C_ADD, GYRO_CHIP_ID, I2C_MEMADD_SIZE_8BI
+ 170              		.loc 1 146 8
+ 171 0072 7B68     		ldr	r3, [r7, #4]
+ 172 0074 1869     		ldr	r0, [r3, #16]
+ 173 0076 3223     		movs	r3, #50
+ 174 0078 0293     		str	r3, [sp, #8]
+ 175 007a 0123     		movs	r3, #1
+ 176 007c 0193     		str	r3, [sp, #4]
+ 177 007e 07F10C03 		add	r3, r7, #12
+ 178 0082 0133     		adds	r3, r3, #1
+ 179 0084 0093     		str	r3, [sp]
+ 180 0086 0123     		movs	r3, #1
+ 181 0088 0022     		movs	r2, #0
+ 182 008a D021     		movs	r1, #208
+ 183 008c FFF7FEFF 		bl	HAL_I2C_Mem_Read
+ 184 0090 0346     		mov	r3, r0
+ 185 0092 BB73     		strb	r3, [r7, #14]
+ 147:Core/Src/bmi088.c **** 	UNUSED(ret);
+ 148:Core/Src/bmi088.c **** 	if(!(buf[0] == 0x1E))
+ 186              		.loc 1 148 10
+ 187 0094 3B7B     		ldrb	r3, [r7, #12]	@ zero_extendqisi2
+ 188              		.loc 1 148 4
+ 189 0096 1E2B     		cmp	r3, #30
+ 190 0098 03D0     		beq	.L3
+ 149:Core/Src/bmi088.c **** 	{
+ 150:Core/Src/bmi088.c **** 		ret_val = ret_val | 0x01;
+ 191              		.loc 1 150 11
+ 192 009a FB7B     		ldrb	r3, [r7, #15]
+ 193 009c 43F00103 		orr	r3, r3, #1
+ 194 00a0 FB73     		strb	r3, [r7, #15]
+ 195              	.L3:
+ 151:Core/Src/bmi088.c **** 	}
+ 152:Core/Src/bmi088.c **** 	if(!(buf[1] == 0x0F))
+ 196              		.loc 1 152 10
+ 197 00a2 7B7B     		ldrb	r3, [r7, #13]	@ zero_extendqisi2
+ 198              		.loc 1 152 4
+ 199 00a4 0F2B     		cmp	r3, #15
+ 200 00a6 03D0     		beq	.L4
+ 153:Core/Src/bmi088.c **** 	{
+ 154:Core/Src/bmi088.c **** 		ret_val = ret_val | 0x02;
+ 201              		.loc 1 154 11
+ 202 00a8 FB7B     		ldrb	r3, [r7, #15]
+ 203 00aa 43F00203 		orr	r3, r3, #2
+ 204 00ae FB73     		strb	r3, [r7, #15]
+ 205              	.L4:
+ 155:Core/Src/bmi088.c **** 	}
+ 156:Core/Src/bmi088.c **** 
+ 157:Core/Src/bmi088.c **** 	return ret_val;
+ 206              		.loc 1 157 9
+ 207 00b0 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 158:Core/Src/bmi088.c **** }
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 7
+
+
+ 208              		.loc 1 158 1
+ 209 00b2 1846     		mov	r0, r3
+ 210 00b4 1037     		adds	r7, r7, #16
+ 211              		.cfi_def_cfa_offset 8
+ 212 00b6 BD46     		mov	sp, r7
+ 213              		.cfi_def_cfa_register 13
+ 214              		@ sp needed
+ 215 00b8 80BD     		pop	{r7, pc}
+ 216              	.L7:
+ 217 00ba 00BF     		.align	2
+ 218              	.L6:
+ 219 00bc 00000000 		.word	is_time_updated
+ 220 00c0 00000000 		.word	is_starded
+ 221              		.cfi_endproc
+ 222              	.LFE242:
+ 224              		.section	.text.bmi088_config,"ax",%progbits
+ 225              		.align	1
+ 226              		.global	bmi088_config
+ 227              		.syntax unified
+ 228              		.thumb
+ 229              		.thumb_func
+ 231              	bmi088_config:
+ 232              	.LFB243:
+ 159:Core/Src/bmi088.c **** 
+ 160:Core/Src/bmi088.c **** void bmi088_config(bmi088_struct_t* BMI)
+ 161:Core/Src/bmi088.c **** {
+ 233              		.loc 1 161 1
+ 234              		.cfi_startproc
+ 235              		@ args = 0, pretend = 0, frame = 16
+ 236              		@ frame_needed = 1, uses_anonymous_args = 0
+ 237 0000 80B5     		push	{r7, lr}
+ 238              		.cfi_def_cfa_offset 8
+ 239              		.cfi_offset 7, -8
+ 240              		.cfi_offset 14, -4
+ 241 0002 88B0     		sub	sp, sp, #32
+ 242              		.cfi_def_cfa_offset 40
+ 243 0004 04AF     		add	r7, sp, #16
+ 244              		.cfi_def_cfa 7, 24
+ 245 0006 7860     		str	r0, [r7, #4]
+ 162:Core/Src/bmi088.c **** 	HAL_NVIC_DisableIRQ(BMI->device_config.acc_IRQ);
+ 246              		.loc 1 162 2
+ 247 0008 7B68     		ldr	r3, [r7, #4]
+ 248 000a 93F91430 		ldrsb	r3, [r3, #20]
+ 249 000e 1846     		mov	r0, r3
+ 250 0010 FFF7FEFF 		bl	HAL_NVIC_DisableIRQ
+ 163:Core/Src/bmi088.c **** 	HAL_NVIC_DisableIRQ(BMI->device_config.gyro_IRQ);
+ 251              		.loc 1 163 2
+ 252 0014 7B68     		ldr	r3, [r7, #4]
+ 253 0016 93F91530 		ldrsb	r3, [r3, #21]
+ 254 001a 1846     		mov	r0, r3
+ 255 001c FFF7FEFF 		bl	HAL_NVIC_DisableIRQ
+ 164:Core/Src/bmi088.c **** 
+ 165:Core/Src/bmi088.c **** 	HAL_StatusTypeDef retVal = HAL_OK;
+ 256              		.loc 1 165 20
+ 257 0020 0023     		movs	r3, #0
+ 258 0022 FB73     		strb	r3, [r7, #15]
+ 166:Core/Src/bmi088.c **** 	uint8_t buf[1];
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 8
+
+
+ 167:Core/Src/bmi088.c **** 
+ 168:Core/Src/bmi088.c **** 	buf[0] = ACC_PWR_SAVE_ULTRA;
+ 259              		.loc 1 168 9
+ 260 0024 0123     		movs	r3, #1
+ 261 0026 3B73     		strb	r3, [r7, #12]
+ 169:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI->device_config.BMI_I2c, ACC_I2C_ADD, ACC_PWR_CONF, I2C_MEMADD_SIZE
+ 262              		.loc 1 169 12
+ 263 0028 7B68     		ldr	r3, [r7, #4]
+ 264 002a 1869     		ldr	r0, [r3, #16]
+ 265 002c 6423     		movs	r3, #100
+ 266 002e 0293     		str	r3, [sp, #8]
+ 267 0030 0123     		movs	r3, #1
+ 268 0032 0193     		str	r3, [sp, #4]
+ 269 0034 07F10C03 		add	r3, r7, #12
+ 270 0038 0093     		str	r3, [sp]
+ 271 003a 0123     		movs	r3, #1
+ 272 003c 7C22     		movs	r2, #124
+ 273 003e 3021     		movs	r1, #48
+ 274 0040 FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 275 0044 0346     		mov	r3, r0
+ 276 0046 1A46     		mov	r2, r3
+ 277              		.loc 1 169 9
+ 278 0048 FB7B     		ldrb	r3, [r7, #15]
+ 279 004a 1343     		orrs	r3, r3, r2
+ 280 004c FB73     		strb	r3, [r7, #15]
+ 170:Core/Src/bmi088.c **** 
+ 171:Core/Src/bmi088.c **** 	buf[0] = ACC_DISABLE;
+ 281              		.loc 1 171 9
+ 282 004e 0023     		movs	r3, #0
+ 283 0050 3B73     		strb	r3, [r7, #12]
+ 172:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI->device_config.BMI_I2c, ACC_I2C_ADD, ACC_PWR_CTRL, I2C_MEMADD_SIZE
+ 284              		.loc 1 172 12
+ 285 0052 7B68     		ldr	r3, [r7, #4]
+ 286 0054 1869     		ldr	r0, [r3, #16]
+ 287 0056 6423     		movs	r3, #100
+ 288 0058 0293     		str	r3, [sp, #8]
+ 289 005a 0123     		movs	r3, #1
+ 290 005c 0193     		str	r3, [sp, #4]
+ 291 005e 07F10C03 		add	r3, r7, #12
+ 292 0062 0093     		str	r3, [sp]
+ 293 0064 0123     		movs	r3, #1
+ 294 0066 7D22     		movs	r2, #125
+ 295 0068 3021     		movs	r1, #48
+ 296 006a FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 297 006e 0346     		mov	r3, r0
+ 298 0070 1A46     		mov	r2, r3
+ 299              		.loc 1 172 9
+ 300 0072 FB7B     		ldrb	r3, [r7, #15]
+ 301 0074 1343     		orrs	r3, r3, r2
+ 302 0076 FB73     		strb	r3, [r7, #15]
+ 173:Core/Src/bmi088.c **** 	HAL_Delay(20);
+ 303              		.loc 1 173 2
+ 304 0078 1420     		movs	r0, #20
+ 305 007a FFF7FEFF 		bl	HAL_Delay
+ 174:Core/Src/bmi088.c **** 
+ 175:Core/Src/bmi088.c **** 	buf[0] = ACC_RESET;
+ 306              		.loc 1 175 9
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 9
+
+
+ 307 007e B623     		movs	r3, #182
+ 308 0080 3B73     		strb	r3, [r7, #12]
+ 176:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI->device_config.BMI_I2c, ACC_I2C_ADD, ACC_SOFTRESET, I2C_MEMADD_SIZ
+ 309              		.loc 1 176 12
+ 310 0082 7B68     		ldr	r3, [r7, #4]
+ 311 0084 1869     		ldr	r0, [r3, #16]
+ 312 0086 6423     		movs	r3, #100
+ 313 0088 0293     		str	r3, [sp, #8]
+ 314 008a 0123     		movs	r3, #1
+ 315 008c 0193     		str	r3, [sp, #4]
+ 316 008e 07F10C03 		add	r3, r7, #12
+ 317 0092 0093     		str	r3, [sp]
+ 318 0094 0123     		movs	r3, #1
+ 319 0096 7E22     		movs	r2, #126
+ 320 0098 3021     		movs	r1, #48
+ 321 009a FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 322 009e 0346     		mov	r3, r0
+ 323 00a0 1A46     		mov	r2, r3
+ 324              		.loc 1 176 9
+ 325 00a2 FB7B     		ldrb	r3, [r7, #15]
+ 326 00a4 1343     		orrs	r3, r3, r2
+ 327 00a6 FB73     		strb	r3, [r7, #15]
+ 177:Core/Src/bmi088.c **** 	retVal != HAL_OK ? errorLine =__LINE__ : 0;
+ 328              		.loc 1 177 41
+ 329 00a8 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 330 00aa 002B     		cmp	r3, #0
+ 331 00ac 02D0     		beq	.L10
+ 332              		.loc 1 177 31 discriminator 1
+ 333 00ae B44B     		ldr	r3, .L35
+ 334 00b0 B122     		movs	r2, #177
+ 335 00b2 1A60     		str	r2, [r3]
+ 336              	.L10:
+ 178:Core/Src/bmi088.c **** 	HAL_Delay(10);
+ 337              		.loc 1 178 2
+ 338 00b4 0A20     		movs	r0, #10
+ 339 00b6 FFF7FEFF 		bl	HAL_Delay
+ 179:Core/Src/bmi088.c **** 
+ 180:Core/Src/bmi088.c **** 	buf[0] = FIFO_RESET;
+ 340              		.loc 1 180 9
+ 341 00ba B023     		movs	r3, #176
+ 342 00bc 3B73     		strb	r3, [r7, #12]
+ 181:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI->device_config.BMI_I2c, ACC_I2C_ADD, ACC_SOFTRESET, I2C_MEMADD_SIZ
+ 343              		.loc 1 181 12
+ 344 00be 7B68     		ldr	r3, [r7, #4]
+ 345 00c0 1869     		ldr	r0, [r3, #16]
+ 346 00c2 6423     		movs	r3, #100
+ 347 00c4 0293     		str	r3, [sp, #8]
+ 348 00c6 0123     		movs	r3, #1
+ 349 00c8 0193     		str	r3, [sp, #4]
+ 350 00ca 07F10C03 		add	r3, r7, #12
+ 351 00ce 0093     		str	r3, [sp]
+ 352 00d0 0123     		movs	r3, #1
+ 353 00d2 7E22     		movs	r2, #126
+ 354 00d4 3021     		movs	r1, #48
+ 355 00d6 FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 356 00da 0346     		mov	r3, r0
+ 357 00dc 1A46     		mov	r2, r3
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 10
+
+
+ 358              		.loc 1 181 9
+ 359 00de FB7B     		ldrb	r3, [r7, #15]
+ 360 00e0 1343     		orrs	r3, r3, r2
+ 361 00e2 FB73     		strb	r3, [r7, #15]
+ 182:Core/Src/bmi088.c **** 	retVal != HAL_OK ? errorLine =__LINE__ : 0;
+ 362              		.loc 1 182 41
+ 363 00e4 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 364 00e6 002B     		cmp	r3, #0
+ 365 00e8 02D0     		beq	.L12
+ 366              		.loc 1 182 31 discriminator 1
+ 367 00ea A54B     		ldr	r3, .L35
+ 368 00ec B622     		movs	r2, #182
+ 369 00ee 1A60     		str	r2, [r3]
+ 370              	.L12:
+ 183:Core/Src/bmi088.c **** 	HAL_Delay(10);
+ 371              		.loc 1 183 2
+ 372 00f0 0A20     		movs	r0, #10
+ 373 00f2 FFF7FEFF 		bl	HAL_Delay
+ 184:Core/Src/bmi088.c **** 
+ 185:Core/Src/bmi088.c **** 	buf[0] = GYRO_RESET;
+ 374              		.loc 1 185 9
+ 375 00f6 B623     		movs	r3, #182
+ 376 00f8 3B73     		strb	r3, [r7, #12]
+ 186:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI->device_config.BMI_I2c, GYRO_I2C_ADD, GYRO_SOFT_RESET, I2C_MEMADD_
+ 377              		.loc 1 186 12
+ 378 00fa 7B68     		ldr	r3, [r7, #4]
+ 379 00fc 1869     		ldr	r0, [r3, #16]
+ 380 00fe 6423     		movs	r3, #100
+ 381 0100 0293     		str	r3, [sp, #8]
+ 382 0102 0123     		movs	r3, #1
+ 383 0104 0193     		str	r3, [sp, #4]
+ 384 0106 07F10C03 		add	r3, r7, #12
+ 385 010a 0093     		str	r3, [sp]
+ 386 010c 0123     		movs	r3, #1
+ 387 010e 1422     		movs	r2, #20
+ 388 0110 D021     		movs	r1, #208
+ 389 0112 FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 390 0116 0346     		mov	r3, r0
+ 391 0118 1A46     		mov	r2, r3
+ 392              		.loc 1 186 9
+ 393 011a FB7B     		ldrb	r3, [r7, #15]
+ 394 011c 1343     		orrs	r3, r3, r2
+ 395 011e FB73     		strb	r3, [r7, #15]
+ 187:Core/Src/bmi088.c **** 	retVal != HAL_OK ? errorLine =__LINE__ : 0;
+ 396              		.loc 1 187 41
+ 397 0120 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 398 0122 002B     		cmp	r3, #0
+ 399 0124 02D0     		beq	.L14
+ 400              		.loc 1 187 31 discriminator 1
+ 401 0126 964B     		ldr	r3, .L35
+ 402 0128 BB22     		movs	r2, #187
+ 403 012a 1A60     		str	r2, [r3]
+ 404              	.L14:
+ 188:Core/Src/bmi088.c **** 	HAL_Delay(10);
+ 405              		.loc 1 188 2
+ 406 012c 0A20     		movs	r0, #10
+ 407 012e FFF7FEFF 		bl	HAL_Delay
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 11
+
+
+ 189:Core/Src/bmi088.c **** 
+ 190:Core/Src/bmi088.c **** 	//Gyroscope configuration.
+ 191:Core/Src/bmi088.c **** 	buf[0] = BMI->device_config.gyro_range;
+ 408              		.loc 1 191 29
+ 409 0132 7B68     		ldr	r3, [r7, #4]
+ 410 0134 9B7B     		ldrb	r3, [r3, #14]	@ zero_extendqisi2
+ 411              		.loc 1 191 9
+ 412 0136 3B73     		strb	r3, [r7, #12]
+ 192:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI->device_config.BMI_I2c, GYRO_I2C_ADD, GYRO_RANGE, I2C_MEMADD_SIZE_
+ 413              		.loc 1 192 12
+ 414 0138 7B68     		ldr	r3, [r7, #4]
+ 415 013a 1869     		ldr	r0, [r3, #16]
+ 416 013c 6423     		movs	r3, #100
+ 417 013e 0293     		str	r3, [sp, #8]
+ 418 0140 0123     		movs	r3, #1
+ 419 0142 0193     		str	r3, [sp, #4]
+ 420 0144 07F10C03 		add	r3, r7, #12
+ 421 0148 0093     		str	r3, [sp]
+ 422 014a 0123     		movs	r3, #1
+ 423 014c 0F22     		movs	r2, #15
+ 424 014e D021     		movs	r1, #208
+ 425 0150 FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 426 0154 0346     		mov	r3, r0
+ 427 0156 1A46     		mov	r2, r3
+ 428              		.loc 1 192 9
+ 429 0158 FB7B     		ldrb	r3, [r7, #15]
+ 430 015a 1343     		orrs	r3, r3, r2
+ 431 015c FB73     		strb	r3, [r7, #15]
+ 193:Core/Src/bmi088.c **** 	retVal != HAL_OK ? errorLine =__LINE__ : 0;
+ 432              		.loc 1 193 41
+ 433 015e FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 434 0160 002B     		cmp	r3, #0
+ 435 0162 02D0     		beq	.L16
+ 436              		.loc 1 193 31 discriminator 1
+ 437 0164 864B     		ldr	r3, .L35
+ 438 0166 C122     		movs	r2, #193
+ 439 0168 1A60     		str	r2, [r3]
+ 440              	.L16:
+ 194:Core/Src/bmi088.c **** 
+ 195:Core/Src/bmi088.c **** 	buf[0] = BMI->device_config.gyro_bandWidth;
+ 441              		.loc 1 195 29
+ 442 016a 7B68     		ldr	r3, [r7, #4]
+ 443 016c 5B7B     		ldrb	r3, [r3, #13]	@ zero_extendqisi2
+ 444              		.loc 1 195 9
+ 445 016e 3B73     		strb	r3, [r7, #12]
+ 196:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI->device_config.BMI_I2c, GYRO_I2C_ADD, GYRO_BANDWITH, I2C_MEMADD_SI
+ 446              		.loc 1 196 12
+ 447 0170 7B68     		ldr	r3, [r7, #4]
+ 448 0172 1869     		ldr	r0, [r3, #16]
+ 449 0174 1423     		movs	r3, #20
+ 450 0176 0293     		str	r3, [sp, #8]
+ 451 0178 0123     		movs	r3, #1
+ 452 017a 0193     		str	r3, [sp, #4]
+ 453 017c 07F10C03 		add	r3, r7, #12
+ 454 0180 0093     		str	r3, [sp]
+ 455 0182 0123     		movs	r3, #1
+ 456 0184 1022     		movs	r2, #16
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 12
+
+
+ 457 0186 D021     		movs	r1, #208
+ 458 0188 FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 459 018c 0346     		mov	r3, r0
+ 460 018e 1A46     		mov	r2, r3
+ 461              		.loc 1 196 9
+ 462 0190 FB7B     		ldrb	r3, [r7, #15]
+ 463 0192 1343     		orrs	r3, r3, r2
+ 464 0194 FB73     		strb	r3, [r7, #15]
+ 197:Core/Src/bmi088.c **** 	retVal != HAL_OK ? errorLine =__LINE__ : 0;
+ 465              		.loc 1 197 41
+ 466 0196 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 467 0198 002B     		cmp	r3, #0
+ 468 019a 02D0     		beq	.L18
+ 469              		.loc 1 197 31 discriminator 1
+ 470 019c 784B     		ldr	r3, .L35
+ 471 019e C522     		movs	r2, #197
+ 472 01a0 1A60     		str	r2, [r3]
+ 473              	.L18:
+ 198:Core/Src/bmi088.c **** 
+ 199:Core/Src/bmi088.c **** 	buf[0] = BMI->device_config.gyro_powerMode;
+ 474              		.loc 1 199 29
+ 475 01a2 7B68     		ldr	r3, [r7, #4]
+ 476 01a4 1B7B     		ldrb	r3, [r3, #12]	@ zero_extendqisi2
+ 477              		.loc 1 199 9
+ 478 01a6 3B73     		strb	r3, [r7, #12]
+ 200:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI->device_config.BMI_I2c, GYRO_I2C_ADD, GYRO_LPM1, I2C_MEMADD_SIZE_8
+ 479              		.loc 1 200 12
+ 480 01a8 7B68     		ldr	r3, [r7, #4]
+ 481 01aa 1869     		ldr	r0, [r3, #16]
+ 482 01ac 1423     		movs	r3, #20
+ 483 01ae 0293     		str	r3, [sp, #8]
+ 484 01b0 0123     		movs	r3, #1
+ 485 01b2 0193     		str	r3, [sp, #4]
+ 486 01b4 07F10C03 		add	r3, r7, #12
+ 487 01b8 0093     		str	r3, [sp]
+ 488 01ba 0123     		movs	r3, #1
+ 489 01bc 1122     		movs	r2, #17
+ 490 01be D021     		movs	r1, #208
+ 491 01c0 FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 492 01c4 0346     		mov	r3, r0
+ 493 01c6 1A46     		mov	r2, r3
+ 494              		.loc 1 200 9
+ 495 01c8 FB7B     		ldrb	r3, [r7, #15]
+ 496 01ca 1343     		orrs	r3, r3, r2
+ 497 01cc FB73     		strb	r3, [r7, #15]
+ 201:Core/Src/bmi088.c **** 	retVal != HAL_OK ? errorLine =__LINE__ : 0;
+ 498              		.loc 1 201 41
+ 499 01ce FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 500 01d0 002B     		cmp	r3, #0
+ 501 01d2 02D0     		beq	.L20
+ 502              		.loc 1 201 31 discriminator 1
+ 503 01d4 6A4B     		ldr	r3, .L35
+ 504 01d6 C922     		movs	r2, #201
+ 505 01d8 1A60     		str	r2, [r3]
+ 506              	.L20:
+ 202:Core/Src/bmi088.c **** 	HAL_Delay(20);
+ 507              		.loc 1 202 2
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 13
+
+
+ 508 01da 1420     		movs	r0, #20
+ 509 01dc FFF7FEFF 		bl	HAL_Delay
+ 203:Core/Src/bmi088.c **** 
+ 204:Core/Src/bmi088.c **** 	//gyro interrupt
+ 205:Core/Src/bmi088.c **** 	buf[0] = GYRO_INT_ENABLE;
+ 510              		.loc 1 205 9
+ 511 01e0 8023     		movs	r3, #128
+ 512 01e2 3B73     		strb	r3, [r7, #12]
+ 206:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI->device_config.BMI_I2c, GYRO_I2C_ADD, GYRO_INT_CTRL, I2C_MEMADD_SI
+ 513              		.loc 1 206 12
+ 514 01e4 7B68     		ldr	r3, [r7, #4]
+ 515 01e6 1869     		ldr	r0, [r3, #16]
+ 516 01e8 1423     		movs	r3, #20
+ 517 01ea 0293     		str	r3, [sp, #8]
+ 518 01ec 0123     		movs	r3, #1
+ 519 01ee 0193     		str	r3, [sp, #4]
+ 520 01f0 07F10C03 		add	r3, r7, #12
+ 521 01f4 0093     		str	r3, [sp]
+ 522 01f6 0123     		movs	r3, #1
+ 523 01f8 1522     		movs	r2, #21
+ 524 01fa D021     		movs	r1, #208
+ 525 01fc FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 526 0200 0346     		mov	r3, r0
+ 527 0202 1A46     		mov	r2, r3
+ 528              		.loc 1 206 9
+ 529 0204 FB7B     		ldrb	r3, [r7, #15]
+ 530 0206 1343     		orrs	r3, r3, r2
+ 531 0208 FB73     		strb	r3, [r7, #15]
+ 207:Core/Src/bmi088.c **** 	retVal != HAL_OK ? errorLine =__LINE__ : 0;
+ 532              		.loc 1 207 41
+ 533 020a FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 534 020c 002B     		cmp	r3, #0
+ 535 020e 02D0     		beq	.L22
+ 536              		.loc 1 207 31 discriminator 1
+ 537 0210 5B4B     		ldr	r3, .L35
+ 538 0212 CF22     		movs	r2, #207
+ 539 0214 1A60     		str	r2, [r3]
+ 540              	.L22:
+ 208:Core/Src/bmi088.c **** 
+ 209:Core/Src/bmi088.c **** 	buf[0] = (GYRO_INT_IO_PP << 1) | (GYRO_INT_ACT_HIGH << 0) | (GYRO_INT_ACT_HIGH << 2);
+ 541              		.loc 1 209 9
+ 542 0216 0523     		movs	r3, #5
+ 543 0218 3B73     		strb	r3, [r7, #12]
+ 210:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI->device_config.BMI_I2c, GYRO_I2C_ADD, GYRO_INT_3_4_IO_CONF, I2C_ME
+ 544              		.loc 1 210 12
+ 545 021a 7B68     		ldr	r3, [r7, #4]
+ 546 021c 1869     		ldr	r0, [r3, #16]
+ 547 021e 1423     		movs	r3, #20
+ 548 0220 0293     		str	r3, [sp, #8]
+ 549 0222 0123     		movs	r3, #1
+ 550 0224 0193     		str	r3, [sp, #4]
+ 551 0226 07F10C03 		add	r3, r7, #12
+ 552 022a 0093     		str	r3, [sp]
+ 553 022c 0123     		movs	r3, #1
+ 554 022e 1622     		movs	r2, #22
+ 555 0230 D021     		movs	r1, #208
+ 556 0232 FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 14
+
+
+ 557 0236 0346     		mov	r3, r0
+ 558 0238 1A46     		mov	r2, r3
+ 559              		.loc 1 210 9
+ 560 023a FB7B     		ldrb	r3, [r7, #15]
+ 561 023c 1343     		orrs	r3, r3, r2
+ 562 023e FB73     		strb	r3, [r7, #15]
+ 211:Core/Src/bmi088.c **** 	retVal != HAL_OK ? errorLine =__LINE__ : 0;
+ 563              		.loc 1 211 41
+ 564 0240 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 565 0242 002B     		cmp	r3, #0
+ 566 0244 02D0     		beq	.L24
+ 567              		.loc 1 211 31 discriminator 1
+ 568 0246 4E4B     		ldr	r3, .L35
+ 569 0248 D322     		movs	r2, #211
+ 570 024a 1A60     		str	r2, [r3]
+ 571              	.L24:
+ 212:Core/Src/bmi088.c **** 
+ 213:Core/Src/bmi088.c **** 	buf[0] = GYRO_INT_MAP_BOTH;
+ 572              		.loc 1 213 9
+ 573 024c 8123     		movs	r3, #129
+ 574 024e 3B73     		strb	r3, [r7, #12]
+ 214:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI->device_config.BMI_I2c, GYRO_I2C_ADD, GYRO_INT_3_4_IO_MAP, I2C_MEM
+ 575              		.loc 1 214 12
+ 576 0250 7B68     		ldr	r3, [r7, #4]
+ 577 0252 1869     		ldr	r0, [r3, #16]
+ 578 0254 1423     		movs	r3, #20
+ 579 0256 0293     		str	r3, [sp, #8]
+ 580 0258 0123     		movs	r3, #1
+ 581 025a 0193     		str	r3, [sp, #4]
+ 582 025c 07F10C03 		add	r3, r7, #12
+ 583 0260 0093     		str	r3, [sp]
+ 584 0262 0123     		movs	r3, #1
+ 585 0264 1822     		movs	r2, #24
+ 586 0266 D021     		movs	r1, #208
+ 587 0268 FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 588 026c 0346     		mov	r3, r0
+ 589 026e 1A46     		mov	r2, r3
+ 590              		.loc 1 214 9
+ 591 0270 FB7B     		ldrb	r3, [r7, #15]
+ 592 0272 1343     		orrs	r3, r3, r2
+ 593 0274 FB73     		strb	r3, [r7, #15]
+ 215:Core/Src/bmi088.c **** 	retVal != HAL_OK ? errorLine =__LINE__ : 0;
+ 594              		.loc 1 215 41
+ 595 0276 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 596 0278 002B     		cmp	r3, #0
+ 597 027a 02D0     		beq	.L26
+ 598              		.loc 1 215 31 discriminator 1
+ 599 027c 404B     		ldr	r3, .L35
+ 600 027e D722     		movs	r2, #215
+ 601 0280 1A60     		str	r2, [r3]
+ 602              	.L26:
+ 216:Core/Src/bmi088.c **** 
+ 217:Core/Src/bmi088.c **** 	//Accelerometer configuration.
+ 218:Core/Src/bmi088.c **** 	buf[0] = ACC_ENABLE;
+ 603              		.loc 1 218 9
+ 604 0282 0423     		movs	r3, #4
+ 605 0284 3B73     		strb	r3, [r7, #12]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 15
+
+
+ 219:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI->device_config.BMI_I2c, ACC_I2C_ADD, ACC_PWR_CTRL, I2C_MEMADD_SIZE
+ 606              		.loc 1 219 12
+ 607 0286 7B68     		ldr	r3, [r7, #4]
+ 608 0288 1869     		ldr	r0, [r3, #16]
+ 609 028a 1423     		movs	r3, #20
+ 610 028c 0293     		str	r3, [sp, #8]
+ 611 028e 0123     		movs	r3, #1
+ 612 0290 0193     		str	r3, [sp, #4]
+ 613 0292 07F10C03 		add	r3, r7, #12
+ 614 0296 0093     		str	r3, [sp]
+ 615 0298 0123     		movs	r3, #1
+ 616 029a 7D22     		movs	r2, #125
+ 617 029c 3021     		movs	r1, #48
+ 618 029e FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 619 02a2 0346     		mov	r3, r0
+ 620 02a4 1A46     		mov	r2, r3
+ 621              		.loc 1 219 9
+ 622 02a6 FB7B     		ldrb	r3, [r7, #15]
+ 623 02a8 1343     		orrs	r3, r3, r2
+ 624 02aa FB73     		strb	r3, [r7, #15]
+ 220:Core/Src/bmi088.c **** 	retVal != HAL_OK ? errorLine =__LINE__ : 0;
+ 625              		.loc 1 220 41
+ 626 02ac FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 627 02ae 002B     		cmp	r3, #0
+ 628 02b0 02D0     		beq	.L28
+ 629              		.loc 1 220 31 discriminator 1
+ 630 02b2 334B     		ldr	r3, .L35
+ 631 02b4 DC22     		movs	r2, #220
+ 632 02b6 1A60     		str	r2, [r3]
+ 633              	.L28:
+ 221:Core/Src/bmi088.c **** 	HAL_Delay(8);
+ 634              		.loc 1 221 2
+ 635 02b8 0820     		movs	r0, #8
+ 636 02ba FFF7FEFF 		bl	HAL_Delay
+ 222:Core/Src/bmi088.c **** 
+ 223:Core/Src/bmi088.c **** 	buf[0] = BMI->device_config.acc_powerMode;
+ 637              		.loc 1 223 29
+ 638 02be 7B68     		ldr	r3, [r7, #4]
+ 639 02c0 1B7A     		ldrb	r3, [r3, #8]	@ zero_extendqisi2
+ 640              		.loc 1 223 9
+ 641 02c2 3B73     		strb	r3, [r7, #12]
+ 224:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI->device_config.BMI_I2c, ACC_I2C_ADD, ACC_PWR_CONF, I2C_MEMADD_SIZE
+ 642              		.loc 1 224 12
+ 643 02c4 7B68     		ldr	r3, [r7, #4]
+ 644 02c6 1869     		ldr	r0, [r3, #16]
+ 645 02c8 1423     		movs	r3, #20
+ 646 02ca 0293     		str	r3, [sp, #8]
+ 647 02cc 0123     		movs	r3, #1
+ 648 02ce 0193     		str	r3, [sp, #4]
+ 649 02d0 07F10C03 		add	r3, r7, #12
+ 650 02d4 0093     		str	r3, [sp]
+ 651 02d6 0123     		movs	r3, #1
+ 652 02d8 7C22     		movs	r2, #124
+ 653 02da 3021     		movs	r1, #48
+ 654 02dc FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 655 02e0 0346     		mov	r3, r0
+ 656 02e2 1A46     		mov	r2, r3
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 16
+
+
+ 657              		.loc 1 224 9
+ 658 02e4 FB7B     		ldrb	r3, [r7, #15]
+ 659 02e6 1343     		orrs	r3, r3, r2
+ 660 02e8 FB73     		strb	r3, [r7, #15]
+ 225:Core/Src/bmi088.c **** 	retVal != HAL_OK ? errorLine =__LINE__ : 0;
+ 661              		.loc 1 225 41
+ 662 02ea FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 663 02ec 002B     		cmp	r3, #0
+ 664 02ee 02D0     		beq	.L30
+ 665              		.loc 1 225 31 discriminator 1
+ 666 02f0 234B     		ldr	r3, .L35
+ 667 02f2 E122     		movs	r2, #225
+ 668 02f4 1A60     		str	r2, [r3]
+ 669              	.L30:
+ 226:Core/Src/bmi088.c **** 	HAL_Delay(8);
+ 670              		.loc 1 226 2
+ 671 02f6 0820     		movs	r0, #8
+ 672 02f8 FFF7FEFF 		bl	HAL_Delay
+ 227:Core/Src/bmi088.c **** 
+ 228:Core/Src/bmi088.c **** 	buf[0] = (BMI->device_config.acc_bandwith << 4) | BMI->device_config.acc_outputDateRate;
+ 673              		.loc 1 228 30
+ 674 02fc 7B68     		ldr	r3, [r7, #4]
+ 675 02fe 9B7A     		ldrb	r3, [r3, #10]	@ zero_extendqisi2
+ 676              		.loc 1 228 44
+ 677 0300 1B01     		lsls	r3, r3, #4
+ 678              		.loc 1 228 50
+ 679 0302 5AB2     		sxtb	r2, r3
+ 680              		.loc 1 228 70
+ 681 0304 7B68     		ldr	r3, [r7, #4]
+ 682 0306 DB7A     		ldrb	r3, [r3, #11]	@ zero_extendqisi2
+ 683 0308 5BB2     		sxtb	r3, r3
+ 684              		.loc 1 228 50
+ 685 030a 1343     		orrs	r3, r3, r2
+ 686 030c 5BB2     		sxtb	r3, r3
+ 687 030e DBB2     		uxtb	r3, r3
+ 688              		.loc 1 228 9
+ 689 0310 3B73     		strb	r3, [r7, #12]
+ 229:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI->device_config.BMI_I2c, ACC_I2C_ADD, ACC_CONF, I2C_MEMADD_SIZE_8BI
+ 690              		.loc 1 229 12
+ 691 0312 7B68     		ldr	r3, [r7, #4]
+ 692 0314 1869     		ldr	r0, [r3, #16]
+ 693 0316 1423     		movs	r3, #20
+ 694 0318 0293     		str	r3, [sp, #8]
+ 695 031a 0123     		movs	r3, #1
+ 696 031c 0193     		str	r3, [sp, #4]
+ 697 031e 07F10C03 		add	r3, r7, #12
+ 698 0322 0093     		str	r3, [sp]
+ 699 0324 0123     		movs	r3, #1
+ 700 0326 4022     		movs	r2, #64
+ 701 0328 3021     		movs	r1, #48
+ 702 032a FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 703 032e 0346     		mov	r3, r0
+ 704 0330 1A46     		mov	r2, r3
+ 705              		.loc 1 229 9
+ 706 0332 FB7B     		ldrb	r3, [r7, #15]
+ 707 0334 1343     		orrs	r3, r3, r2
+ 708 0336 FB73     		strb	r3, [r7, #15]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 17
+
+
+ 230:Core/Src/bmi088.c **** 	retVal != HAL_OK ? errorLine =__LINE__ : 0;
+ 709              		.loc 1 230 41
+ 710 0338 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 711 033a 002B     		cmp	r3, #0
+ 712 033c 02D0     		beq	.L32
+ 713              		.loc 1 230 31 discriminator 1
+ 714 033e 104B     		ldr	r3, .L35
+ 715 0340 E622     		movs	r2, #230
+ 716 0342 1A60     		str	r2, [r3]
+ 717              	.L32:
+ 231:Core/Src/bmi088.c **** 
+ 232:Core/Src/bmi088.c **** 	buf[0] = BMI->device_config.acc_range;
+ 718              		.loc 1 232 29
+ 719 0344 7B68     		ldr	r3, [r7, #4]
+ 720 0346 5B7A     		ldrb	r3, [r3, #9]	@ zero_extendqisi2
+ 721              		.loc 1 232 9
+ 722 0348 3B73     		strb	r3, [r7, #12]
+ 233:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI->device_config.BMI_I2c, ACC_I2C_ADD, ACC_RANGE, I2C_MEMADD_SIZE_8B
+ 723              		.loc 1 233 12
+ 724 034a 7B68     		ldr	r3, [r7, #4]
+ 725 034c 1869     		ldr	r0, [r3, #16]
+ 726 034e 1423     		movs	r3, #20
+ 727 0350 0293     		str	r3, [sp, #8]
+ 728 0352 0123     		movs	r3, #1
+ 729 0354 0193     		str	r3, [sp, #4]
+ 730 0356 07F10C03 		add	r3, r7, #12
+ 731 035a 0093     		str	r3, [sp]
+ 732 035c 0123     		movs	r3, #1
+ 733 035e 4122     		movs	r2, #65
+ 734 0360 3021     		movs	r1, #48
+ 735 0362 FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 736 0366 0346     		mov	r3, r0
+ 737 0368 1A46     		mov	r2, r3
+ 738              		.loc 1 233 9
+ 739 036a FB7B     		ldrb	r3, [r7, #15]
+ 740 036c 1343     		orrs	r3, r3, r2
+ 741 036e FB73     		strb	r3, [r7, #15]
+ 234:Core/Src/bmi088.c **** 	retVal != HAL_OK ? errorLine =__LINE__ : 0;
+ 742              		.loc 1 234 41
+ 743 0370 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 744 0372 002B     		cmp	r3, #0
+ 745 0374 06D0     		beq	.L34
+ 746              		.loc 1 234 31 discriminator 1
+ 747 0376 024B     		ldr	r3, .L35
+ 748 0378 EA22     		movs	r2, #234
+ 749 037a 1A60     		str	r2, [r3]
+ 750 037c 02E0     		b	.L36
+ 751              	.L37:
+ 752 037e 00BF     		.align	2
+ 753              	.L35:
+ 754 0380 00000000 		.word	errorLine
+ 755              	.L36:
+ 756              	.L34:
+ 235:Core/Src/bmi088.c **** 
+ 236:Core/Src/bmi088.c **** 	//accel interrupt
+ 237:Core/Src/bmi088.c **** 	buf[0] = (0x01 << 3) | (ACC_INT1_OD_PP << 2) | (ACC_INT1_LVL_ACT_HIGH << 1);
+ 757              		.loc 1 237 9
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 18
+
+
+ 758 0384 0A23     		movs	r3, #10
+ 759 0386 3B73     		strb	r3, [r7, #12]
+ 238:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI->device_config.BMI_I2c, ACC_I2C_ADD, ACC_INT1_IO_CTRL, I2C_MEMADD_
+ 760              		.loc 1 238 12
+ 761 0388 7B68     		ldr	r3, [r7, #4]
+ 762 038a 1869     		ldr	r0, [r3, #16]
+ 763 038c 1423     		movs	r3, #20
+ 764 038e 0293     		str	r3, [sp, #8]
+ 765 0390 0123     		movs	r3, #1
+ 766 0392 0193     		str	r3, [sp, #4]
+ 767 0394 07F10C03 		add	r3, r7, #12
+ 768 0398 0093     		str	r3, [sp]
+ 769 039a 0123     		movs	r3, #1
+ 770 039c 5322     		movs	r2, #83
+ 771 039e 3021     		movs	r1, #48
+ 772 03a0 FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 773 03a4 0346     		mov	r3, r0
+ 774 03a6 1A46     		mov	r2, r3
+ 775              		.loc 1 238 9
+ 776 03a8 FB7B     		ldrb	r3, [r7, #15]
+ 777 03aa 1343     		orrs	r3, r3, r2
+ 778 03ac FB73     		strb	r3, [r7, #15]
+ 239:Core/Src/bmi088.c **** 	//retVal != HAL_OK ? errorLine =__LINE__ : 0;
+ 240:Core/Src/bmi088.c **** 
+ 241:Core/Src/bmi088.c **** 	buf[0] = (0x01 << 2);
+ 779              		.loc 1 241 9
+ 780 03ae 0423     		movs	r3, #4
+ 781 03b0 3B73     		strb	r3, [r7, #12]
+ 242:Core/Src/bmi088.c **** 	retVal |= HAL_I2C_Mem_Write(BMI->device_config.BMI_I2c, ACC_I2C_ADD, ACC_INT_MAP_DATA, I2C_MEMADD_
+ 782              		.loc 1 242 12
+ 783 03b2 7B68     		ldr	r3, [r7, #4]
+ 784 03b4 1869     		ldr	r0, [r3, #16]
+ 785 03b6 1423     		movs	r3, #20
+ 786 03b8 0293     		str	r3, [sp, #8]
+ 787 03ba 0123     		movs	r3, #1
+ 788 03bc 0193     		str	r3, [sp, #4]
+ 789 03be 07F10C03 		add	r3, r7, #12
+ 790 03c2 0093     		str	r3, [sp]
+ 791 03c4 0123     		movs	r3, #1
+ 792 03c6 5822     		movs	r2, #88
+ 793 03c8 3021     		movs	r1, #48
+ 794 03ca FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 795 03ce 0346     		mov	r3, r0
+ 796 03d0 1A46     		mov	r2, r3
+ 797              		.loc 1 242 9
+ 798 03d2 FB7B     		ldrb	r3, [r7, #15]
+ 799 03d4 1343     		orrs	r3, r3, r2
+ 800 03d6 FB73     		strb	r3, [r7, #15]
+ 243:Core/Src/bmi088.c **** 	//retVal != HAL_OK ? errorLine =__LINE__ : 0;
+ 244:Core/Src/bmi088.c **** 
+ 245:Core/Src/bmi088.c **** 	HAL_NVIC_EnableIRQ(BMI->device_config.acc_IRQ);
+ 801              		.loc 1 245 2
+ 802 03d8 7B68     		ldr	r3, [r7, #4]
+ 803 03da 93F91430 		ldrsb	r3, [r3, #20]
+ 804 03de 1846     		mov	r0, r3
+ 805 03e0 FFF7FEFF 		bl	HAL_NVIC_EnableIRQ
+ 246:Core/Src/bmi088.c **** 	HAL_NVIC_EnableIRQ(BMI->device_config.gyro_IRQ);
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 19
+
+
+ 806              		.loc 1 246 2
+ 807 03e4 7B68     		ldr	r3, [r7, #4]
+ 808 03e6 93F91530 		ldrsb	r3, [r3, #21]
+ 809 03ea 1846     		mov	r0, r3
+ 810 03ec FFF7FEFF 		bl	HAL_NVIC_EnableIRQ
+ 247:Core/Src/bmi088.c **** 	HAL_Delay(70);
+ 811              		.loc 1 247 2
+ 812 03f0 4620     		movs	r0, #70
+ 813 03f2 FFF7FEFF 		bl	HAL_Delay
+ 248:Core/Src/bmi088.c **** }
+ 814              		.loc 1 248 1
+ 815 03f6 00BF     		nop
+ 816 03f8 1037     		adds	r7, r7, #16
+ 817              		.cfi_def_cfa_offset 8
+ 818 03fa BD46     		mov	sp, r7
+ 819              		.cfi_def_cfa_register 13
+ 820              		@ sp needed
+ 821 03fc 80BD     		pop	{r7, pc}
+ 822              		.cfi_endproc
+ 823              	.LFE243:
+ 825              		.global	__aeabi_f2d
+ 826              		.global	__aeabi_ddiv
+ 827              		.global	__aeabi_dmul
+ 828              		.global	__aeabi_d2f
+ 829              		.global	__aeabi_dsub
+ 830              		.section	.text.bmi088_update,"ax",%progbits
+ 831              		.align	1
+ 832              		.global	bmi088_update
+ 833              		.syntax unified
+ 834              		.thumb
+ 835              		.thumb_func
+ 837              	bmi088_update:
+ 838              	.LFB244:
+ 249:Core/Src/bmi088.c **** 
+ 250:Core/Src/bmi088.c **** 
+ 251:Core/Src/bmi088.c **** void bmi088_update(bmi088_struct_t* BMI)
+ 252:Core/Src/bmi088.c **** {
+ 839              		.loc 1 252 1
+ 840              		.cfi_startproc
+ 841              		@ args = 0, pretend = 0, frame = 40
+ 842              		@ frame_needed = 1, uses_anonymous_args = 0
+ 843 0000 B0B5     		push	{r4, r5, r7, lr}
+ 844              		.cfi_def_cfa_offset 16
+ 845              		.cfi_offset 4, -16
+ 846              		.cfi_offset 5, -12
+ 847              		.cfi_offset 7, -8
+ 848              		.cfi_offset 14, -4
+ 849 0002 8CB0     		sub	sp, sp, #48
+ 850              		.cfi_def_cfa_offset 64
+ 851 0004 02AF     		add	r7, sp, #8
+ 852              		.cfi_def_cfa 7, 56
+ 853 0006 7860     		str	r0, [r7, #4]
+ 253:Core/Src/bmi088.c **** 	if(BMI->flags.isAccelUpdated && !BMI->flags.isDmaTransferActive)
+ 854              		.loc 1 253 15
+ 855 0008 7B68     		ldr	r3, [r7, #4]
+ 856 000a 5B78     		ldrb	r3, [r3, #1]	@ zero_extendqisi2
+ 857              		.loc 1 253 4
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 20
+
+
+ 858 000c 002B     		cmp	r3, #0
+ 859 000e 1FD0     		beq	.L39
+ 860              		.loc 1 253 45 discriminator 1
+ 861 0010 7B68     		ldr	r3, [r7, #4]
+ 862 0012 1B79     		ldrb	r3, [r3, #4]	@ zero_extendqisi2
+ 863              		.loc 1 253 31 discriminator 1
+ 864 0014 002B     		cmp	r3, #0
+ 865 0016 1BD1     		bne	.L39
+ 866              	.LBB2:
+ 254:Core/Src/bmi088.c **** 	{
+ 255:Core/Src/bmi088.c **** 		// Start DMA transfer for accelerometer data (X,Y,Z + sensor time)
+ 256:Core/Src/bmi088.c **** 		BMI->flags.isDmaTransferActive = 1;
+ 867              		.loc 1 256 34
+ 868 0018 7B68     		ldr	r3, [r7, #4]
+ 869 001a 0122     		movs	r2, #1
+ 870 001c 1A71     		strb	r2, [r3, #4]
+ 257:Core/Src/bmi088.c **** 		HAL_StatusTypeDef ret = HAL_I2C_Mem_Read_DMA(BMI->device_config.BMI_I2c, ACC_I2C_ADD, ACC_X_LSB, 
+ 871              		.loc 1 257 27
+ 872 001e 7B68     		ldr	r3, [r7, #4]
+ 873 0020 1869     		ldr	r0, [r3, #16]
+ 874              		.loc 1 257 132
+ 875 0022 7B68     		ldr	r3, [r7, #4]
+ 876 0024 8433     		adds	r3, r3, #132
+ 877              		.loc 1 257 27
+ 878 0026 0922     		movs	r2, #9
+ 879 0028 0192     		str	r2, [sp, #4]
+ 880 002a 0093     		str	r3, [sp]
+ 881 002c 0123     		movs	r3, #1
+ 882 002e 1222     		movs	r2, #18
+ 883 0030 3021     		movs	r1, #48
+ 884 0032 FFF7FEFF 		bl	HAL_I2C_Mem_Read_DMA
+ 885 0036 0346     		mov	r3, r0
+ 886 0038 87F82730 		strb	r3, [r7, #39]
+ 258:Core/Src/bmi088.c **** 		if(ret != HAL_OK)
+ 887              		.loc 1 258 5
+ 888 003c 97F82730 		ldrb	r3, [r7, #39]	@ zero_extendqisi2
+ 889 0040 002B     		cmp	r3, #0
+ 890 0042 05D0     		beq	.L39
+ 259:Core/Src/bmi088.c **** 		{
+ 260:Core/Src/bmi088.c **** 			BMI->flags.isDmaTransferActive = 0;
+ 891              		.loc 1 260 35
+ 892 0044 7B68     		ldr	r3, [r7, #4]
+ 893 0046 0022     		movs	r2, #0
+ 894 0048 1A71     		strb	r2, [r3, #4]
+ 261:Core/Src/bmi088.c **** 			BMI->flags.isAccelUpdated = 0;
+ 895              		.loc 1 261 30
+ 896 004a 7B68     		ldr	r3, [r7, #4]
+ 897 004c 0022     		movs	r2, #0
+ 898 004e 5A70     		strb	r2, [r3, #1]
+ 899              	.L39:
+ 900              	.LBE2:
+ 262:Core/Src/bmi088.c **** 		}
+ 263:Core/Src/bmi088.c **** 	}
+ 264:Core/Src/bmi088.c **** 
+ 265:Core/Src/bmi088.c **** 	if(BMI->flags.isGyroUpdated && !BMI->flags.isDmaTransferActive)
+ 901              		.loc 1 265 15
+ 902 0050 7B68     		ldr	r3, [r7, #4]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 21
+
+
+ 903 0052 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 904              		.loc 1 265 4
+ 905 0054 002B     		cmp	r3, #0
+ 906 0056 1FD0     		beq	.L40
+ 907              		.loc 1 265 44 discriminator 1
+ 908 0058 7B68     		ldr	r3, [r7, #4]
+ 909 005a 1B79     		ldrb	r3, [r3, #4]	@ zero_extendqisi2
+ 910              		.loc 1 265 30 discriminator 1
+ 911 005c 002B     		cmp	r3, #0
+ 912 005e 1BD1     		bne	.L40
+ 913              	.LBB3:
+ 266:Core/Src/bmi088.c **** 	{
+ 267:Core/Src/bmi088.c **** 		// Start DMA transfer for gyroscope data
+ 268:Core/Src/bmi088.c **** 		BMI->flags.isDmaTransferActive = 1;
+ 914              		.loc 1 268 34
+ 915 0060 7B68     		ldr	r3, [r7, #4]
+ 916 0062 0122     		movs	r2, #1
+ 917 0064 1A71     		strb	r2, [r3, #4]
+ 269:Core/Src/bmi088.c **** 		HAL_StatusTypeDef ret = HAL_I2C_Mem_Read_DMA(BMI->device_config.BMI_I2c, GYRO_I2C_ADD, GYRO_RATE_
+ 918              		.loc 1 269 27
+ 919 0066 7B68     		ldr	r3, [r7, #4]
+ 920 0068 1869     		ldr	r0, [r3, #16]
+ 921              		.loc 1 269 139
+ 922 006a 7B68     		ldr	r3, [r7, #4]
+ 923 006c 8D33     		adds	r3, r3, #141
+ 924              		.loc 1 269 27
+ 925 006e 0622     		movs	r2, #6
+ 926 0070 0192     		str	r2, [sp, #4]
+ 927 0072 0093     		str	r3, [sp]
+ 928 0074 0123     		movs	r3, #1
+ 929 0076 0222     		movs	r2, #2
+ 930 0078 D021     		movs	r1, #208
+ 931 007a FFF7FEFF 		bl	HAL_I2C_Mem_Read_DMA
+ 932 007e 0346     		mov	r3, r0
+ 933 0080 87F82630 		strb	r3, [r7, #38]
+ 270:Core/Src/bmi088.c **** 		if(ret != HAL_OK)
+ 934              		.loc 1 270 5
+ 935 0084 97F82630 		ldrb	r3, [r7, #38]	@ zero_extendqisi2
+ 936 0088 002B     		cmp	r3, #0
+ 937 008a 05D0     		beq	.L40
+ 271:Core/Src/bmi088.c **** 		{
+ 272:Core/Src/bmi088.c **** 			BMI->flags.isDmaTransferActive = 0;
+ 938              		.loc 1 272 35
+ 939 008c 7B68     		ldr	r3, [r7, #4]
+ 940 008e 0022     		movs	r2, #0
+ 941 0090 1A71     		strb	r2, [r3, #4]
+ 273:Core/Src/bmi088.c **** 			BMI->flags.isGyroUpdated = 0;
+ 942              		.loc 1 273 29
+ 943 0092 7B68     		ldr	r3, [r7, #4]
+ 944 0094 0022     		movs	r2, #0
+ 945 0096 1A70     		strb	r2, [r3]
+ 946              	.L40:
+ 947              	.LBE3:
+ 274:Core/Src/bmi088.c **** 		}
+ 275:Core/Src/bmi088.c **** 	}
+ 276:Core/Src/bmi088.c **** 
+ 277:Core/Src/bmi088.c **** 	// Process accelerometer data if DMA transfer is complete
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 22
+
+
+ 278:Core/Src/bmi088.c **** 	if(BMI->flags.isAccelDmaComplete)
+ 948              		.loc 1 278 15
+ 949 0098 7B68     		ldr	r3, [r7, #4]
+ 950 009a 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 951              		.loc 1 278 4
+ 952 009c 002B     		cmp	r3, #0
+ 953 009e 00F05E81 		beq	.L41
+ 954              	.LBB4:
+ 279:Core/Src/bmi088.c **** 	{
+ 280:Core/Src/bmi088.c **** 		// Debug: Accelerometer okuma frekansı hesaplama
+ 281:Core/Src/bmi088.c **** 		accel_read_count++;
+ 955              		.loc 1 281 19
+ 956 00a2 CD4B     		ldr	r3, .L48+16
+ 957 00a4 1B68     		ldr	r3, [r3]
+ 958 00a6 0133     		adds	r3, r3, #1
+ 959 00a8 CB4A     		ldr	r2, .L48+16
+ 960 00aa 1360     		str	r3, [r2]
+ 282:Core/Src/bmi088.c **** 		uint32_t current_time = HAL_GetTick();
+ 961              		.loc 1 282 27
+ 962 00ac FFF7FEFF 		bl	HAL_GetTick
+ 963 00b0 3862     		str	r0, [r7, #32]
+ 283:Core/Src/bmi088.c **** 		if (current_time - accel_freq_last_time >= 1000) { // Her 1 saniyede bir hesapla
+ 964              		.loc 1 283 20
+ 965 00b2 CA4B     		ldr	r3, .L48+20
+ 966 00b4 1B68     		ldr	r3, [r3]
+ 967 00b6 3A6A     		ldr	r2, [r7, #32]
+ 968 00b8 D31A     		subs	r3, r2, r3
+ 969              		.loc 1 283 6
+ 970 00ba B3F57A7F 		cmp	r3, #1000
+ 971 00be 1CD3     		bcc	.L42
+ 284:Core/Src/bmi088.c **** 			accel_frequency_hz = (float)accel_read_count * 1000.0f / (current_time - accel_freq_last_time);
+ 972              		.loc 1 284 25
+ 973 00c0 C54B     		ldr	r3, .L48+16
+ 974 00c2 1B68     		ldr	r3, [r3]
+ 975 00c4 07EE903A 		vmov	s15, r3	@ int
+ 976 00c8 F8EE677A 		vcvt.f32.u32	s15, s15
+ 977              		.loc 1 284 49
+ 978 00cc 9FEDC47A 		vldr.32	s14, .L48+24
+ 979 00d0 67EE876A 		vmul.f32	s13, s15, s14
+ 980              		.loc 1 284 75
+ 981 00d4 C14B     		ldr	r3, .L48+20
+ 982 00d6 1B68     		ldr	r3, [r3]
+ 983 00d8 3A6A     		ldr	r2, [r7, #32]
+ 984 00da D31A     		subs	r3, r2, r3
+ 985              		.loc 1 284 59
+ 986 00dc 07EE903A 		vmov	s15, r3	@ int
+ 987 00e0 B8EE677A 		vcvt.f32.u32	s14, s15
+ 988 00e4 C6EE877A 		vdiv.f32	s15, s13, s14
+ 989              		.loc 1 284 23
+ 990 00e8 BE4B     		ldr	r3, .L48+28
+ 991 00ea C3ED007A 		vstr.32	s15, [r3]
+ 285:Core/Src/bmi088.c **** 			accel_read_count = 0;
+ 992              		.loc 1 285 21
+ 993 00ee BA4B     		ldr	r3, .L48+16
+ 994 00f0 0022     		movs	r2, #0
+ 995 00f2 1A60     		str	r2, [r3]
+ 286:Core/Src/bmi088.c **** 			accel_freq_last_time = current_time;
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 23
+
+
+ 996              		.loc 1 286 25
+ 997 00f4 B94A     		ldr	r2, .L48+20
+ 998 00f6 3B6A     		ldr	r3, [r7, #32]
+ 999 00f8 1360     		str	r3, [r2]
+ 1000              	.L42:
+ 287:Core/Src/bmi088.c **** 		}
+ 288:Core/Src/bmi088.c **** 		
+ 289:Core/Src/bmi088.c **** 		int16_t acc_x_16 = (BMI->datas.raw_accel_data[1] << 8) | BMI->datas.raw_accel_data[0];
+ 1001              		.loc 1 289 48
+ 1002 00fa 7B68     		ldr	r3, [r7, #4]
+ 1003 00fc 93F88530 		ldrb	r3, [r3, #133]	@ zero_extendqisi2
+ 1004              		.loc 1 289 52
+ 1005 0100 1B02     		lsls	r3, r3, #8
+ 1006              		.loc 1 289 58
+ 1007 0102 1AB2     		sxth	r2, r3
+ 1008              		.loc 1 289 85
+ 1009 0104 7B68     		ldr	r3, [r7, #4]
+ 1010 0106 93F88430 		ldrb	r3, [r3, #132]	@ zero_extendqisi2
+ 1011 010a 1BB2     		sxth	r3, r3
+ 1012              		.loc 1 289 11
+ 1013 010c 1343     		orrs	r3, r3, r2
+ 1014 010e FB83     		strh	r3, [r7, #30]	@ movhi
+ 290:Core/Src/bmi088.c **** 		int16_t acc_y_16 = (BMI->datas.raw_accel_data[3] << 8) | BMI->datas.raw_accel_data[2];
+ 1015              		.loc 1 290 48
+ 1016 0110 7B68     		ldr	r3, [r7, #4]
+ 1017 0112 93F88730 		ldrb	r3, [r3, #135]	@ zero_extendqisi2
+ 1018              		.loc 1 290 52
+ 1019 0116 1B02     		lsls	r3, r3, #8
+ 1020              		.loc 1 290 58
+ 1021 0118 1AB2     		sxth	r2, r3
+ 1022              		.loc 1 290 85
+ 1023 011a 7B68     		ldr	r3, [r7, #4]
+ 1024 011c 93F88630 		ldrb	r3, [r3, #134]	@ zero_extendqisi2
+ 1025 0120 1BB2     		sxth	r3, r3
+ 1026              		.loc 1 290 11
+ 1027 0122 1343     		orrs	r3, r3, r2
+ 1028 0124 BB83     		strh	r3, [r7, #28]	@ movhi
+ 291:Core/Src/bmi088.c **** 		int16_t acc_z_16 = (BMI->datas.raw_accel_data[5] << 8) | BMI->datas.raw_accel_data[4];
+ 1029              		.loc 1 291 48
+ 1030 0126 7B68     		ldr	r3, [r7, #4]
+ 1031 0128 93F88930 		ldrb	r3, [r3, #137]	@ zero_extendqisi2
+ 1032              		.loc 1 291 52
+ 1033 012c 1B02     		lsls	r3, r3, #8
+ 1034              		.loc 1 291 58
+ 1035 012e 1AB2     		sxth	r2, r3
+ 1036              		.loc 1 291 85
+ 1037 0130 7B68     		ldr	r3, [r7, #4]
+ 1038 0132 93F88830 		ldrb	r3, [r3, #136]	@ zero_extendqisi2
+ 1039 0136 1BB2     		sxth	r3, r3
+ 1040              		.loc 1 291 11
+ 1041 0138 1343     		orrs	r3, r3, r2
+ 1042 013a 7B83     		strh	r3, [r7, #26]	@ movhi
+ 292:Core/Src/bmi088.c **** 
+ 293:Core/Src/bmi088.c **** 		BMI->datas.acc_x = ((float)acc_x_16 / 32768.0 * 1000.0 * 1.5 * pow(2.0, (float)(BMI->device_confi
+ 1043              		.loc 1 293 23
+ 1044 013c B7F91E30 		ldrsh	r3, [r7, #30]
+ 1045 0140 07EE903A 		vmov	s15, r3	@ int
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 24
+
+
+ 1046 0144 F8EEE77A 		vcvt.f32.s32	s15, s15
+ 1047 0148 17EE900A 		vmov	r0, s15
+ 1048 014c FFF7FEFF 		bl	__aeabi_f2d
+ 1049              		.loc 1 293 39
+ 1050 0150 4FF00002 		mov	r2, #0
+ 1051 0154 A44B     		ldr	r3, .L48+32
+ 1052 0156 FFF7FEFF 		bl	__aeabi_ddiv
+ 1053 015a 0246     		mov	r2, r0
+ 1054 015c 0B46     		mov	r3, r1
+ 1055 015e 1046     		mov	r0, r2
+ 1056 0160 1946     		mov	r1, r3
+ 1057              		.loc 1 293 49
+ 1058 0162 4FF00002 		mov	r2, #0
+ 1059 0166 A14B     		ldr	r3, .L48+36
+ 1060 0168 FFF7FEFF 		bl	__aeabi_dmul
+ 1061 016c 0246     		mov	r2, r0
+ 1062 016e 0B46     		mov	r3, r1
+ 1063 0170 1046     		mov	r0, r2
+ 1064 0172 1946     		mov	r1, r3
+ 1065              		.loc 1 293 58
+ 1066 0174 4FF00002 		mov	r2, #0
+ 1067 0178 9D4B     		ldr	r3, .L48+40
+ 1068 017a FFF7FEFF 		bl	__aeabi_dmul
+ 1069 017e 0246     		mov	r2, r0
+ 1070 0180 0B46     		mov	r3, r1
+ 1071 0182 1446     		mov	r4, r2
+ 1072 0184 1D46     		mov	r5, r3
+ 1073              		.loc 1 293 101
+ 1074 0186 7B68     		ldr	r3, [r7, #4]
+ 1075 0188 5B7A     		ldrb	r3, [r3, #9]	@ zero_extendqisi2
+ 1076              		.loc 1 293 112
+ 1077 018a 0133     		adds	r3, r3, #1
+ 1078              		.loc 1 293 75
+ 1079 018c 07EE903A 		vmov	s15, r3	@ int
+ 1080 0190 F8EEE77A 		vcvt.f32.s32	s15, s15
+ 1081              		.loc 1 293 66
+ 1082 0194 17EE900A 		vmov	r0, s15
+ 1083 0198 FFF7FEFF 		bl	__aeabi_f2d
+ 1084 019c 0246     		mov	r2, r0
+ 1085 019e 0B46     		mov	r3, r1
+ 1086 01a0 43EC112B 		vmov	d1, r2, r3
+ 1087 01a4 9FED880B 		vldr.64	d0, .L48
+ 1088 01a8 FFF7FEFF 		bl	pow
+ 1089 01ac 53EC102B 		vmov	r2, r3, d0
+ 1090              		.loc 1 293 118
+ 1091 01b0 2046     		mov	r0, r4
+ 1092 01b2 2946     		mov	r1, r5
+ 1093 01b4 FFF7FEFF 		bl	__aeabi_dmul
+ 1094 01b8 0246     		mov	r2, r0
+ 1095 01ba 0B46     		mov	r3, r1
+ 1096 01bc 1046     		mov	r0, r2
+ 1097 01be 1946     		mov	r1, r3
+ 1098              		.loc 1 293 135
+ 1099 01c0 83A3     		adr	r3, .L48+8
+ 1100 01c2 D3E90023 		ldrd	r2, [r3]
+ 1101 01c6 FFF7FEFF 		bl	__aeabi_dmul
+ 1102 01ca 0246     		mov	r2, r0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 25
+
+
+ 1103 01cc 0B46     		mov	r3, r1
+ 1104 01ce 1046     		mov	r0, r2
+ 1105 01d0 1946     		mov	r1, r3
+ 1106              		.loc 1 293 140
+ 1107 01d2 4FF00002 		mov	r2, #0
+ 1108 01d6 854B     		ldr	r3, .L48+36
+ 1109 01d8 FFF7FEFF 		bl	__aeabi_ddiv
+ 1110 01dc 0246     		mov	r2, r0
+ 1111 01de 0B46     		mov	r3, r1
+ 1112 01e0 1046     		mov	r0, r2
+ 1113 01e2 1946     		mov	r1, r3
+ 1114 01e4 FFF7FEFF 		bl	__aeabi_d2f
+ 1115 01e8 0246     		mov	r2, r0	@ float
+ 1116              		.loc 1 293 20
+ 1117 01ea 7B68     		ldr	r3, [r7, #4]
+ 1118 01ec DA65     		str	r2, [r3, #92]	@ float
+ 294:Core/Src/bmi088.c **** 		BMI->datas.acc_y = ((float)acc_y_16 / 32768.0 * 1000.0 * 1.5 * pow(2.0, (float)(BMI->device_confi
+ 1119              		.loc 1 294 23
+ 1120 01ee B7F91C30 		ldrsh	r3, [r7, #28]
+ 1121 01f2 07EE903A 		vmov	s15, r3	@ int
+ 1122 01f6 F8EEE77A 		vcvt.f32.s32	s15, s15
+ 1123 01fa 17EE900A 		vmov	r0, s15
+ 1124 01fe FFF7FEFF 		bl	__aeabi_f2d
+ 1125              		.loc 1 294 39
+ 1126 0202 4FF00002 		mov	r2, #0
+ 1127 0206 784B     		ldr	r3, .L48+32
+ 1128 0208 FFF7FEFF 		bl	__aeabi_ddiv
+ 1129 020c 0246     		mov	r2, r0
+ 1130 020e 0B46     		mov	r3, r1
+ 1131 0210 1046     		mov	r0, r2
+ 1132 0212 1946     		mov	r1, r3
+ 1133              		.loc 1 294 49
+ 1134 0214 4FF00002 		mov	r2, #0
+ 1135 0218 744B     		ldr	r3, .L48+36
+ 1136 021a FFF7FEFF 		bl	__aeabi_dmul
+ 1137 021e 0246     		mov	r2, r0
+ 1138 0220 0B46     		mov	r3, r1
+ 1139 0222 1046     		mov	r0, r2
+ 1140 0224 1946     		mov	r1, r3
+ 1141              		.loc 1 294 58
+ 1142 0226 4FF00002 		mov	r2, #0
+ 1143 022a 714B     		ldr	r3, .L48+40
+ 1144 022c FFF7FEFF 		bl	__aeabi_dmul
+ 1145 0230 0246     		mov	r2, r0
+ 1146 0232 0B46     		mov	r3, r1
+ 1147 0234 1446     		mov	r4, r2
+ 1148 0236 1D46     		mov	r5, r3
+ 1149              		.loc 1 294 101
+ 1150 0238 7B68     		ldr	r3, [r7, #4]
+ 1151 023a 5B7A     		ldrb	r3, [r3, #9]	@ zero_extendqisi2
+ 1152              		.loc 1 294 112
+ 1153 023c 0133     		adds	r3, r3, #1
+ 1154              		.loc 1 294 75
+ 1155 023e 07EE903A 		vmov	s15, r3	@ int
+ 1156 0242 F8EEE77A 		vcvt.f32.s32	s15, s15
+ 1157              		.loc 1 294 66
+ 1158 0246 17EE900A 		vmov	r0, s15
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 26
+
+
+ 1159 024a FFF7FEFF 		bl	__aeabi_f2d
+ 1160 024e 0246     		mov	r2, r0
+ 1161 0250 0B46     		mov	r3, r1
+ 1162 0252 43EC112B 		vmov	d1, r2, r3
+ 1163 0256 9FED5C0B 		vldr.64	d0, .L48
+ 1164 025a FFF7FEFF 		bl	pow
+ 1165 025e 53EC102B 		vmov	r2, r3, d0
+ 1166              		.loc 1 294 118
+ 1167 0262 2046     		mov	r0, r4
+ 1168 0264 2946     		mov	r1, r5
+ 1169 0266 FFF7FEFF 		bl	__aeabi_dmul
+ 1170 026a 0246     		mov	r2, r0
+ 1171 026c 0B46     		mov	r3, r1
+ 1172 026e 1046     		mov	r0, r2
+ 1173 0270 1946     		mov	r1, r3
+ 1174              		.loc 1 294 135
+ 1175 0272 57A3     		adr	r3, .L48+8
+ 1176 0274 D3E90023 		ldrd	r2, [r3]
+ 1177 0278 FFF7FEFF 		bl	__aeabi_dmul
+ 1178 027c 0246     		mov	r2, r0
+ 1179 027e 0B46     		mov	r3, r1
+ 1180 0280 1046     		mov	r0, r2
+ 1181 0282 1946     		mov	r1, r3
+ 1182              		.loc 1 294 140
+ 1183 0284 4FF00002 		mov	r2, #0
+ 1184 0288 584B     		ldr	r3, .L48+36
+ 1185 028a FFF7FEFF 		bl	__aeabi_ddiv
+ 1186 028e 0246     		mov	r2, r0
+ 1187 0290 0B46     		mov	r3, r1
+ 1188 0292 1046     		mov	r0, r2
+ 1189 0294 1946     		mov	r1, r3
+ 1190 0296 FFF7FEFF 		bl	__aeabi_d2f
+ 1191 029a 0246     		mov	r2, r0	@ float
+ 1192              		.loc 1 294 20
+ 1193 029c 7B68     		ldr	r3, [r7, #4]
+ 1194 029e 1A66     		str	r2, [r3, #96]	@ float
+ 295:Core/Src/bmi088.c **** 		BMI->datas.acc_z = ((float)acc_z_16 / 32768.0 * 1000.0 * 1.5 * pow(2.0, (float)(BMI->device_confi
+ 1195              		.loc 1 295 23
+ 1196 02a0 B7F91A30 		ldrsh	r3, [r7, #26]
+ 1197 02a4 07EE903A 		vmov	s15, r3	@ int
+ 1198 02a8 F8EEE77A 		vcvt.f32.s32	s15, s15
+ 1199 02ac 17EE900A 		vmov	r0, s15
+ 1200 02b0 FFF7FEFF 		bl	__aeabi_f2d
+ 1201              		.loc 1 295 39
+ 1202 02b4 4FF00002 		mov	r2, #0
+ 1203 02b8 4B4B     		ldr	r3, .L48+32
+ 1204 02ba FFF7FEFF 		bl	__aeabi_ddiv
+ 1205 02be 0246     		mov	r2, r0
+ 1206 02c0 0B46     		mov	r3, r1
+ 1207 02c2 1046     		mov	r0, r2
+ 1208 02c4 1946     		mov	r1, r3
+ 1209              		.loc 1 295 49
+ 1210 02c6 4FF00002 		mov	r2, #0
+ 1211 02ca 484B     		ldr	r3, .L48+36
+ 1212 02cc FFF7FEFF 		bl	__aeabi_dmul
+ 1213 02d0 0246     		mov	r2, r0
+ 1214 02d2 0B46     		mov	r3, r1
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 27
+
+
+ 1215 02d4 1046     		mov	r0, r2
+ 1216 02d6 1946     		mov	r1, r3
+ 1217              		.loc 1 295 58
+ 1218 02d8 4FF00002 		mov	r2, #0
+ 1219 02dc 444B     		ldr	r3, .L48+40
+ 1220 02de FFF7FEFF 		bl	__aeabi_dmul
+ 1221 02e2 0246     		mov	r2, r0
+ 1222 02e4 0B46     		mov	r3, r1
+ 1223 02e6 1446     		mov	r4, r2
+ 1224 02e8 1D46     		mov	r5, r3
+ 1225              		.loc 1 295 101
+ 1226 02ea 7B68     		ldr	r3, [r7, #4]
+ 1227 02ec 5B7A     		ldrb	r3, [r3, #9]	@ zero_extendqisi2
+ 1228              		.loc 1 295 112
+ 1229 02ee 0133     		adds	r3, r3, #1
+ 1230              		.loc 1 295 75
+ 1231 02f0 07EE903A 		vmov	s15, r3	@ int
+ 1232 02f4 F8EEE77A 		vcvt.f32.s32	s15, s15
+ 1233              		.loc 1 295 66
+ 1234 02f8 17EE900A 		vmov	r0, s15
+ 1235 02fc FFF7FEFF 		bl	__aeabi_f2d
+ 1236 0300 0246     		mov	r2, r0
+ 1237 0302 0B46     		mov	r3, r1
+ 1238 0304 43EC112B 		vmov	d1, r2, r3
+ 1239 0308 9FED2F0B 		vldr.64	d0, .L48
+ 1240 030c FFF7FEFF 		bl	pow
+ 1241 0310 53EC102B 		vmov	r2, r3, d0
+ 1242              		.loc 1 295 118
+ 1243 0314 2046     		mov	r0, r4
+ 1244 0316 2946     		mov	r1, r5
+ 1245 0318 FFF7FEFF 		bl	__aeabi_dmul
+ 1246 031c 0246     		mov	r2, r0
+ 1247 031e 0B46     		mov	r3, r1
+ 1248 0320 1046     		mov	r0, r2
+ 1249 0322 1946     		mov	r1, r3
+ 1250              		.loc 1 295 135
+ 1251 0324 2AA3     		adr	r3, .L48+8
+ 1252 0326 D3E90023 		ldrd	r2, [r3]
+ 1253 032a FFF7FEFF 		bl	__aeabi_dmul
+ 1254 032e 0246     		mov	r2, r0
+ 1255 0330 0B46     		mov	r3, r1
+ 1256 0332 1046     		mov	r0, r2
+ 1257 0334 1946     		mov	r1, r3
+ 1258              		.loc 1 295 140
+ 1259 0336 4FF00002 		mov	r2, #0
+ 1260 033a 2C4B     		ldr	r3, .L48+36
+ 1261 033c FFF7FEFF 		bl	__aeabi_ddiv
+ 1262 0340 0246     		mov	r2, r0
+ 1263 0342 0B46     		mov	r3, r1
+ 1264 0344 1046     		mov	r0, r2
+ 1265 0346 1946     		mov	r1, r3
+ 1266 0348 FFF7FEFF 		bl	__aeabi_d2f
+ 1267 034c 0246     		mov	r2, r0	@ float
+ 1268              		.loc 1 295 20
+ 1269 034e 7B68     		ldr	r3, [r7, #4]
+ 1270 0350 5A66     		str	r2, [r3, #100]	@ float
+ 296:Core/Src/bmi088.c **** 
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 28
+
+
+ 297:Core/Src/bmi088.c **** 		BMI->flags.isAccelDmaComplete = 0;
+ 1271              		.loc 1 297 33
+ 1272 0352 7B68     		ldr	r3, [r7, #4]
+ 1273 0354 0022     		movs	r2, #0
+ 1274 0356 9A70     		strb	r2, [r3, #2]
+ 298:Core/Src/bmi088.c **** 		is_time_updated = 1;
+ 1275              		.loc 1 298 19
+ 1276 0358 264B     		ldr	r3, .L48+44
+ 1277 035a 0122     		movs	r2, #1
+ 1278 035c 1A70     		strb	r2, [r3]
+ 1279              	.L41:
+ 1280              	.LBE4:
+ 299:Core/Src/bmi088.c **** 
+ 300:Core/Src/bmi088.c **** 		// Sıcaklık okuma kaldırıldı - sadece ivme ve gyro verisi kullanılacak
+ 301:Core/Src/bmi088.c **** 	}
+ 302:Core/Src/bmi088.c **** 
+ 303:Core/Src/bmi088.c **** 	if(BMI->flags.isGyroDmaComplete)
+ 1281              		.loc 1 303 15
+ 1282 035e 7B68     		ldr	r3, [r7, #4]
+ 1283 0360 DB78     		ldrb	r3, [r3, #3]	@ zero_extendqisi2
+ 1284              		.loc 1 303 4
+ 1285 0362 002B     		cmp	r3, #0
+ 1286 0364 00F0A281 		beq	.L47
+ 1287              	.LBB5:
+ 304:Core/Src/bmi088.c **** 	{
+ 305:Core/Src/bmi088.c **** 		// Debug: Gyroscope okuma frekansı hesaplama
+ 306:Core/Src/bmi088.c **** 		gyro_read_count++;
+ 1288              		.loc 1 306 18
+ 1289 0368 234B     		ldr	r3, .L48+48
+ 1290 036a 1B68     		ldr	r3, [r3]
+ 1291 036c 0133     		adds	r3, r3, #1
+ 1292 036e 224A     		ldr	r2, .L48+48
+ 1293 0370 1360     		str	r3, [r2]
+ 307:Core/Src/bmi088.c **** 		uint32_t current_time = HAL_GetTick();
+ 1294              		.loc 1 307 27
+ 1295 0372 FFF7FEFF 		bl	HAL_GetTick
+ 1296 0376 7861     		str	r0, [r7, #20]
+ 308:Core/Src/bmi088.c **** 		if (current_time - gyro_freq_last_time >= 1000) { // Her 1 saniyede bir hesapla
+ 1297              		.loc 1 308 20
+ 1298 0378 204B     		ldr	r3, .L48+52
+ 1299 037a 1B68     		ldr	r3, [r3]
+ 1300 037c 7A69     		ldr	r2, [r7, #20]
+ 1301 037e D31A     		subs	r3, r2, r3
+ 1302              		.loc 1 308 6
+ 1303 0380 B3F57A7F 		cmp	r3, #1000
+ 1304 0384 3ED3     		bcc	.L44
+ 309:Core/Src/bmi088.c **** 			gyro_frequency_hz = (float)gyro_read_count * 1000.0f / (current_time - gyro_freq_last_time);
+ 1305              		.loc 1 309 24
+ 1306 0386 1C4B     		ldr	r3, .L48+48
+ 1307 0388 1B68     		ldr	r3, [r3]
+ 1308 038a 07EE903A 		vmov	s15, r3	@ int
+ 1309 038e F8EE677A 		vcvt.f32.u32	s15, s15
+ 1310              		.loc 1 309 47
+ 1311 0392 9FED137A 		vldr.32	s14, .L48+24
+ 1312 0396 67EE876A 		vmul.f32	s13, s15, s14
+ 1313              		.loc 1 309 73
+ 1314 039a 184B     		ldr	r3, .L48+52
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 29
+
+
+ 1315 039c 1B68     		ldr	r3, [r3]
+ 1316 039e 7A69     		ldr	r2, [r7, #20]
+ 1317 03a0 D31A     		subs	r3, r2, r3
+ 1318              		.loc 1 309 57
+ 1319 03a2 07EE903A 		vmov	s15, r3	@ int
+ 1320 03a6 B8EE677A 		vcvt.f32.u32	s14, s15
+ 1321 03aa C6EE877A 		vdiv.f32	s15, s13, s14
+ 1322              		.loc 1 309 22
+ 1323 03ae 144B     		ldr	r3, .L48+56
+ 1324 03b0 C3ED007A 		vstr.32	s15, [r3]
+ 310:Core/Src/bmi088.c **** 			gyro_read_count = 0;
+ 1325              		.loc 1 310 20
+ 1326 03b4 104B     		ldr	r3, .L48+48
+ 1327 03b6 0022     		movs	r2, #0
+ 1328 03b8 1A60     		str	r2, [r3]
+ 311:Core/Src/bmi088.c **** 			gyro_freq_last_time = current_time;
+ 1329              		.loc 1 311 24
+ 1330 03ba 104A     		ldr	r2, .L48+52
+ 1331 03bc 7B69     		ldr	r3, [r7, #20]
+ 1332 03be 1360     		str	r3, [r2]
+ 1333 03c0 20E0     		b	.L49
+ 1334              	.L50:
+ 1335 03c2 00BFAFF3 		.align	3
+ 1335      0080
+ 1336              	.L48:
+ 1337 03c8 00000000 		.word	0
+ 1338 03cc 00000040 		.word	1073741824
+ 1339 03d0 1F85EB51 		.word	1374389535
+ 1340 03d4 B89E2340 		.word	1076076216
+ 1341 03d8 00000000 		.word	accel_read_count
+ 1342 03dc 00000000 		.word	accel_freq_last_time
+ 1343 03e0 00007A44 		.word	1148846080
+ 1344 03e4 00000000 		.word	accel_frequency_hz
+ 1345 03e8 0000E040 		.word	1088421888
+ 1346 03ec 00408F40 		.word	1083129856
+ 1347 03f0 0000F83F 		.word	1073217536
+ 1348 03f4 00000000 		.word	is_time_updated
+ 1349 03f8 00000000 		.word	gyro_read_count
+ 1350 03fc 00000000 		.word	gyro_freq_last_time
+ 1351 0400 00000000 		.word	gyro_frequency_hz
+ 1352              	.L49:
+ 1353              	.L44:
+ 312:Core/Src/bmi088.c **** 		}
+ 313:Core/Src/bmi088.c **** 		
+ 314:Core/Src/bmi088.c **** 		int16_t gyro_x_16 = (BMI->datas.raw_gyro_data[1] << 8) | BMI->datas.raw_gyro_data[0];
+ 1354              		.loc 1 314 48
+ 1355 0404 7B68     		ldr	r3, [r7, #4]
+ 1356 0406 93F88E30 		ldrb	r3, [r3, #142]	@ zero_extendqisi2
+ 1357              		.loc 1 314 52
+ 1358 040a 1B02     		lsls	r3, r3, #8
+ 1359              		.loc 1 314 58
+ 1360 040c 1AB2     		sxth	r2, r3
+ 1361              		.loc 1 314 84
+ 1362 040e 7B68     		ldr	r3, [r7, #4]
+ 1363 0410 93F88D30 		ldrb	r3, [r3, #141]	@ zero_extendqisi2
+ 1364 0414 1BB2     		sxth	r3, r3
+ 1365              		.loc 1 314 11
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 30
+
+
+ 1366 0416 1343     		orrs	r3, r3, r2
+ 1367 0418 7B82     		strh	r3, [r7, #18]	@ movhi
+ 315:Core/Src/bmi088.c **** 		int16_t gyro_y_16 = (BMI->datas.raw_gyro_data[3] << 8) | BMI->datas.raw_gyro_data[2];
+ 1368              		.loc 1 315 48
+ 1369 041a 7B68     		ldr	r3, [r7, #4]
+ 1370 041c 93F89030 		ldrb	r3, [r3, #144]	@ zero_extendqisi2
+ 1371              		.loc 1 315 52
+ 1372 0420 1B02     		lsls	r3, r3, #8
+ 1373              		.loc 1 315 58
+ 1374 0422 1AB2     		sxth	r2, r3
+ 1375              		.loc 1 315 84
+ 1376 0424 7B68     		ldr	r3, [r7, #4]
+ 1377 0426 93F88F30 		ldrb	r3, [r3, #143]	@ zero_extendqisi2
+ 1378 042a 1BB2     		sxth	r3, r3
+ 1379              		.loc 1 315 11
+ 1380 042c 1343     		orrs	r3, r3, r2
+ 1381 042e 3B82     		strh	r3, [r7, #16]	@ movhi
+ 316:Core/Src/bmi088.c **** 		int16_t gyro_z_16 = (BMI->datas.raw_gyro_data[5] << 8) | BMI->datas.raw_gyro_data[4];
+ 1382              		.loc 1 316 48
+ 1383 0430 7B68     		ldr	r3, [r7, #4]
+ 1384 0432 93F89230 		ldrb	r3, [r3, #146]	@ zero_extendqisi2
+ 1385              		.loc 1 316 52
+ 1386 0436 1B02     		lsls	r3, r3, #8
+ 1387              		.loc 1 316 58
+ 1388 0438 1AB2     		sxth	r2, r3
+ 1389              		.loc 1 316 84
+ 1390 043a 7B68     		ldr	r3, [r7, #4]
+ 1391 043c 93F89130 		ldrb	r3, [r3, #145]	@ zero_extendqisi2
+ 1392 0440 1BB2     		sxth	r3, r3
+ 1393              		.loc 1 316 11
+ 1394 0442 1343     		orrs	r3, r3, r2
+ 1395 0444 FB81     		strh	r3, [r7, #14]	@ movhi
+ 317:Core/Src/bmi088.c **** 
+ 318:Core/Src/bmi088.c **** 		BMI->datas.gyro_x = (((float)gyro_x_16 / 32767.0) * (float)(2000 >> BMI->device_config.gyro_range
+ 1396              		.loc 1 318 25
+ 1397 0446 B7F91230 		ldrsh	r3, [r7, #18]
+ 1398 044a 07EE903A 		vmov	s15, r3	@ int
+ 1399 044e F8EEE77A 		vcvt.f32.s32	s15, s15
+ 1400 0452 17EE900A 		vmov	r0, s15
+ 1401 0456 FFF7FEFF 		bl	__aeabi_f2d
+ 1402              		.loc 1 318 42
+ 1403 045a 9BA3     		adr	r3, .L51+16
+ 1404 045c D3E90023 		ldrd	r2, [r3]
+ 1405 0460 FFF7FEFF 		bl	__aeabi_ddiv
+ 1406 0464 0246     		mov	r2, r0
+ 1407 0466 0B46     		mov	r3, r1
+ 1408 0468 1446     		mov	r4, r2
+ 1409 046a 1D46     		mov	r5, r3
+ 1410              		.loc 1 318 89
+ 1411 046c 7B68     		ldr	r3, [r7, #4]
+ 1412 046e 9B7B     		ldrb	r3, [r3, #14]	@ zero_extendqisi2
+ 1413 0470 1A46     		mov	r2, r3
+ 1414              		.loc 1 318 68
+ 1415 0472 4FF4FA63 		mov	r3, #2000
+ 1416 0476 1341     		asrs	r3, r3, r2
+ 1417              		.loc 1 318 55
+ 1418 0478 07EE903A 		vmov	s15, r3	@ int
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 31
+
+
+ 1419 047c F8EEE77A 		vcvt.f32.s32	s15, s15
+ 1420 0480 17EE900A 		vmov	r0, s15
+ 1421 0484 FFF7FEFF 		bl	__aeabi_f2d
+ 1422 0488 0246     		mov	r2, r0
+ 1423 048a 0B46     		mov	r3, r1
+ 1424              		.loc 1 318 53
+ 1425 048c 2046     		mov	r0, r4
+ 1426 048e 2946     		mov	r1, r5
+ 1427 0490 FFF7FEFF 		bl	__aeabi_dmul
+ 1428 0494 0246     		mov	r2, r0
+ 1429 0496 0B46     		mov	r3, r1
+ 1430 0498 1446     		mov	r4, r2
+ 1431 049a 1D46     		mov	r5, r3
+ 1432              		.loc 1 318 122
+ 1433 049c 7B68     		ldr	r3, [r7, #4]
+ 1434 049e 9B69     		ldr	r3, [r3, #24]
+ 1435              		.loc 1 318 143
+ 1436 04a0 1B68     		ldr	r3, [r3]	@ float
+ 1437 04a2 1846     		mov	r0, r3	@ float
+ 1438 04a4 FFF7FEFF 		bl	__aeabi_f2d
+ 1439 04a8 0246     		mov	r2, r0
+ 1440 04aa 0B46     		mov	r3, r1
+ 1441              		.loc 1 318 102
+ 1442 04ac 2046     		mov	r0, r4
+ 1443 04ae 2946     		mov	r1, r5
+ 1444 04b0 FFF7FEFF 		bl	__aeabi_dsub
+ 1445 04b4 0246     		mov	r2, r0
+ 1446 04b6 0B46     		mov	r3, r1
+ 1447 04b8 1046     		mov	r0, r2
+ 1448 04ba 1946     		mov	r1, r3
+ 1449              		.loc 1 318 148
+ 1450 04bc 84A3     		adr	r3, .L51+24
+ 1451 04be D3E90023 		ldrd	r2, [r3]
+ 1452 04c2 FFF7FEFF 		bl	__aeabi_dmul
+ 1453 04c6 0246     		mov	r2, r0
+ 1454 04c8 0B46     		mov	r3, r1
+ 1455 04ca 1046     		mov	r0, r2
+ 1456 04cc 1946     		mov	r1, r3
+ 1457 04ce FFF7FEFF 		bl	__aeabi_d2f
+ 1458 04d2 0246     		mov	r2, r0	@ float
+ 1459              		.loc 1 318 21
+ 1460 04d4 7B68     		ldr	r3, [r7, #4]
+ 1461 04d6 DA61     		str	r2, [r3, #28]	@ float
+ 319:Core/Src/bmi088.c **** 		BMI->datas.gyro_y = (((float)gyro_y_16 / 32767.0) * (float)(2000 >> BMI->device_config.gyro_range
+ 1462              		.loc 1 319 25
+ 1463 04d8 B7F91030 		ldrsh	r3, [r7, #16]
+ 1464 04dc 07EE903A 		vmov	s15, r3	@ int
+ 1465 04e0 F8EEE77A 		vcvt.f32.s32	s15, s15
+ 1466 04e4 17EE900A 		vmov	r0, s15
+ 1467 04e8 FFF7FEFF 		bl	__aeabi_f2d
+ 1468              		.loc 1 319 42
+ 1469 04ec 76A3     		adr	r3, .L51+16
+ 1470 04ee D3E90023 		ldrd	r2, [r3]
+ 1471 04f2 FFF7FEFF 		bl	__aeabi_ddiv
+ 1472 04f6 0246     		mov	r2, r0
+ 1473 04f8 0B46     		mov	r3, r1
+ 1474 04fa 1446     		mov	r4, r2
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 32
+
+
+ 1475 04fc 1D46     		mov	r5, r3
+ 1476              		.loc 1 319 89
+ 1477 04fe 7B68     		ldr	r3, [r7, #4]
+ 1478 0500 9B7B     		ldrb	r3, [r3, #14]	@ zero_extendqisi2
+ 1479 0502 1A46     		mov	r2, r3
+ 1480              		.loc 1 319 68
+ 1481 0504 4FF4FA63 		mov	r3, #2000
+ 1482 0508 1341     		asrs	r3, r3, r2
+ 1483              		.loc 1 319 55
+ 1484 050a 07EE903A 		vmov	s15, r3	@ int
+ 1485 050e F8EEE77A 		vcvt.f32.s32	s15, s15
+ 1486 0512 17EE900A 		vmov	r0, s15
+ 1487 0516 FFF7FEFF 		bl	__aeabi_f2d
+ 1488 051a 0246     		mov	r2, r0
+ 1489 051c 0B46     		mov	r3, r1
+ 1490              		.loc 1 319 53
+ 1491 051e 2046     		mov	r0, r4
+ 1492 0520 2946     		mov	r1, r5
+ 1493 0522 FFF7FEFF 		bl	__aeabi_dmul
+ 1494 0526 0246     		mov	r2, r0
+ 1495 0528 0B46     		mov	r3, r1
+ 1496 052a 1446     		mov	r4, r2
+ 1497 052c 1D46     		mov	r5, r3
+ 1498              		.loc 1 319 122
+ 1499 052e 7B68     		ldr	r3, [r7, #4]
+ 1500 0530 9B69     		ldr	r3, [r3, #24]
+ 1501              		.loc 1 319 143
+ 1502 0532 5B68     		ldr	r3, [r3, #4]	@ float
+ 1503 0534 1846     		mov	r0, r3	@ float
+ 1504 0536 FFF7FEFF 		bl	__aeabi_f2d
+ 1505 053a 0246     		mov	r2, r0
+ 1506 053c 0B46     		mov	r3, r1
+ 1507              		.loc 1 319 102
+ 1508 053e 2046     		mov	r0, r4
+ 1509 0540 2946     		mov	r1, r5
+ 1510 0542 FFF7FEFF 		bl	__aeabi_dsub
+ 1511 0546 0246     		mov	r2, r0
+ 1512 0548 0B46     		mov	r3, r1
+ 1513 054a 1046     		mov	r0, r2
+ 1514 054c 1946     		mov	r1, r3
+ 1515              		.loc 1 319 148
+ 1516 054e 60A3     		adr	r3, .L51+24
+ 1517 0550 D3E90023 		ldrd	r2, [r3]
+ 1518 0554 FFF7FEFF 		bl	__aeabi_dmul
+ 1519 0558 0246     		mov	r2, r0
+ 1520 055a 0B46     		mov	r3, r1
+ 1521 055c 1046     		mov	r0, r2
+ 1522 055e 1946     		mov	r1, r3
+ 1523 0560 FFF7FEFF 		bl	__aeabi_d2f
+ 1524 0564 0246     		mov	r2, r0	@ float
+ 1525              		.loc 1 319 21
+ 1526 0566 7B68     		ldr	r3, [r7, #4]
+ 1527 0568 1A62     		str	r2, [r3, #32]	@ float
+ 320:Core/Src/bmi088.c **** 		BMI->datas.gyro_z = (((float)gyro_z_16 / 32767.0) * (float)(2000 >> BMI->device_config.gyro_range
+ 1528              		.loc 1 320 25
+ 1529 056a B7F90E30 		ldrsh	r3, [r7, #14]
+ 1530 056e 07EE903A 		vmov	s15, r3	@ int
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 33
+
+
+ 1531 0572 F8EEE77A 		vcvt.f32.s32	s15, s15
+ 1532 0576 17EE900A 		vmov	r0, s15
+ 1533 057a FFF7FEFF 		bl	__aeabi_f2d
+ 1534              		.loc 1 320 42
+ 1535 057e 52A3     		adr	r3, .L51+16
+ 1536 0580 D3E90023 		ldrd	r2, [r3]
+ 1537 0584 FFF7FEFF 		bl	__aeabi_ddiv
+ 1538 0588 0246     		mov	r2, r0
+ 1539 058a 0B46     		mov	r3, r1
+ 1540 058c 1446     		mov	r4, r2
+ 1541 058e 1D46     		mov	r5, r3
+ 1542              		.loc 1 320 89
+ 1543 0590 7B68     		ldr	r3, [r7, #4]
+ 1544 0592 9B7B     		ldrb	r3, [r3, #14]	@ zero_extendqisi2
+ 1545 0594 1A46     		mov	r2, r3
+ 1546              		.loc 1 320 68
+ 1547 0596 4FF4FA63 		mov	r3, #2000
+ 1548 059a 1341     		asrs	r3, r3, r2
+ 1549              		.loc 1 320 55
+ 1550 059c 07EE903A 		vmov	s15, r3	@ int
+ 1551 05a0 F8EEE77A 		vcvt.f32.s32	s15, s15
+ 1552 05a4 17EE900A 		vmov	r0, s15
+ 1553 05a8 FFF7FEFF 		bl	__aeabi_f2d
+ 1554 05ac 0246     		mov	r2, r0
+ 1555 05ae 0B46     		mov	r3, r1
+ 1556              		.loc 1 320 53
+ 1557 05b0 2046     		mov	r0, r4
+ 1558 05b2 2946     		mov	r1, r5
+ 1559 05b4 FFF7FEFF 		bl	__aeabi_dmul
+ 1560 05b8 0246     		mov	r2, r0
+ 1561 05ba 0B46     		mov	r3, r1
+ 1562 05bc 1446     		mov	r4, r2
+ 1563 05be 1D46     		mov	r5, r3
+ 1564              		.loc 1 320 122
+ 1565 05c0 7B68     		ldr	r3, [r7, #4]
+ 1566 05c2 9B69     		ldr	r3, [r3, #24]
+ 1567              		.loc 1 320 143
+ 1568 05c4 9B68     		ldr	r3, [r3, #8]	@ float
+ 1569 05c6 1846     		mov	r0, r3	@ float
+ 1570 05c8 FFF7FEFF 		bl	__aeabi_f2d
+ 1571 05cc 0246     		mov	r2, r0
+ 1572 05ce 0B46     		mov	r3, r1
+ 1573              		.loc 1 320 102
+ 1574 05d0 2046     		mov	r0, r4
+ 1575 05d2 2946     		mov	r1, r5
+ 1576 05d4 FFF7FEFF 		bl	__aeabi_dsub
+ 1577 05d8 0246     		mov	r2, r0
+ 1578 05da 0B46     		mov	r3, r1
+ 1579 05dc 1046     		mov	r0, r2
+ 1580 05de 1946     		mov	r1, r3
+ 1581              		.loc 1 320 148
+ 1582 05e0 3BA3     		adr	r3, .L51+24
+ 1583 05e2 D3E90023 		ldrd	r2, [r3]
+ 1584 05e6 FFF7FEFF 		bl	__aeabi_dmul
+ 1585 05ea 0246     		mov	r2, r0
+ 1586 05ec 0B46     		mov	r3, r1
+ 1587 05ee 1046     		mov	r0, r2
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 34
+
+
+ 1588 05f0 1946     		mov	r1, r3
+ 1589 05f2 FFF7FEFF 		bl	__aeabi_d2f
+ 1590 05f6 0246     		mov	r2, r0	@ float
+ 1591              		.loc 1 320 21
+ 1592 05f8 7B68     		ldr	r3, [r7, #4]
+ 1593 05fa 5A62     		str	r2, [r3, #36]	@ float
+ 321:Core/Src/bmi088.c **** 
+ 322:Core/Src/bmi088.c **** 		// Delta time hesaplama HAL_GetTick() ile (gyro processing'de yapılsın)
+ 323:Core/Src/bmi088.c **** 		uint32_t current_hal_tick = HAL_GetTick();
+ 1594              		.loc 1 323 31
+ 1595 05fc FFF7FEFF 		bl	HAL_GetTick
+ 1596 0600 B860     		str	r0, [r7, #8]
+ 324:Core/Src/bmi088.c **** 		if(is_starded)
+ 1597              		.loc 1 324 6
+ 1598 0602 2D4B     		ldr	r3, .L51
+ 1599 0604 1B78     		ldrb	r3, [r3]
+ 1600 0606 DBB2     		uxtb	r3, r3
+ 1601              		.loc 1 324 5
+ 1602 0608 002B     		cmp	r3, #0
+ 1603 060a 0FD0     		beq	.L45
+ 325:Core/Src/bmi088.c **** 		{
+ 326:Core/Src/bmi088.c **** 			BMI->datas.delta_time = (float)(current_hal_tick - last_hal_tick) / 1000.0f; // ms to seconds
+ 1604              		.loc 1 326 53
+ 1605 060c 2B4B     		ldr	r3, .L51+4
+ 1606 060e 1B68     		ldr	r3, [r3]
+ 1607 0610 BA68     		ldr	r2, [r7, #8]
+ 1608 0612 D31A     		subs	r3, r2, r3
+ 1609              		.loc 1 326 28
+ 1610 0614 07EE903A 		vmov	s15, r3	@ int
+ 1611 0618 B8EE677A 		vcvt.f32.u32	s14, s15
+ 1612              		.loc 1 326 70
+ 1613 061c DFED286A 		vldr.32	s13, .L51+8
+ 1614 0620 C7EE267A 		vdiv.f32	s15, s14, s13
+ 1615              		.loc 1 326 26
+ 1616 0624 7B68     		ldr	r3, [r7, #4]
+ 1617 0626 C3ED1D7A 		vstr.32	s15, [r3, #116]
+ 1618 062a 06E0     		b	.L46
+ 1619              	.L45:
+ 327:Core/Src/bmi088.c **** 		}
+ 328:Core/Src/bmi088.c **** 		else
+ 329:Core/Src/bmi088.c **** 		{
+ 330:Core/Src/bmi088.c **** 			is_starded = 1;
+ 1620              		.loc 1 330 15
+ 1621 062c 224B     		ldr	r3, .L51
+ 1622 062e 0122     		movs	r2, #1
+ 1623 0630 1A70     		strb	r2, [r3]
+ 331:Core/Src/bmi088.c **** 			BMI->datas.delta_time = 0.0f; // İlk gyro okumasında delta_time = 0
+ 1624              		.loc 1 331 26
+ 1625 0632 7B68     		ldr	r3, [r7, #4]
+ 1626 0634 4FF00002 		mov	r2, #0
+ 1627 0638 5A67     		str	r2, [r3, #116]	@ float
+ 1628              	.L46:
+ 332:Core/Src/bmi088.c **** 		}
+ 333:Core/Src/bmi088.c **** 		last_hal_tick = current_hal_tick;
+ 1629              		.loc 1 333 17
+ 1630 063a 204A     		ldr	r2, .L51+4
+ 1631 063c BB68     		ldr	r3, [r7, #8]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 35
+
+
+ 1632 063e 1360     		str	r3, [r2]
+ 334:Core/Src/bmi088.c **** 
+ 335:Core/Src/bmi088.c **** 		Orientation_Update(BMI->datas.gyro_y, -BMI->datas.gyro_x, BMI->datas.gyro_z,BMI->datas.acc_y,-BMI
+ 1633              		.loc 1 335 3
+ 1634 0640 7B68     		ldr	r3, [r7, #4]
+ 1635 0642 93ED087A 		vldr.32	s14, [r3, #32]
+ 1636              		.loc 1 335 52
+ 1637 0646 7B68     		ldr	r3, [r7, #4]
+ 1638 0648 D3ED077A 		vldr.32	s15, [r3, #28]
+ 1639              		.loc 1 335 3
+ 1640 064c F1EE676A 		vneg.f32	s13, s15
+ 1641 0650 7B68     		ldr	r3, [r7, #4]
+ 1642 0652 93ED096A 		vldr.32	s12, [r3, #36]
+ 1643 0656 7B68     		ldr	r3, [r7, #4]
+ 1644 0658 D3ED185A 		vldr.32	s11, [r3, #96]
+ 1645              		.loc 1 335 107
+ 1646 065c 7B68     		ldr	r3, [r7, #4]
+ 1647 065e D3ED177A 		vldr.32	s15, [r3, #92]
+ 1648              		.loc 1 335 3
+ 1649 0662 F1EE677A 		vneg.f32	s15, s15
+ 1650 0666 7B68     		ldr	r3, [r7, #4]
+ 1651 0668 93ED195A 		vldr.32	s10, [r3, #100]
+ 1652 066c 7B68     		ldr	r3, [r7, #4]
+ 1653 066e D3ED1D4A 		vldr.32	s9, [r3, #116]
+ 1654 0672 B0EE643A 		vmov.f32	s6, s9
+ 1655 0676 F0EE452A 		vmov.f32	s5, s10
+ 1656 067a B0EE672A 		vmov.f32	s4, s15
+ 1657 067e F0EE651A 		vmov.f32	s3, s11
+ 1658 0682 B0EE461A 		vmov.f32	s2, s12
+ 1659 0686 F0EE660A 		vmov.f32	s1, s13
+ 1660 068a B0EE470A 		vmov.f32	s0, s14
+ 1661 068e FFF7FEFF 		bl	Orientation_Update
+ 336:Core/Src/bmi088.c **** 		BMI->datas.theta = quaternionToThetaZ();
+ 1662              		.loc 1 336 22
+ 1663 0692 FFF7FEFF 		bl	quaternionToThetaZ
+ 1664 0696 F0EE407A 		vmov.f32	s15, s0
+ 1665              		.loc 1 336 20
+ 1666 069a 7B68     		ldr	r3, [r7, #4]
+ 1667 069c C3ED0D7A 		vstr.32	s15, [r3, #52]
+ 337:Core/Src/bmi088.c **** 		is_gyro_renewed = 1;
+ 1668              		.loc 1 337 19
+ 1669 06a0 084B     		ldr	r3, .L51+12
+ 1670 06a2 0122     		movs	r2, #1
+ 1671 06a4 1A70     		strb	r2, [r3]
+ 338:Core/Src/bmi088.c **** 
+ 339:Core/Src/bmi088.c **** 		BMI->flags.isGyroDmaComplete = 0;
+ 1672              		.loc 1 339 32
+ 1673 06a6 7B68     		ldr	r3, [r7, #4]
+ 1674 06a8 0022     		movs	r2, #0
+ 1675 06aa DA70     		strb	r2, [r3, #3]
+ 1676              	.L47:
+ 1677              	.LBE5:
+ 340:Core/Src/bmi088.c **** 	}
+ 341:Core/Src/bmi088.c **** }
+ 1678              		.loc 1 341 1
+ 1679 06ac 00BF     		nop
+ 1680 06ae 2837     		adds	r7, r7, #40
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 36
+
+
+ 1681              		.cfi_def_cfa_offset 16
+ 1682 06b0 BD46     		mov	sp, r7
+ 1683              		.cfi_def_cfa_register 13
+ 1684              		@ sp needed
+ 1685 06b2 B0BD     		pop	{r4, r5, r7, pc}
+ 1686              	.L52:
+ 1687 06b4 AFF30080 		.align	3
+ 1688              	.L51:
+ 1689 06b8 00000000 		.word	is_starded
+ 1690 06bc 00000000 		.word	last_hal_tick
+ 1691 06c0 00007A44 		.word	1148846080
+ 1692 06c4 00000000 		.word	is_gyro_renewed
+ 1693 06c8 00000000 		.word	0
+ 1694 06cc C0FFDF40 		.word	1088421824
+ 1695 06d0 000000A0 		.word	-1610612736
+ 1696 06d4 46DF913F 		.word	1066524486
+ 1697              		.cfi_endproc
+ 1698              	.LFE244:
+ 1700              		.section	.text.bmi088_set_accel_INT,"ax",%progbits
+ 1701              		.align	1
+ 1702              		.global	bmi088_set_accel_INT
+ 1703              		.syntax unified
+ 1704              		.thumb
+ 1705              		.thumb_func
+ 1707              	bmi088_set_accel_INT:
+ 1708              	.LFB245:
+ 342:Core/Src/bmi088.c **** 
+ 343:Core/Src/bmi088.c **** 
+ 344:Core/Src/bmi088.c **** void bmi088_set_accel_INT(bmi088_struct_t* BMI)
+ 345:Core/Src/bmi088.c **** {
+ 1709              		.loc 1 345 1
+ 1710              		.cfi_startproc
+ 1711              		@ args = 0, pretend = 0, frame = 8
+ 1712              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1713              		@ link register save eliminated.
+ 1714 0000 80B4     		push	{r7}
+ 1715              		.cfi_def_cfa_offset 4
+ 1716              		.cfi_offset 7, -4
+ 1717 0002 83B0     		sub	sp, sp, #12
+ 1718              		.cfi_def_cfa_offset 16
+ 1719 0004 00AF     		add	r7, sp, #0
+ 1720              		.cfi_def_cfa_register 7
+ 1721 0006 7860     		str	r0, [r7, #4]
+ 346:Core/Src/bmi088.c **** 	BMI->flags.isAccelUpdated = 1;
+ 1722              		.loc 1 346 28
+ 1723 0008 7B68     		ldr	r3, [r7, #4]
+ 1724 000a 0122     		movs	r2, #1
+ 1725 000c 5A70     		strb	r2, [r3, #1]
+ 347:Core/Src/bmi088.c **** }
+ 1726              		.loc 1 347 1
+ 1727 000e 00BF     		nop
+ 1728 0010 0C37     		adds	r7, r7, #12
+ 1729              		.cfi_def_cfa_offset 4
+ 1730 0012 BD46     		mov	sp, r7
+ 1731              		.cfi_def_cfa_register 13
+ 1732              		@ sp needed
+ 1733 0014 5DF8047B 		ldr	r7, [sp], #4
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 37
+
+
+ 1734              		.cfi_restore 7
+ 1735              		.cfi_def_cfa_offset 0
+ 1736 0018 7047     		bx	lr
+ 1737              		.cfi_endproc
+ 1738              	.LFE245:
+ 1740              		.section	.text.bmi088_set_gyro_INT,"ax",%progbits
+ 1741              		.align	1
+ 1742              		.global	bmi088_set_gyro_INT
+ 1743              		.syntax unified
+ 1744              		.thumb
+ 1745              		.thumb_func
+ 1747              	bmi088_set_gyro_INT:
+ 1748              	.LFB246:
+ 348:Core/Src/bmi088.c **** 
+ 349:Core/Src/bmi088.c **** void bmi088_set_gyro_INT(bmi088_struct_t* BMI)
+ 350:Core/Src/bmi088.c **** {
+ 1749              		.loc 1 350 1
+ 1750              		.cfi_startproc
+ 1751              		@ args = 0, pretend = 0, frame = 8
+ 1752              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1753              		@ link register save eliminated.
+ 1754 0000 80B4     		push	{r7}
+ 1755              		.cfi_def_cfa_offset 4
+ 1756              		.cfi_offset 7, -4
+ 1757 0002 83B0     		sub	sp, sp, #12
+ 1758              		.cfi_def_cfa_offset 16
+ 1759 0004 00AF     		add	r7, sp, #0
+ 1760              		.cfi_def_cfa_register 7
+ 1761 0006 7860     		str	r0, [r7, #4]
+ 351:Core/Src/bmi088.c **** 	BMI->flags.isGyroUpdated = 1;
+ 1762              		.loc 1 351 27
+ 1763 0008 7B68     		ldr	r3, [r7, #4]
+ 1764 000a 0122     		movs	r2, #1
+ 1765 000c 1A70     		strb	r2, [r3]
+ 352:Core/Src/bmi088.c **** }
+ 1766              		.loc 1 352 1
+ 1767 000e 00BF     		nop
+ 1768 0010 0C37     		adds	r7, r7, #12
+ 1769              		.cfi_def_cfa_offset 4
+ 1770 0012 BD46     		mov	sp, r7
+ 1771              		.cfi_def_cfa_register 13
+ 1772              		@ sp needed
+ 1773 0014 5DF8047B 		ldr	r7, [sp], #4
+ 1774              		.cfi_restore 7
+ 1775              		.cfi_def_cfa_offset 0
+ 1776 0018 7047     		bx	lr
+ 1777              		.cfi_endproc
+ 1778              	.LFE246:
+ 1780              		.section	.text.bmi088_getGyroChipId,"ax",%progbits
+ 1781              		.align	1
+ 1782              		.global	bmi088_getGyroChipId
+ 1783              		.syntax unified
+ 1784              		.thumb
+ 1785              		.thumb_func
+ 1787              	bmi088_getGyroChipId:
+ 1788              	.LFB247:
+ 353:Core/Src/bmi088.c **** 
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 38
+
+
+ 354:Core/Src/bmi088.c **** uint8_t bmi088_getGyroChipId(bmi088_struct_t* BMI)
+ 355:Core/Src/bmi088.c **** {
+ 1789              		.loc 1 355 1
+ 1790              		.cfi_startproc
+ 1791              		@ args = 0, pretend = 0, frame = 16
+ 1792              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1793 0000 80B5     		push	{r7, lr}
+ 1794              		.cfi_def_cfa_offset 8
+ 1795              		.cfi_offset 7, -8
+ 1796              		.cfi_offset 14, -4
+ 1797 0002 88B0     		sub	sp, sp, #32
+ 1798              		.cfi_def_cfa_offset 40
+ 1799 0004 04AF     		add	r7, sp, #16
+ 1800              		.cfi_def_cfa 7, 24
+ 1801 0006 7860     		str	r0, [r7, #4]
+ 356:Core/Src/bmi088.c **** 	uint8_t data = 0;
+ 1802              		.loc 1 356 10
+ 1803 0008 0023     		movs	r3, #0
+ 1804 000a FB73     		strb	r3, [r7, #15]
+ 357:Core/Src/bmi088.c **** 	HAL_I2C_Mem_Read(BMI->device_config.BMI_I2c, GYRO_I2C_ADD, GYRO_CHIP_ID, I2C_MEMADD_SIZE_8BIT, &da
+ 1805              		.loc 1 357 2
+ 1806 000c 7B68     		ldr	r3, [r7, #4]
+ 1807 000e 1869     		ldr	r0, [r3, #16]
+ 1808 0010 3223     		movs	r3, #50
+ 1809 0012 0293     		str	r3, [sp, #8]
+ 1810 0014 0123     		movs	r3, #1
+ 1811 0016 0193     		str	r3, [sp, #4]
+ 1812 0018 07F10F03 		add	r3, r7, #15
+ 1813 001c 0093     		str	r3, [sp]
+ 1814 001e 0123     		movs	r3, #1
+ 1815 0020 0022     		movs	r2, #0
+ 1816 0022 D021     		movs	r1, #208
+ 1817 0024 FFF7FEFF 		bl	HAL_I2C_Mem_Read
+ 358:Core/Src/bmi088.c **** 	return data;
+ 1818              		.loc 1 358 9
+ 1819 0028 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 359:Core/Src/bmi088.c **** }
+ 1820              		.loc 1 359 1
+ 1821 002a 1846     		mov	r0, r3
+ 1822 002c 1037     		adds	r7, r7, #16
+ 1823              		.cfi_def_cfa_offset 8
+ 1824 002e BD46     		mov	sp, r7
+ 1825              		.cfi_def_cfa_register 13
+ 1826              		@ sp needed
+ 1827 0030 80BD     		pop	{r7, pc}
+ 1828              		.cfi_endproc
+ 1829              	.LFE247:
+ 1831              		.section	.text.get_offset,"ax",%progbits
+ 1832              		.align	1
+ 1833              		.global	get_offset
+ 1834              		.syntax unified
+ 1835              		.thumb
+ 1836              		.thumb_func
+ 1838              	get_offset:
+ 1839              	.LFB248:
+ 360:Core/Src/bmi088.c **** 
+ 361:Core/Src/bmi088.c **** void get_offset(bmi088_struct_t* BMI)
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 39
+
+
+ 362:Core/Src/bmi088.c **** {
+ 1840              		.loc 1 362 1
+ 1841              		.cfi_startproc
+ 1842              		@ args = 0, pretend = 0, frame = 24
+ 1843              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1844 0000 80B5     		push	{r7, lr}
+ 1845              		.cfi_def_cfa_offset 8
+ 1846              		.cfi_offset 7, -8
+ 1847              		.cfi_offset 14, -4
+ 1848 0002 86B0     		sub	sp, sp, #24
+ 1849              		.cfi_def_cfa_offset 32
+ 1850 0004 00AF     		add	r7, sp, #0
+ 1851              		.cfi_def_cfa_register 7
+ 1852 0006 7860     		str	r0, [r7, #4]
+ 363:Core/Src/bmi088.c **** 	int offsetCounter = 0;
+ 1853              		.loc 1 363 6
+ 1854 0008 0023     		movs	r3, #0
+ 1855 000a 7B61     		str	r3, [r7, #20]
+ 364:Core/Src/bmi088.c **** 	uint32_t timeout_start = HAL_GetTick();
+ 1856              		.loc 1 364 27
+ 1857 000c FFF7FEFF 		bl	HAL_GetTick
+ 1858 0010 3861     		str	r0, [r7, #16]
+ 365:Core/Src/bmi088.c **** 	const uint32_t TIMEOUT_MS = 10000; // 10 saniye timeout
+ 1859              		.loc 1 365 17
+ 1860 0012 42F21073 		movw	r3, #10000
+ 1861 0016 FB60     		str	r3, [r7, #12]
+ 1862              	.L63:
+ 366:Core/Src/bmi088.c **** 
+ 367:Core/Src/bmi088.c **** 	while(1)
+ 368:Core/Src/bmi088.c **** 	{
+ 369:Core/Src/bmi088.c **** 		// Timeout kontrolü
+ 370:Core/Src/bmi088.c **** 		if(HAL_GetTick() - timeout_start > TIMEOUT_MS)
+ 1863              		.loc 1 370 6
+ 1864 0018 FFF7FEFF 		bl	HAL_GetTick
+ 1865 001c 0246     		mov	r2, r0
+ 1866              		.loc 1 370 20
+ 1867 001e 3B69     		ldr	r3, [r7, #16]
+ 1868 0020 D31A     		subs	r3, r2, r3
+ 1869              		.loc 1 370 5
+ 1870 0022 FA68     		ldr	r2, [r7, #12]
+ 1871 0024 9A42     		cmp	r2, r3
+ 1872 0026 5ED3     		bcc	.L64
+ 371:Core/Src/bmi088.c **** 		{
+ 372:Core/Src/bmi088.c **** 
+ 373:Core/Src/bmi088.c **** 			return;
+ 374:Core/Src/bmi088.c **** 		}
+ 375:Core/Src/bmi088.c **** 		
+ 376:Core/Src/bmi088.c **** 		bmi088_update(BMI);
+ 1873              		.loc 1 376 3
+ 1874 0028 7868     		ldr	r0, [r7, #4]
+ 1875 002a FFF7FEFF 		bl	bmi088_update
+ 377:Core/Src/bmi088.c **** 		if(is_gyro_renewed == 1)
+ 1876              		.loc 1 377 22
+ 1877 002e 304B     		ldr	r3, .L65
+ 1878 0030 1B78     		ldrb	r3, [r3]
+ 1879 0032 DBB2     		uxtb	r3, r3
+ 1880              		.loc 1 377 5
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 40
+
+
+ 1881 0034 012B     		cmp	r3, #1
+ 1882 0036 EFD1     		bne	.L63
+ 378:Core/Src/bmi088.c **** 		{
+ 379:Core/Src/bmi088.c **** 			if(offsetCounter < 1000)
+ 1883              		.loc 1 379 6
+ 1884 0038 7B69     		ldr	r3, [r7, #20]
+ 1885 003a B3F57A7F 		cmp	r3, #1000
+ 1886 003e 2DDA     		bge	.L61
+ 380:Core/Src/bmi088.c **** 			{
+ 381:Core/Src/bmi088.c **** 				BMI->device_config.offsets->gyro_offset[0] += BMI->datas.gyro_x;
+ 1887              		.loc 1 381 23
+ 1888 0040 7B68     		ldr	r3, [r7, #4]
+ 1889 0042 9B69     		ldr	r3, [r3, #24]
+ 1890              		.loc 1 381 44
+ 1891 0044 93ED007A 		vldr.32	s14, [r3]
+ 1892              		.loc 1 381 61
+ 1893 0048 7B68     		ldr	r3, [r7, #4]
+ 1894 004a D3ED077A 		vldr.32	s15, [r3, #28]
+ 1895              		.loc 1 381 23
+ 1896 004e 7B68     		ldr	r3, [r7, #4]
+ 1897 0050 9B69     		ldr	r3, [r3, #24]
+ 1898              		.loc 1 381 48
+ 1899 0052 77EE277A 		vadd.f32	s15, s14, s15
+ 1900 0056 C3ED007A 		vstr.32	s15, [r3]
+ 382:Core/Src/bmi088.c **** 				BMI->device_config.offsets->gyro_offset[1] += BMI->datas.gyro_y;
+ 1901              		.loc 1 382 23
+ 1902 005a 7B68     		ldr	r3, [r7, #4]
+ 1903 005c 9B69     		ldr	r3, [r3, #24]
+ 1904              		.loc 1 382 44
+ 1905 005e 93ED017A 		vldr.32	s14, [r3, #4]
+ 1906              		.loc 1 382 61
+ 1907 0062 7B68     		ldr	r3, [r7, #4]
+ 1908 0064 D3ED087A 		vldr.32	s15, [r3, #32]
+ 1909              		.loc 1 382 23
+ 1910 0068 7B68     		ldr	r3, [r7, #4]
+ 1911 006a 9B69     		ldr	r3, [r3, #24]
+ 1912              		.loc 1 382 48
+ 1913 006c 77EE277A 		vadd.f32	s15, s14, s15
+ 1914 0070 C3ED017A 		vstr.32	s15, [r3, #4]
+ 383:Core/Src/bmi088.c **** 				BMI->device_config.offsets->gyro_offset[2] += BMI->datas.gyro_z;
+ 1915              		.loc 1 383 23
+ 1916 0074 7B68     		ldr	r3, [r7, #4]
+ 1917 0076 9B69     		ldr	r3, [r3, #24]
+ 1918              		.loc 1 383 44
+ 1919 0078 93ED027A 		vldr.32	s14, [r3, #8]
+ 1920              		.loc 1 383 61
+ 1921 007c 7B68     		ldr	r3, [r7, #4]
+ 1922 007e D3ED097A 		vldr.32	s15, [r3, #36]
+ 1923              		.loc 1 383 23
+ 1924 0082 7B68     		ldr	r3, [r7, #4]
+ 1925 0084 9B69     		ldr	r3, [r3, #24]
+ 1926              		.loc 1 383 48
+ 1927 0086 77EE277A 		vadd.f32	s15, s14, s15
+ 1928 008a C3ED027A 		vstr.32	s15, [r3, #8]
+ 384:Core/Src/bmi088.c **** 				offsetCounter++;
+ 1929              		.loc 1 384 18
+ 1930 008e 7B69     		ldr	r3, [r7, #20]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 41
+
+
+ 1931 0090 0133     		adds	r3, r3, #1
+ 1932 0092 7B61     		str	r3, [r7, #20]
+ 385:Core/Src/bmi088.c **** 			}
+ 386:Core/Src/bmi088.c **** 			else
+ 387:Core/Src/bmi088.c **** 			{
+ 388:Core/Src/bmi088.c **** 				BMI->device_config.offsets->gyro_offset[0] /= 1000.0;
+ 389:Core/Src/bmi088.c **** 				BMI->device_config.offsets->gyro_offset[1] /= 1000.0;
+ 390:Core/Src/bmi088.c **** 				BMI->device_config.offsets->gyro_offset[2] /= 1000.0;
+ 391:Core/Src/bmi088.c **** 				//quaternionSet_zero();
+ 392:Core/Src/bmi088.c **** 				break;
+ 393:Core/Src/bmi088.c **** 				//Error_Handler();
+ 394:Core/Src/bmi088.c **** 			}
+ 395:Core/Src/bmi088.c **** 			is_gyro_renewed = 0;
+ 1933              		.loc 1 395 20
+ 1934 0094 164B     		ldr	r3, .L65
+ 1935 0096 0022     		movs	r2, #0
+ 1936 0098 1A70     		strb	r2, [r3]
+ 1937 009a BDE7     		b	.L63
+ 1938              	.L61:
+ 388:Core/Src/bmi088.c **** 				BMI->device_config.offsets->gyro_offset[1] /= 1000.0;
+ 1939              		.loc 1 388 23
+ 1940 009c 7B68     		ldr	r3, [r7, #4]
+ 1941 009e 9B69     		ldr	r3, [r3, #24]
+ 388:Core/Src/bmi088.c **** 				BMI->device_config.offsets->gyro_offset[1] /= 1000.0;
+ 1942              		.loc 1 388 44
+ 1943 00a0 93ED007A 		vldr.32	s14, [r3]
+ 388:Core/Src/bmi088.c **** 				BMI->device_config.offsets->gyro_offset[1] /= 1000.0;
+ 1944              		.loc 1 388 23
+ 1945 00a4 7B68     		ldr	r3, [r7, #4]
+ 1946 00a6 9B69     		ldr	r3, [r3, #24]
+ 388:Core/Src/bmi088.c **** 				BMI->device_config.offsets->gyro_offset[1] /= 1000.0;
+ 1947              		.loc 1 388 48
+ 1948 00a8 DFED126A 		vldr.32	s13, .L65+4
+ 1949 00ac C7EE267A 		vdiv.f32	s15, s14, s13
+ 1950 00b0 C3ED007A 		vstr.32	s15, [r3]
+ 389:Core/Src/bmi088.c **** 				BMI->device_config.offsets->gyro_offset[2] /= 1000.0;
+ 1951              		.loc 1 389 23
+ 1952 00b4 7B68     		ldr	r3, [r7, #4]
+ 1953 00b6 9B69     		ldr	r3, [r3, #24]
+ 389:Core/Src/bmi088.c **** 				BMI->device_config.offsets->gyro_offset[2] /= 1000.0;
+ 1954              		.loc 1 389 44
+ 1955 00b8 93ED017A 		vldr.32	s14, [r3, #4]
+ 389:Core/Src/bmi088.c **** 				BMI->device_config.offsets->gyro_offset[2] /= 1000.0;
+ 1956              		.loc 1 389 23
+ 1957 00bc 7B68     		ldr	r3, [r7, #4]
+ 1958 00be 9B69     		ldr	r3, [r3, #24]
+ 389:Core/Src/bmi088.c **** 				BMI->device_config.offsets->gyro_offset[2] /= 1000.0;
+ 1959              		.loc 1 389 48
+ 1960 00c0 DFED0C6A 		vldr.32	s13, .L65+4
+ 1961 00c4 C7EE267A 		vdiv.f32	s15, s14, s13
+ 1962 00c8 C3ED017A 		vstr.32	s15, [r3, #4]
+ 390:Core/Src/bmi088.c **** 				//quaternionSet_zero();
+ 1963              		.loc 1 390 23
+ 1964 00cc 7B68     		ldr	r3, [r7, #4]
+ 1965 00ce 9B69     		ldr	r3, [r3, #24]
+ 390:Core/Src/bmi088.c **** 				//quaternionSet_zero();
+ 1966              		.loc 1 390 44
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 42
+
+
+ 1967 00d0 93ED027A 		vldr.32	s14, [r3, #8]
+ 390:Core/Src/bmi088.c **** 				//quaternionSet_zero();
+ 1968              		.loc 1 390 23
+ 1969 00d4 7B68     		ldr	r3, [r7, #4]
+ 1970 00d6 9B69     		ldr	r3, [r3, #24]
+ 390:Core/Src/bmi088.c **** 				//quaternionSet_zero();
+ 1971              		.loc 1 390 48
+ 1972 00d8 DFED066A 		vldr.32	s13, .L65+4
+ 1973 00dc C7EE267A 		vdiv.f32	s15, s14, s13
+ 1974 00e0 C3ED027A 		vstr.32	s15, [r3, #8]
+ 392:Core/Src/bmi088.c **** 				//Error_Handler();
+ 1975              		.loc 1 392 5
+ 1976 00e4 00E0     		b	.L57
+ 1977              	.L64:
+ 373:Core/Src/bmi088.c **** 		}
+ 1978              		.loc 1 373 4
+ 1979 00e6 00BF     		nop
+ 1980              	.L57:
+ 396:Core/Src/bmi088.c **** 		}
+ 397:Core/Src/bmi088.c **** 
+ 398:Core/Src/bmi088.c **** 	}
+ 399:Core/Src/bmi088.c **** }
+ 1981              		.loc 1 399 1
+ 1982 00e8 1837     		adds	r7, r7, #24
+ 1983              		.cfi_def_cfa_offset 8
+ 1984 00ea BD46     		mov	sp, r7
+ 1985              		.cfi_def_cfa_register 13
+ 1986              		@ sp needed
+ 1987 00ec 80BD     		pop	{r7, pc}
+ 1988              	.L66:
+ 1989 00ee 00BF     		.align	2
+ 1990              	.L65:
+ 1991 00f0 00000000 		.word	is_gyro_renewed
+ 1992 00f4 00007A44 		.word	1148846080
+ 1993              		.cfi_endproc
+ 1994              	.LFE248:
+ 1996              		.section	.text.bmi088_accel_dma_complete_callback,"ax",%progbits
+ 1997              		.align	1
+ 1998              		.global	bmi088_accel_dma_complete_callback
+ 1999              		.syntax unified
+ 2000              		.thumb
+ 2001              		.thumb_func
+ 2003              	bmi088_accel_dma_complete_callback:
+ 2004              	.LFB249:
+ 400:Core/Src/bmi088.c **** 
+ 401:Core/Src/bmi088.c **** /**
+ 402:Core/Src/bmi088.c ****  * @brief Accelerometer DMA complete callback
+ 403:Core/Src/bmi088.c ****  * @param BMI Pointer to BMI088 structure
+ 404:Core/Src/bmi088.c ****  */
+ 405:Core/Src/bmi088.c **** void bmi088_accel_dma_complete_callback(bmi088_struct_t* BMI)
+ 406:Core/Src/bmi088.c **** {
+ 2005              		.loc 1 406 1
+ 2006              		.cfi_startproc
+ 2007              		@ args = 0, pretend = 0, frame = 8
+ 2008              		@ frame_needed = 1, uses_anonymous_args = 0
+ 2009              		@ link register save eliminated.
+ 2010 0000 80B4     		push	{r7}
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 43
+
+
+ 2011              		.cfi_def_cfa_offset 4
+ 2012              		.cfi_offset 7, -4
+ 2013 0002 83B0     		sub	sp, sp, #12
+ 2014              		.cfi_def_cfa_offset 16
+ 2015 0004 00AF     		add	r7, sp, #0
+ 2016              		.cfi_def_cfa_register 7
+ 2017 0006 7860     		str	r0, [r7, #4]
+ 407:Core/Src/bmi088.c **** 	BMI->flags.isAccelDmaComplete = 1;
+ 2018              		.loc 1 407 32
+ 2019 0008 7B68     		ldr	r3, [r7, #4]
+ 2020 000a 0122     		movs	r2, #1
+ 2021 000c 9A70     		strb	r2, [r3, #2]
+ 408:Core/Src/bmi088.c **** 	BMI->flags.isDmaTransferActive = 0;
+ 2022              		.loc 1 408 33
+ 2023 000e 7B68     		ldr	r3, [r7, #4]
+ 2024 0010 0022     		movs	r2, #0
+ 2025 0012 1A71     		strb	r2, [r3, #4]
+ 409:Core/Src/bmi088.c **** 	BMI->flags.isAccelUpdated = 0;
+ 2026              		.loc 1 409 28
+ 2027 0014 7B68     		ldr	r3, [r7, #4]
+ 2028 0016 0022     		movs	r2, #0
+ 2029 0018 5A70     		strb	r2, [r3, #1]
+ 410:Core/Src/bmi088.c **** }
+ 2030              		.loc 1 410 1
+ 2031 001a 00BF     		nop
+ 2032 001c 0C37     		adds	r7, r7, #12
+ 2033              		.cfi_def_cfa_offset 4
+ 2034 001e BD46     		mov	sp, r7
+ 2035              		.cfi_def_cfa_register 13
+ 2036              		@ sp needed
+ 2037 0020 5DF8047B 		ldr	r7, [sp], #4
+ 2038              		.cfi_restore 7
+ 2039              		.cfi_def_cfa_offset 0
+ 2040 0024 7047     		bx	lr
+ 2041              		.cfi_endproc
+ 2042              	.LFE249:
+ 2044              		.section	.text.bmi088_gyro_dma_complete_callback,"ax",%progbits
+ 2045              		.align	1
+ 2046              		.global	bmi088_gyro_dma_complete_callback
+ 2047              		.syntax unified
+ 2048              		.thumb
+ 2049              		.thumb_func
+ 2051              	bmi088_gyro_dma_complete_callback:
+ 2052              	.LFB250:
+ 411:Core/Src/bmi088.c **** 
+ 412:Core/Src/bmi088.c **** /**
+ 413:Core/Src/bmi088.c ****  * @brief Gyroscope DMA complete callback
+ 414:Core/Src/bmi088.c ****  * @param BMI Pointer to BMI088 structure
+ 415:Core/Src/bmi088.c ****  */
+ 416:Core/Src/bmi088.c **** void bmi088_gyro_dma_complete_callback(bmi088_struct_t* BMI)
+ 417:Core/Src/bmi088.c **** {
+ 2053              		.loc 1 417 1
+ 2054              		.cfi_startproc
+ 2055              		@ args = 0, pretend = 0, frame = 8
+ 2056              		@ frame_needed = 1, uses_anonymous_args = 0
+ 2057              		@ link register save eliminated.
+ 2058 0000 80B4     		push	{r7}
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 44
+
+
+ 2059              		.cfi_def_cfa_offset 4
+ 2060              		.cfi_offset 7, -4
+ 2061 0002 83B0     		sub	sp, sp, #12
+ 2062              		.cfi_def_cfa_offset 16
+ 2063 0004 00AF     		add	r7, sp, #0
+ 2064              		.cfi_def_cfa_register 7
+ 2065 0006 7860     		str	r0, [r7, #4]
+ 418:Core/Src/bmi088.c **** 	BMI->flags.isGyroDmaComplete = 1;
+ 2066              		.loc 1 418 31
+ 2067 0008 7B68     		ldr	r3, [r7, #4]
+ 2068 000a 0122     		movs	r2, #1
+ 2069 000c DA70     		strb	r2, [r3, #3]
+ 419:Core/Src/bmi088.c **** 	BMI->flags.isDmaTransferActive = 0;
+ 2070              		.loc 1 419 33
+ 2071 000e 7B68     		ldr	r3, [r7, #4]
+ 2072 0010 0022     		movs	r2, #0
+ 2073 0012 1A71     		strb	r2, [r3, #4]
+ 420:Core/Src/bmi088.c **** 	BMI->flags.isGyroUpdated = 0;
+ 2074              		.loc 1 420 27
+ 2075 0014 7B68     		ldr	r3, [r7, #4]
+ 2076 0016 0022     		movs	r2, #0
+ 2077 0018 1A70     		strb	r2, [r3]
+ 421:Core/Src/bmi088.c **** }
+ 2078              		.loc 1 421 1
+ 2079 001a 00BF     		nop
+ 2080 001c 0C37     		adds	r7, r7, #12
+ 2081              		.cfi_def_cfa_offset 4
+ 2082 001e BD46     		mov	sp, r7
+ 2083              		.cfi_def_cfa_register 13
+ 2084              		@ sp needed
+ 2085 0020 5DF8047B 		ldr	r7, [sp], #4
+ 2086              		.cfi_restore 7
+ 2087              		.cfi_def_cfa_offset 0
+ 2088 0024 7047     		bx	lr
+ 2089              		.cfi_endproc
+ 2090              	.LFE250:
+ 2092              		.section	.text.bmi088_get_accel_frequency,"ax",%progbits
+ 2093              		.align	1
+ 2094              		.global	bmi088_get_accel_frequency
+ 2095              		.syntax unified
+ 2096              		.thumb
+ 2097              		.thumb_func
+ 2099              	bmi088_get_accel_frequency:
+ 2100              	.LFB251:
+ 422:Core/Src/bmi088.c **** 
+ 423:Core/Src/bmi088.c **** /**
+ 424:Core/Src/bmi088.c ****  * @brief Debug: Get accelerometer read frequency
+ 425:Core/Src/bmi088.c ****  * @return Accelerometer read frequency in Hz
+ 426:Core/Src/bmi088.c ****  */
+ 427:Core/Src/bmi088.c **** float bmi088_get_accel_frequency(void)
+ 428:Core/Src/bmi088.c **** {
+ 2101              		.loc 1 428 1
+ 2102              		.cfi_startproc
+ 2103              		@ args = 0, pretend = 0, frame = 0
+ 2104              		@ frame_needed = 1, uses_anonymous_args = 0
+ 2105              		@ link register save eliminated.
+ 2106 0000 80B4     		push	{r7}
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 45
+
+
+ 2107              		.cfi_def_cfa_offset 4
+ 2108              		.cfi_offset 7, -4
+ 2109 0002 00AF     		add	r7, sp, #0
+ 2110              		.cfi_def_cfa_register 7
+ 429:Core/Src/bmi088.c **** 	return accel_frequency_hz;
+ 2111              		.loc 1 429 9
+ 2112 0004 044B     		ldr	r3, .L71
+ 2113 0006 1B68     		ldr	r3, [r3]	@ float
+ 2114 0008 07EE903A 		vmov	s15, r3
+ 430:Core/Src/bmi088.c **** }
+ 2115              		.loc 1 430 1
+ 2116 000c B0EE670A 		vmov.f32	s0, s15
+ 2117 0010 BD46     		mov	sp, r7
+ 2118              		.cfi_def_cfa_register 13
+ 2119              		@ sp needed
+ 2120 0012 5DF8047B 		ldr	r7, [sp], #4
+ 2121              		.cfi_restore 7
+ 2122              		.cfi_def_cfa_offset 0
+ 2123 0016 7047     		bx	lr
+ 2124              	.L72:
+ 2125              		.align	2
+ 2126              	.L71:
+ 2127 0018 00000000 		.word	accel_frequency_hz
+ 2128              		.cfi_endproc
+ 2129              	.LFE251:
+ 2131              		.section	.text.bmi088_get_gyro_frequency,"ax",%progbits
+ 2132              		.align	1
+ 2133              		.global	bmi088_get_gyro_frequency
+ 2134              		.syntax unified
+ 2135              		.thumb
+ 2136              		.thumb_func
+ 2138              	bmi088_get_gyro_frequency:
+ 2139              	.LFB252:
+ 431:Core/Src/bmi088.c **** 
+ 432:Core/Src/bmi088.c **** /**
+ 433:Core/Src/bmi088.c ****  * @brief Debug: Get gyroscope read frequency  
+ 434:Core/Src/bmi088.c ****  * @return Gyroscope read frequency in Hz
+ 435:Core/Src/bmi088.c ****  */
+ 436:Core/Src/bmi088.c **** float bmi088_get_gyro_frequency(void)
+ 437:Core/Src/bmi088.c **** {
+ 2140              		.loc 1 437 1
+ 2141              		.cfi_startproc
+ 2142              		@ args = 0, pretend = 0, frame = 0
+ 2143              		@ frame_needed = 1, uses_anonymous_args = 0
+ 2144              		@ link register save eliminated.
+ 2145 0000 80B4     		push	{r7}
+ 2146              		.cfi_def_cfa_offset 4
+ 2147              		.cfi_offset 7, -4
+ 2148 0002 00AF     		add	r7, sp, #0
+ 2149              		.cfi_def_cfa_register 7
+ 438:Core/Src/bmi088.c **** 	return gyro_frequency_hz;
+ 2150              		.loc 1 438 9
+ 2151 0004 044B     		ldr	r3, .L75
+ 2152 0006 1B68     		ldr	r3, [r3]	@ float
+ 2153 0008 07EE903A 		vmov	s15, r3
+ 439:Core/Src/bmi088.c **** }
+ 2154              		.loc 1 439 1
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 46
+
+
+ 2155 000c B0EE670A 		vmov.f32	s0, s15
+ 2156 0010 BD46     		mov	sp, r7
+ 2157              		.cfi_def_cfa_register 13
+ 2158              		@ sp needed
+ 2159 0012 5DF8047B 		ldr	r7, [sp], #4
+ 2160              		.cfi_restore 7
+ 2161              		.cfi_def_cfa_offset 0
+ 2162 0016 7047     		bx	lr
+ 2163              	.L76:
+ 2164              		.align	2
+ 2165              	.L75:
+ 2166 0018 00000000 		.word	gyro_frequency_hz
+ 2167              		.cfi_endproc
+ 2168              	.LFE252:
+ 2170              		.text
+ 2171              	.Letext0:
+ 2172              		.file 2 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 2173              		.file 3 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 2174              		.file 4 "Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f446xx.h"
+ 2175              		.file 5 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 2176              		.file 6 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h"
+ 2177              		.file 7 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma.h"
+ 2178              		.file 8 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_i2c.h"
+ 2179              		.file 9 "Core/Inc/bmi088.h"
+ 2180              		.file 10 "Core/Inc/queternion.h"
+ 2181              		.file 11 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h"
+ 2182              		.file 12 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_cortex.h"
+ 2183              		.file 13 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltoo
+ 2184              		.file 14 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltoo
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 47
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 bmi088.c
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:23     .bss.is_time_updated:00000000 is_time_updated
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:24     .bss.is_time_updated:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:28     .bss.is_starded:00000000 is_starded
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:29     .bss.is_starded:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:33     .bss.is_gyro_renewed:00000000 is_gyro_renewed
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:34     .bss.is_gyro_renewed:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:36     .bss.errorLine:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:39     .bss.errorLine:00000000 errorLine
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:42     .bss.accel_read_count:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:45     .bss.accel_read_count:00000000 accel_read_count
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:48     .bss.gyro_read_count:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:51     .bss.gyro_read_count:00000000 gyro_read_count
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:54     .bss.accel_freq_last_time:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:57     .bss.accel_freq_last_time:00000000 accel_freq_last_time
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:60     .bss.gyro_freq_last_time:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:63     .bss.gyro_freq_last_time:00000000 gyro_freq_last_time
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:66     .bss.accel_frequency_hz:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:69     .bss.accel_frequency_hz:00000000 accel_frequency_hz
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:72     .bss.gyro_frequency_hz:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:75     .bss.gyro_frequency_hz:00000000 gyro_frequency_hz
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:78     .bss.last_hal_tick:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:81     .bss.last_hal_tick:00000000 last_hal_tick
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:84     .text.bmi088_init:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:90     .text.bmi088_init:00000000 bmi088_init
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:219    .text.bmi088_init:000000bc $d
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:225    .text.bmi088_config:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:231    .text.bmi088_config:00000000 bmi088_config
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:754    .text.bmi088_config:00000380 $d
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:758    .text.bmi088_config:00000384 $t
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:831    .text.bmi088_update:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:837    .text.bmi088_update:00000000 bmi088_update
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:1337   .text.bmi088_update:000003c8 $d
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:1355   .text.bmi088_update:00000404 $t
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:1689   .text.bmi088_update:000006b8 $d
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:1701   .text.bmi088_set_accel_INT:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:1707   .text.bmi088_set_accel_INT:00000000 bmi088_set_accel_INT
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:1741   .text.bmi088_set_gyro_INT:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:1747   .text.bmi088_set_gyro_INT:00000000 bmi088_set_gyro_INT
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:1781   .text.bmi088_getGyroChipId:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:1787   .text.bmi088_getGyroChipId:00000000 bmi088_getGyroChipId
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:1832   .text.get_offset:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:1838   .text.get_offset:00000000 get_offset
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:1991   .text.get_offset:000000f0 $d
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:1997   .text.bmi088_accel_dma_complete_callback:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:2003   .text.bmi088_accel_dma_complete_callback:00000000 bmi088_accel_dma_complete_callback
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:2045   .text.bmi088_gyro_dma_complete_callback:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:2051   .text.bmi088_gyro_dma_complete_callback:00000000 bmi088_gyro_dma_complete_callback
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:2093   .text.bmi088_get_accel_frequency:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:2099   .text.bmi088_get_accel_frequency:00000000 bmi088_get_accel_frequency
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:2127   .text.bmi088_get_accel_frequency:00000018 $d
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:2132   .text.bmi088_get_gyro_frequency:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:2138   .text.bmi088_get_gyro_frequency:00000000 bmi088_get_gyro_frequency
+C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s:2166   .text.bmi088_get_gyro_frequency:00000018 $d
+                           .group:00000000 wm4.0.fbeba72283fbbed79c5ed62adcf8946b
+                           .group:00000000 wm4._newlib_version.h.4.6d111ab2e95434b664b53815e5c8ccba
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 48
+
+
+                           .group:00000000 wm4.features.h.33.3e67abe6fb64142d4f6fa9496796153c
+                           .group:00000000 wm4._default_types.h.15.247e5cd201eca3442cbf5404108c4935
+                           .group:00000000 wm4._intsup.h.10.48bafbb683905c4daa4565a85aeeb264
+                           .group:00000000 wm4._stdint.h.10.c24fa3af3bc1706662bb5593a907e841
+                           .group:00000000 wm4.stdint.h.23.d53047a68f4a85177f80b422d52785ed
+                           .group:00000000 wm4.stm32f4xx_hal_conf.h.25.834fd89df99f7f3fe75169badeed02aa
+                           .group:00000000 wm4.stm32f4xx.h.38.63e3ea23bd63a94457417730025259b6
+                           .group:00000000 wm4.stm32f446xx.h.34.dd43cebd7192f96bce7a5ff975201274
+                           .group:00000000 wm4.cmsis_version.h.32.0ac195c83bb4537824e6ad1c47474b79
+                           .group:00000000 wm4.core_cm4.h.66.e4ff136c4a17abc46741866f64f8e729
+                           .group:00000000 wm4.cmsis_gcc.h.26.498d0ad17a45fc9ef20fdc01caf02259
+                           .group:00000000 wm4.core_cm4.h.174.62be9b4588d49bed18171771001331df
+                           .group:00000000 wm4.mpu_armv7.h.32.83326921a797fa9d6f70449916b4b839
+                           .group:00000000 wm4.stm32f446xx.h.917.13927c85cbbf4787955bc4173c54fa12
+                           .group:00000000 wm4.stm32f4xx.h.195.a4b8bf80f37cc96981498656ffe5f588
+                           .group:00000000 wm4.stm32_hal_legacy.h.22.8b7d303dc46a0b7ac6d3edf19ce2608d
+                           .group:00000000 wm4.stddef.h.39.3e0425629195acf083c9561151306b4d
+                           .group:00000000 wm4.stm32f4xx_hal_def.h.58.3cb484e92e5ccf2e55312a4714e27917
+                           .group:00000000 wm4.stm32f4xx_hal_rcc_ex.h.20.9b6e314009d4800dd71c0ec1c264a1ea
+                           .group:00000000 wm4.stm32f4xx_hal_rcc.h.106.0887cf5d985ae88e345b0aed0ceb4729
+                           .group:00000000 wm4.stm32f4xx_hal_gpio.h.21.22da6a14b6049d6ac156577be74df1d7
+                           .group:00000000 wm4.stm32f4xx_hal_gpio_ex.h.21.33ea7ea24fd170b1d3dce3d23330c9d3
+                           .group:00000000 wm4.stm32f4xx_hal_gpio.h.254.d7e07832f748fe8bcb575db0b8373592
+                           .group:00000000 wm4.stm32f4xx_hal_exti.h.21.4fc7f37c3cc97fb821b368ede79414b6
+                           .group:00000000 wm4.stm32f4xx_hal_dma.h.21.8e4b1421c914345c23be719e5e528779
+                           .group:00000000 wm4.stm32f4xx_hal_dma.h.720.ac2d7eef74792e4026acc4d2923c5da4
+                           .group:00000000 wm4.stm32f4xx_hal_cortex.h.20.03673e4f79386680bf73ba399c19306b
+                           .group:00000000 wm4.stm32f4xx_ll_adc.h.21.8ab9bf4d55f678506dbbe8102cb12bbc
+                           .group:00000000 wm4.stm32f4xx_hal_adc.h.159.62530d9b3382796f19493a9679ef426c
+                           .group:00000000 wm4.stm32f4xx_hal_adc_ex.h.21.94e87945640619cdd4cff40627e1380a
+                           .group:00000000 wm4.stm32f4xx_hal_adc.h.639.c30c49256117cbda0ada83149c65b3d8
+                           .group:00000000 wm4.stm32f4xx_hal_flash.h.20.2f1e0d1b7010b3a81a7980aaf712e7e5
+                           .group:00000000 wm4.stm32f4xx_hal_flash_ex.h.20.77cb3e5c0f1e426426a4cbc884a1eed8
+                           .group:00000000 wm4.stm32f4xx_hal_flash.h.361.23bc19b9eac79b0956d913651841ede8
+                           .group:00000000 wm4.stm32f4xx_hal_i2c.h.21.147e96a27b1f7b1f2f8ee22132703ee3
+                           .group:00000000 wm4.stm32f4xx_hal_i2c_ex.h.21.951ef5bfa13cf131d2015c338e82e461
+                           .group:00000000 wm4.stm32f4xx_hal_i2c.h.647.ade9c3447780b1cc0ece02f0ce83aedc
+                           .group:00000000 wm4.stm32f4xx_hal_pwr.h.20.1905a0783a9c83adefd7df0c4b501e40
+                           .group:00000000 wm4.stm32f4xx_hal_pwr_ex.h.20.9786dbd699c850465fa7b77273740267
+                           .group:00000000 wm4.stm32f4xx_hal_pwr.h.338.debc0a4a62ba54688e63ab53dd99c4ea
+                           .group:00000000 wm4.stm32f4xx_hal_spi.h.21.8b27a8d792c565f72ddd4cfad797986f
+                           .group:00000000 wm4.stm32f4xx_hal_tim.h.21.c31cbc03c25f07a932427770396c59d2
+                           .group:00000000 wm4.stm32f4xx_hal_tim_ex.h.21.3ff8ebb44e16ac9d5b95e2b3533221b9
+                           .group:00000000 wm4.stm32f4xx_hal_uart.h.21.ba8e24dd05c77faac3f3d48472e636ba
+                           .group:00000000 wm4.stm32f4xx_hal.h.71.02372bc31d47d29d3f67fbfe1429649e
+                           .group:00000000 wm4.main.h.61.69da45f81907557a0774729345d5d811
+                           .group:00000000 wm4.newlib.h.7.f9f25f80f86429f653675286e7973cb9
+                           .group:00000000 wm4.ieeefp.h.77.9dc6728f2d488a554e7c0cabef1b6c33
+                           .group:00000000 wm4.config.h.224.10ee1ad185d877c6e334e6581faab44d
+                           .group:00000000 wm4._ansi.h.31.de524f58584151836e90d8620a16f8e8
+                           .group:00000000 wm4.stdio.h.31.7c0e28c411445f3f9c5b11accf882760
+                           .group:00000000 wm4.stddef.h.158.bfed30416c9480cd13bc4a25427d538f
+                           .group:00000000 wm4.cdefs.h.49.f93868eb904b9ca05b5c0257d31128ca
+                           .group:00000000 wm4.stdarg.h.34.3a23a216c0c293b3d2ea2e89281481e6
+                           .group:00000000 wm4._types.h.20.dd0d04dca3800a0d2a6129b87f3adbb2
+                           .group:00000000 wm4.stddef.h.158.5f30652bb2ea05b142c1bbee9108c999
+                           .group:00000000 wm4._types.h.127.3bdfe3ff8ea2d0985b03d9cbe93480e3
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj6Wxw9.s 			page 49
+
+
+                           .group:00000000 wm4.reent.h.17.e292bf8b0bec6c96e131a54347145a30
+                           .group:00000000 wm4.lock.h.2.1461d1fff82dffe8bfddc23307f6484f
+                           .group:00000000 wm4.reent.h.77.89f7dde66c62b1f1dee32bdb6ab2d544
+                           .group:00000000 wm4.stdio.h.67.0cf8a9c281ab0b348aef5c02e7e48825
+                           .group:00000000 wm4.stdio.h.2.4aa87247282eca6c8f36f9de33d8df1a
+                           .group:00000000 wm4.stdio.h.87.a1e20d2651f9bfb66e51bfbe849db00a
+                           .group:00000000 wm4.string.h.8.c4b8571ce60dff2817f43fec8b86aecd
+                           .group:00000000 wm4.string.h.177.59a005921fa78485abc80a0267de5752
+                           .group:00000000 wm4.bmi088.h.24.39da1258636463617ae199ce9c348de5
+                           .group:00000000 wm4.math.h.13.35ad80917fddb38312d53499dad31194
+                           .group:00000000 wm4.stdlib.h.13.4ed386f5c1a80d71e72172885d946ef2
+                           .group:00000000 wm4.alloca.h.8.dfc0c703c47ec3e69746825b17d9e66d
+                           .group:00000000 wm4.stdlib.h.56.f4862cfbf4363a1db01842d5bdf72c18
+
+UNDEFINED SYMBOLS
+calloc
+HAL_I2C_Mem_Read
+HAL_NVIC_DisableIRQ
+HAL_I2C_Mem_Write
+HAL_Delay
+HAL_NVIC_EnableIRQ
+__aeabi_f2d
+__aeabi_ddiv
+__aeabi_dmul
+__aeabi_d2f
+__aeabi_dsub
+HAL_I2C_Mem_Read_DMA
+HAL_GetTick
+pow
+Orientation_Update
+quaternionToThetaZ

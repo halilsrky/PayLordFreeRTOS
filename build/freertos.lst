@@ -1,0 +1,94 @@
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccZibDr3.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 6
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"freertos.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Core/Src/freertos.c"
+  20              	.Letext0:
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccZibDr3.s 			page 2
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 freertos.c
+                           .group:00000000 wm4.0.fbeba72283fbbed79c5ed62adcf8946b
+                           .group:00000000 wm4.stddef.h.39.3e0425629195acf083c9561151306b4d
+                           .group:00000000 wm4._newlib_version.h.4.6d111ab2e95434b664b53815e5c8ccba
+                           .group:00000000 wm4.features.h.33.3e67abe6fb64142d4f6fa9496796153c
+                           .group:00000000 wm4._default_types.h.15.247e5cd201eca3442cbf5404108c4935
+                           .group:00000000 wm4._intsup.h.10.48bafbb683905c4daa4565a85aeeb264
+                           .group:00000000 wm4._stdint.h.10.c24fa3af3bc1706662bb5593a907e841
+                           .group:00000000 wm4.stdint.h.23.d53047a68f4a85177f80b422d52785ed
+                           .group:00000000 wm4.FreeRTOSConfig.h.32.8e019a6631174f777e4f6ede9e2bb7e9
+                           .group:00000000 wm4.stdarg.h.31.b55da1089056868966f25de5dbfc7d3c
+                           .group:00000000 wm4.Global.h.69.e0f48c7eb64cd3647ceacea2cc368f43
+                           .group:00000000 wm4.SEGGER.h.93.885d9d7ea302677e269465e6da347b9f
+                           .group:00000000 wm4.SEGGER_SYSVIEW.h.88.65dd41e8fc33fc8f03c978fd13231926
+                           .group:00000000 wm4.SEGGER_SYSVIEW_FreeRTOS.h.80.d232dda0d91b880546b63cc6970a0231
+                           .group:00000000 wm4.projdefs.h.29.3472c8470d131a5f474bc7437ea94609
+                           .group:00000000 wm4.portmacro.h.30.ebb5f3ce711e1dad21b3172c9bc8e19f
+                           .group:00000000 wm4.portable.h.64.742f2ce568820e866a7b541b4c77966f
+                           .group:00000000 wm4.mpu_wrappers.h.29.4f9aea82ee68d943d141825e5294de63
+                           .group:00000000 wm4.FreeRTOS.h.66.cc51f96fb61ed1e446bb6cea86adf7fa
+                           .group:00000000 wm4.list.h.61.5c5a38f6bc6687eed6d893e57dabd8e6
+                           .group:00000000 wm4.task.h.46.9fb92b2c1a30a52e436f6063552b709b
+                           .group:00000000 wm4.stm32f4xx_hal_conf.h.25.834fd89df99f7f3fe75169badeed02aa
+                           .group:00000000 wm4.stm32f4xx.h.38.63e3ea23bd63a94457417730025259b6
+                           .group:00000000 wm4.stm32f446xx.h.34.dd43cebd7192f96bce7a5ff975201274
+                           .group:00000000 wm4.cmsis_version.h.32.0ac195c83bb4537824e6ad1c47474b79
+                           .group:00000000 wm4.core_cm4.h.66.e4ff136c4a17abc46741866f64f8e729
+                           .group:00000000 wm4.cmsis_gcc.h.26.498d0ad17a45fc9ef20fdc01caf02259
+                           .group:00000000 wm4.core_cm4.h.174.62be9b4588d49bed18171771001331df
+                           .group:00000000 wm4.mpu_armv7.h.32.83326921a797fa9d6f70449916b4b839
+                           .group:00000000 wm4.stm32f446xx.h.917.13927c85cbbf4787955bc4173c54fa12
+                           .group:00000000 wm4.stm32f4xx.h.195.a4b8bf80f37cc96981498656ffe5f588
+                           .group:00000000 wm4.stm32_hal_legacy.h.22.8b7d303dc46a0b7ac6d3edf19ce2608d
+                           .group:00000000 wm4.stm32f4xx_hal_def.h.58.3cb484e92e5ccf2e55312a4714e27917
+                           .group:00000000 wm4.stm32f4xx_hal_rcc_ex.h.20.9b6e314009d4800dd71c0ec1c264a1ea
+                           .group:00000000 wm4.stm32f4xx_hal_rcc.h.106.0887cf5d985ae88e345b0aed0ceb4729
+                           .group:00000000 wm4.stm32f4xx_hal_gpio.h.21.22da6a14b6049d6ac156577be74df1d7
+                           .group:00000000 wm4.stm32f4xx_hal_gpio_ex.h.21.33ea7ea24fd170b1d3dce3d23330c9d3
+                           .group:00000000 wm4.stm32f4xx_hal_gpio.h.254.d7e07832f748fe8bcb575db0b8373592
+                           .group:00000000 wm4.stm32f4xx_hal_exti.h.21.4fc7f37c3cc97fb821b368ede79414b6
+                           .group:00000000 wm4.stm32f4xx_hal_dma.h.21.8e4b1421c914345c23be719e5e528779
+                           .group:00000000 wm4.stm32f4xx_hal_dma.h.720.ac2d7eef74792e4026acc4d2923c5da4
+                           .group:00000000 wm4.stm32f4xx_hal_cortex.h.20.03673e4f79386680bf73ba399c19306b
+                           .group:00000000 wm4.stm32f4xx_ll_adc.h.21.8ab9bf4d55f678506dbbe8102cb12bbc
+                           .group:00000000 wm4.stm32f4xx_hal_adc.h.159.62530d9b3382796f19493a9679ef426c
+                           .group:00000000 wm4.stm32f4xx_hal_adc_ex.h.21.94e87945640619cdd4cff40627e1380a
+                           .group:00000000 wm4.stm32f4xx_hal_adc.h.639.c30c49256117cbda0ada83149c65b3d8
+                           .group:00000000 wm4.stm32f4xx_hal_flash.h.20.2f1e0d1b7010b3a81a7980aaf712e7e5
+                           .group:00000000 wm4.stm32f4xx_hal_flash_ex.h.20.77cb3e5c0f1e426426a4cbc884a1eed8
+                           .group:00000000 wm4.stm32f4xx_hal_flash.h.361.23bc19b9eac79b0956d913651841ede8
+                           .group:00000000 wm4.stm32f4xx_hal_i2c.h.21.147e96a27b1f7b1f2f8ee22132703ee3
+                           .group:00000000 wm4.stm32f4xx_hal_i2c_ex.h.21.951ef5bfa13cf131d2015c338e82e461
+                           .group:00000000 wm4.stm32f4xx_hal_i2c.h.647.ade9c3447780b1cc0ece02f0ce83aedc
+                           .group:00000000 wm4.stm32f4xx_hal_pwr.h.20.1905a0783a9c83adefd7df0c4b501e40
+                           .group:00000000 wm4.stm32f4xx_hal_pwr_ex.h.20.9786dbd699c850465fa7b77273740267
+                           .group:00000000 wm4.stm32f4xx_hal_pwr.h.338.debc0a4a62ba54688e63ab53dd99c4ea
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccZibDr3.s 			page 3
+
+
+                           .group:00000000 wm4.stm32f4xx_hal_spi.h.21.8b27a8d792c565f72ddd4cfad797986f
+                           .group:00000000 wm4.stm32f4xx_hal_tim.h.21.c31cbc03c25f07a932427770396c59d2
+                           .group:00000000 wm4.stm32f4xx_hal_tim_ex.h.21.3ff8ebb44e16ac9d5b95e2b3533221b9
+                           .group:00000000 wm4.stm32f4xx_hal_uart.h.21.ba8e24dd05c77faac3f3d48472e636ba
+                           .group:00000000 wm4.stm32f4xx_hal.h.71.02372bc31d47d29d3f67fbfe1429649e
+                           .group:00000000 wm4.main.h.61.69da45f81907557a0774729345d5d811
+
+NO UNDEFINED SYMBOLS

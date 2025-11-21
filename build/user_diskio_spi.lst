@@ -1,0 +1,2803 @@
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 6
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"user_diskio_spi.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "FATFS/Target/user_diskio_spi.c"
+  20              		.section	.data.Stat,"aw"
+  23              	Stat:
+  24 0000 01       		.byte	1
+  25              		.section	.bss.CardType,"aw",%nobits
+  28              	CardType:
+  29 0000 00       		.space	1
+  30              		.global	spiTimerTickStart
+  31              		.section	.bss.spiTimerTickStart,"aw",%nobits
+  32              		.align	2
+  35              	spiTimerTickStart:
+  36 0000 00000000 		.space	4
+  37              		.global	spiTimerTickDelay
+  38              		.section	.bss.spiTimerTickDelay,"aw",%nobits
+  39              		.align	2
+  42              	spiTimerTickDelay:
+  43 0000 00000000 		.space	4
+  44              		.section	.text.SPI_Timer_On,"ax",%progbits
+  45              		.align	1
+  46              		.global	SPI_Timer_On
+  47              		.syntax unified
+  48              		.thumb
+  49              		.thumb_func
+  51              	SPI_Timer_On:
+  52              	.LFB243:
+   1:FATFS/Target/user_diskio_spi.c **** /**
+   2:FATFS/Target/user_diskio_spi.c ****  ******************************************************************************
+   3:FATFS/Target/user_diskio_spi.c ****   * @file    user_diskio_spi.c
+   4:FATFS/Target/user_diskio_spi.c ****   * @brief   This file contains the implementation of the user_diskio_spi FatFs
+   5:FATFS/Target/user_diskio_spi.c ****   *          driver.
+   6:FATFS/Target/user_diskio_spi.c ****   ******************************************************************************
+   7:FATFS/Target/user_diskio_spi.c ****   * Portions copyright (C) 2014, ChaN, all rights reserved.
+   8:FATFS/Target/user_diskio_spi.c ****   * Portions copyright (C) 2017, kiwih, all rights reserved.
+   9:FATFS/Target/user_diskio_spi.c ****   *
+  10:FATFS/Target/user_diskio_spi.c ****   * This software is a free software and there is NO WARRANTY.
+  11:FATFS/Target/user_diskio_spi.c ****   * No restriction on use. You can use, modify and redistribute it for
+  12:FATFS/Target/user_diskio_spi.c ****   * personal, non-profit or commercial products UNDER YOUR RESPONSIBILITY.
+  13:FATFS/Target/user_diskio_spi.c ****   * Redistributions of source code must retain the above copyright notice.
+  14:FATFS/Target/user_diskio_spi.c ****   *
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 2
+
+
+  15:FATFS/Target/user_diskio_spi.c ****   ******************************************************************************
+  16:FATFS/Target/user_diskio_spi.c ****   */
+  17:FATFS/Target/user_diskio_spi.c **** 
+  18:FATFS/Target/user_diskio_spi.c **** //This code was ported by kiwih from a copywrited (C) library written by ChaN
+  19:FATFS/Target/user_diskio_spi.c **** //available at http://elm-chan.org/fsw/ff/ffsample.zip
+  20:FATFS/Target/user_diskio_spi.c **** //(text at http://elm-chan.org/fsw/ff/00index_e.html)
+  21:FATFS/Target/user_diskio_spi.c **** 
+  22:FATFS/Target/user_diskio_spi.c **** //This file provides the FatFs driver functions and SPI code required to manage
+  23:FATFS/Target/user_diskio_spi.c **** //an SPI-connected MMC or compatible SD card with FAT
+  24:FATFS/Target/user_diskio_spi.c **** 
+  25:FATFS/Target/user_diskio_spi.c **** //It is designed to be wrapped by a cubemx generated user_diskio.c file.
+  26:FATFS/Target/user_diskio_spi.c **** 
+  27:FATFS/Target/user_diskio_spi.c **** #include "stm32f4xx_hal.h" /* Provide the low-level HAL functions */
+  28:FATFS/Target/user_diskio_spi.c **** #include "user_diskio_spi.h"
+  29:FATFS/Target/user_diskio_spi.c **** 
+  30:FATFS/Target/user_diskio_spi.c **** //Make sure you set #define SD_SPI_HANDLE as some hspix in main.h
+  31:FATFS/Target/user_diskio_spi.c **** //Make sure you set #define SD_CS_GPIO_Port as some GPIO port in main.h
+  32:FATFS/Target/user_diskio_spi.c **** //Make sure you set #define SD_CS_Pin as some GPIO pin in main.h
+  33:FATFS/Target/user_diskio_spi.c **** #define SD_SPI_HANDLE	hspi1
+  34:FATFS/Target/user_diskio_spi.c **** extern SPI_HandleTypeDef SD_SPI_HANDLE;
+  35:FATFS/Target/user_diskio_spi.c **** 
+  36:FATFS/Target/user_diskio_spi.c **** /* Function prototypes */
+  37:FATFS/Target/user_diskio_spi.c **** 
+  38:FATFS/Target/user_diskio_spi.c **** //(Note that the _256 is used as a mask to clear the prescalar bits as it provides binary 111 in th
+  39:FATFS/Target/user_diskio_spi.c **** #define FCLK_SLOW() { MODIFY_REG(SD_SPI_HANDLE.Instance->CR1, SPI_BAUDRATEPRESCALER_256, SPI_BAUDRA
+  40:FATFS/Target/user_diskio_spi.c **** #define FCLK_FAST() { MODIFY_REG(SD_SPI_HANDLE.Instance->CR1, SPI_BAUDRATEPRESCALER_256, SPI_BAUDRA
+  41:FATFS/Target/user_diskio_spi.c **** 
+  42:FATFS/Target/user_diskio_spi.c **** #define CS_HIGH()	{HAL_GPIO_WritePin(SD_CS_GPIO_Port, SD_CS_Pin, GPIO_PIN_SET);}
+  43:FATFS/Target/user_diskio_spi.c **** #define CS_LOW()	{HAL_GPIO_WritePin(SD_CS_GPIO_Port, SD_CS_Pin, GPIO_PIN_RESET);}
+  44:FATFS/Target/user_diskio_spi.c **** 
+  45:FATFS/Target/user_diskio_spi.c **** /*--------------------------------------------------------------------------
+  46:FATFS/Target/user_diskio_spi.c **** 
+  47:FATFS/Target/user_diskio_spi.c ****    Module Private Functions
+  48:FATFS/Target/user_diskio_spi.c **** 
+  49:FATFS/Target/user_diskio_spi.c **** ---------------------------------------------------------------------------*/
+  50:FATFS/Target/user_diskio_spi.c **** 
+  51:FATFS/Target/user_diskio_spi.c **** /* MMC/SD command */
+  52:FATFS/Target/user_diskio_spi.c **** #define CMD0	(0)			/* GO_IDLE_STATE */
+  53:FATFS/Target/user_diskio_spi.c **** #define CMD1	(1)			/* SEND_OP_COND (MMC) */
+  54:FATFS/Target/user_diskio_spi.c **** #define	ACMD41	(0x80+41)	/* SEND_OP_COND (SDC) */
+  55:FATFS/Target/user_diskio_spi.c **** #define CMD8	(8)			/* SEND_IF_COND */
+  56:FATFS/Target/user_diskio_spi.c **** #define CMD9	(9)			/* SEND_CSD */
+  57:FATFS/Target/user_diskio_spi.c **** #define CMD10	(10)		/* SEND_CID */
+  58:FATFS/Target/user_diskio_spi.c **** #define CMD12	(12)		/* STOP_TRANSMISSION */
+  59:FATFS/Target/user_diskio_spi.c **** #define ACMD13	(0x80+13)	/* SD_STATUS (SDC) */
+  60:FATFS/Target/user_diskio_spi.c **** #define CMD16	(16)		/* SET_BLOCKLEN */
+  61:FATFS/Target/user_diskio_spi.c **** #define CMD17	(17)		/* READ_SINGLE_BLOCK */
+  62:FATFS/Target/user_diskio_spi.c **** #define CMD18	(18)		/* READ_MULTIPLE_BLOCK */
+  63:FATFS/Target/user_diskio_spi.c **** #define CMD23	(23)		/* SET_BLOCK_COUNT (MMC) */
+  64:FATFS/Target/user_diskio_spi.c **** #define	ACMD23	(0x80+23)	/* SET_WR_BLK_ERASE_COUNT (SDC) */
+  65:FATFS/Target/user_diskio_spi.c **** #define CMD24	(24)		/* WRITE_BLOCK */
+  66:FATFS/Target/user_diskio_spi.c **** #define CMD25	(25)		/* WRITE_MULTIPLE_BLOCK */
+  67:FATFS/Target/user_diskio_spi.c **** #define CMD32	(32)		/* ERASE_ER_BLK_START */
+  68:FATFS/Target/user_diskio_spi.c **** #define CMD33	(33)		/* ERASE_ER_BLK_END */
+  69:FATFS/Target/user_diskio_spi.c **** #define CMD38	(38)		/* ERASE */
+  70:FATFS/Target/user_diskio_spi.c **** #define CMD55	(55)		/* APP_CMD */
+  71:FATFS/Target/user_diskio_spi.c **** #define CMD58	(58)		/* READ_OCR */
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 3
+
+
+  72:FATFS/Target/user_diskio_spi.c **** 
+  73:FATFS/Target/user_diskio_spi.c **** /* MMC card type flags (MMC_GET_TYPE) */
+  74:FATFS/Target/user_diskio_spi.c **** #define CT_MMC		0x01		/* MMC ver 3 */
+  75:FATFS/Target/user_diskio_spi.c **** #define CT_SD1		0x02		/* SD ver 1 */
+  76:FATFS/Target/user_diskio_spi.c **** #define CT_SD2		0x04		/* SD ver 2 */
+  77:FATFS/Target/user_diskio_spi.c **** #define CT_SDC		(CT_SD1|CT_SD2)	/* SD */
+  78:FATFS/Target/user_diskio_spi.c **** #define CT_BLOCK	0x08		/* Block addressing */
+  79:FATFS/Target/user_diskio_spi.c **** 
+  80:FATFS/Target/user_diskio_spi.c **** static volatile
+  81:FATFS/Target/user_diskio_spi.c **** DSTATUS Stat = STA_NOINIT;	/* Physical drive status */
+  82:FATFS/Target/user_diskio_spi.c **** 
+  83:FATFS/Target/user_diskio_spi.c **** 
+  84:FATFS/Target/user_diskio_spi.c **** static
+  85:FATFS/Target/user_diskio_spi.c **** BYTE CardType;			/* Card type flags */
+  86:FATFS/Target/user_diskio_spi.c **** 
+  87:FATFS/Target/user_diskio_spi.c **** uint32_t spiTimerTickStart;
+  88:FATFS/Target/user_diskio_spi.c **** uint32_t spiTimerTickDelay;
+  89:FATFS/Target/user_diskio_spi.c **** 
+  90:FATFS/Target/user_diskio_spi.c **** void SPI_Timer_On(uint32_t waitTicks) {
+  53              		.loc 1 90 39
+  54              		.cfi_startproc
+  55              		@ args = 0, pretend = 0, frame = 8
+  56              		@ frame_needed = 1, uses_anonymous_args = 0
+  57 0000 80B5     		push	{r7, lr}
+  58              		.cfi_def_cfa_offset 8
+  59              		.cfi_offset 7, -8
+  60              		.cfi_offset 14, -4
+  61 0002 82B0     		sub	sp, sp, #8
+  62              		.cfi_def_cfa_offset 16
+  63 0004 00AF     		add	r7, sp, #0
+  64              		.cfi_def_cfa_register 7
+  65 0006 7860     		str	r0, [r7, #4]
+  91:FATFS/Target/user_diskio_spi.c ****     spiTimerTickStart = HAL_GetTick();
+  66              		.loc 1 91 25
+  67 0008 FFF7FEFF 		bl	HAL_GetTick
+  68 000c 0346     		mov	r3, r0
+  69              		.loc 1 91 23
+  70 000e 044A     		ldr	r2, .L2
+  71 0010 1360     		str	r3, [r2]
+  92:FATFS/Target/user_diskio_spi.c ****     spiTimerTickDelay = waitTicks;
+  72              		.loc 1 92 23
+  73 0012 044A     		ldr	r2, .L2+4
+  74 0014 7B68     		ldr	r3, [r7, #4]
+  75 0016 1360     		str	r3, [r2]
+  93:FATFS/Target/user_diskio_spi.c **** }
+  76              		.loc 1 93 1
+  77 0018 00BF     		nop
+  78 001a 0837     		adds	r7, r7, #8
+  79              		.cfi_def_cfa_offset 8
+  80 001c BD46     		mov	sp, r7
+  81              		.cfi_def_cfa_register 13
+  82              		@ sp needed
+  83 001e 80BD     		pop	{r7, pc}
+  84              	.L3:
+  85              		.align	2
+  86              	.L2:
+  87 0020 00000000 		.word	spiTimerTickStart
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 4
+
+
+  88 0024 00000000 		.word	spiTimerTickDelay
+  89              		.cfi_endproc
+  90              	.LFE243:
+  92              		.section	.text.SPI_Timer_Status,"ax",%progbits
+  93              		.align	1
+  94              		.global	SPI_Timer_Status
+  95              		.syntax unified
+  96              		.thumb
+  97              		.thumb_func
+  99              	SPI_Timer_Status:
+ 100              	.LFB244:
+  94:FATFS/Target/user_diskio_spi.c **** 
+  95:FATFS/Target/user_diskio_spi.c **** uint8_t SPI_Timer_Status() {
+ 101              		.loc 1 95 28
+ 102              		.cfi_startproc
+ 103              		@ args = 0, pretend = 0, frame = 0
+ 104              		@ frame_needed = 1, uses_anonymous_args = 0
+ 105 0000 80B5     		push	{r7, lr}
+ 106              		.cfi_def_cfa_offset 8
+ 107              		.cfi_offset 7, -8
+ 108              		.cfi_offset 14, -4
+ 109 0002 00AF     		add	r7, sp, #0
+ 110              		.cfi_def_cfa_register 7
+  96:FATFS/Target/user_diskio_spi.c ****     return ((HAL_GetTick() - spiTimerTickStart) < spiTimerTickDelay);
+ 111              		.loc 1 96 14
+ 112 0004 FFF7FEFF 		bl	HAL_GetTick
+ 113 0008 0246     		mov	r2, r0
+ 114              		.loc 1 96 28
+ 115 000a 064B     		ldr	r3, .L6
+ 116 000c 1B68     		ldr	r3, [r3]
+ 117 000e D21A     		subs	r2, r2, r3
+ 118              		.loc 1 96 49
+ 119 0010 054B     		ldr	r3, .L6+4
+ 120 0012 1B68     		ldr	r3, [r3]
+ 121 0014 9A42     		cmp	r2, r3
+ 122 0016 34BF     		ite	cc
+ 123 0018 0123     		movcc	r3, #1
+ 124 001a 0023     		movcs	r3, #0
+ 125 001c DBB2     		uxtb	r3, r3
+  97:FATFS/Target/user_diskio_spi.c **** }
+ 126              		.loc 1 97 1
+ 127 001e 1846     		mov	r0, r3
+ 128 0020 80BD     		pop	{r7, pc}
+ 129              	.L7:
+ 130 0022 00BF     		.align	2
+ 131              	.L6:
+ 132 0024 00000000 		.word	spiTimerTickStart
+ 133 0028 00000000 		.word	spiTimerTickDelay
+ 134              		.cfi_endproc
+ 135              	.LFE244:
+ 137              		.section	.text.xchg_spi,"ax",%progbits
+ 138              		.align	1
+ 139              		.syntax unified
+ 140              		.thumb
+ 141              		.thumb_func
+ 143              	xchg_spi:
+ 144              	.LFB245:
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 5
+
+
+  98:FATFS/Target/user_diskio_spi.c **** 
+  99:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 100:FATFS/Target/user_diskio_spi.c **** /* SPI controls (Platform dependent)                                     */
+ 101:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 102:FATFS/Target/user_diskio_spi.c **** 
+ 103:FATFS/Target/user_diskio_spi.c **** /* Exchange a byte */
+ 104:FATFS/Target/user_diskio_spi.c **** static
+ 105:FATFS/Target/user_diskio_spi.c **** BYTE xchg_spi (
+ 106:FATFS/Target/user_diskio_spi.c **** 	BYTE dat	/* Data to send */
+ 107:FATFS/Target/user_diskio_spi.c **** )
+ 108:FATFS/Target/user_diskio_spi.c **** {
+ 145              		.loc 1 108 1
+ 146              		.cfi_startproc
+ 147              		@ args = 0, pretend = 0, frame = 16
+ 148              		@ frame_needed = 1, uses_anonymous_args = 0
+ 149 0000 80B5     		push	{r7, lr}
+ 150              		.cfi_def_cfa_offset 8
+ 151              		.cfi_offset 7, -8
+ 152              		.cfi_offset 14, -4
+ 153 0002 86B0     		sub	sp, sp, #24
+ 154              		.cfi_def_cfa_offset 32
+ 155 0004 02AF     		add	r7, sp, #8
+ 156              		.cfi_def_cfa 7, 24
+ 157 0006 0346     		mov	r3, r0
+ 158 0008 FB71     		strb	r3, [r7, #7]
+ 109:FATFS/Target/user_diskio_spi.c **** 	BYTE rxDat;
+ 110:FATFS/Target/user_diskio_spi.c ****     HAL_SPI_TransmitReceive(&SD_SPI_HANDLE, &dat, &rxDat, 1, 50);
+ 159              		.loc 1 110 5
+ 160 000a 07F10F02 		add	r2, r7, #15
+ 161 000e F91D     		adds	r1, r7, #7
+ 162 0010 3223     		movs	r3, #50
+ 163 0012 0093     		str	r3, [sp]
+ 164 0014 0123     		movs	r3, #1
+ 165 0016 0448     		ldr	r0, .L10
+ 166 0018 FFF7FEFF 		bl	HAL_SPI_TransmitReceive
+ 111:FATFS/Target/user_diskio_spi.c ****     return rxDat;
+ 167              		.loc 1 111 12
+ 168 001c FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 112:FATFS/Target/user_diskio_spi.c **** }
+ 169              		.loc 1 112 1
+ 170 001e 1846     		mov	r0, r3
+ 171 0020 1037     		adds	r7, r7, #16
+ 172              		.cfi_def_cfa_offset 8
+ 173 0022 BD46     		mov	sp, r7
+ 174              		.cfi_def_cfa_register 13
+ 175              		@ sp needed
+ 176 0024 80BD     		pop	{r7, pc}
+ 177              	.L11:
+ 178 0026 00BF     		.align	2
+ 179              	.L10:
+ 180 0028 00000000 		.word	hspi1
+ 181              		.cfi_endproc
+ 182              	.LFE245:
+ 184              		.section	.text.rcvr_spi_multi,"ax",%progbits
+ 185              		.align	1
+ 186              		.syntax unified
+ 187              		.thumb
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 6
+
+
+ 188              		.thumb_func
+ 190              	rcvr_spi_multi:
+ 191              	.LFB246:
+ 113:FATFS/Target/user_diskio_spi.c **** 
+ 114:FATFS/Target/user_diskio_spi.c **** 
+ 115:FATFS/Target/user_diskio_spi.c **** /* Receive multiple byte */
+ 116:FATFS/Target/user_diskio_spi.c **** static
+ 117:FATFS/Target/user_diskio_spi.c **** void rcvr_spi_multi (
+ 118:FATFS/Target/user_diskio_spi.c **** 	BYTE *buff,		/* Pointer to data buffer */
+ 119:FATFS/Target/user_diskio_spi.c **** 	UINT btr		/* Number of bytes to receive (even number) */
+ 120:FATFS/Target/user_diskio_spi.c **** )
+ 121:FATFS/Target/user_diskio_spi.c **** {
+ 192              		.loc 1 121 1
+ 193              		.cfi_startproc
+ 194              		@ args = 0, pretend = 0, frame = 16
+ 195              		@ frame_needed = 1, uses_anonymous_args = 0
+ 196 0000 90B5     		push	{r4, r7, lr}
+ 197              		.cfi_def_cfa_offset 12
+ 198              		.cfi_offset 4, -12
+ 199              		.cfi_offset 7, -8
+ 200              		.cfi_offset 14, -4
+ 201 0002 85B0     		sub	sp, sp, #20
+ 202              		.cfi_def_cfa_offset 32
+ 203 0004 00AF     		add	r7, sp, #0
+ 204              		.cfi_def_cfa_register 7
+ 205 0006 7860     		str	r0, [r7, #4]
+ 206 0008 3960     		str	r1, [r7]
+ 207              	.LBB2:
+ 122:FATFS/Target/user_diskio_spi.c **** 	for(UINT i=0; i<btr; i++) {
+ 208              		.loc 1 122 11
+ 209 000a 0023     		movs	r3, #0
+ 210 000c FB60     		str	r3, [r7, #12]
+ 211              		.loc 1 122 2
+ 212 000e 0AE0     		b	.L13
+ 213              	.L14:
+ 123:FATFS/Target/user_diskio_spi.c **** 		*(buff+i) = xchg_spi(0xFF);
+ 214              		.loc 1 123 9 discriminator 3
+ 215 0010 7A68     		ldr	r2, [r7, #4]
+ 216 0012 FB68     		ldr	r3, [r7, #12]
+ 217 0014 D418     		adds	r4, r2, r3
+ 218              		.loc 1 123 15 discriminator 3
+ 219 0016 FF20     		movs	r0, #255
+ 220 0018 FFF7FEFF 		bl	xchg_spi
+ 221 001c 0346     		mov	r3, r0
+ 222              		.loc 1 123 13 discriminator 3
+ 223 001e 2370     		strb	r3, [r4]
+ 122:FATFS/Target/user_diskio_spi.c **** 	for(UINT i=0; i<btr; i++) {
+ 224              		.loc 1 122 24 discriminator 3
+ 225 0020 FB68     		ldr	r3, [r7, #12]
+ 226 0022 0133     		adds	r3, r3, #1
+ 227 0024 FB60     		str	r3, [r7, #12]
+ 228              	.L13:
+ 122:FATFS/Target/user_diskio_spi.c **** 	for(UINT i=0; i<btr; i++) {
+ 229              		.loc 1 122 17 discriminator 1
+ 230 0026 FA68     		ldr	r2, [r7, #12]
+ 231 0028 3B68     		ldr	r3, [r7]
+ 232 002a 9A42     		cmp	r2, r3
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 7
+
+
+ 233 002c F0D3     		bcc	.L14
+ 234              	.LBE2:
+ 124:FATFS/Target/user_diskio_spi.c **** 	}
+ 125:FATFS/Target/user_diskio_spi.c **** }
+ 235              		.loc 1 125 1
+ 236 002e 00BF     		nop
+ 237 0030 00BF     		nop
+ 238 0032 1437     		adds	r7, r7, #20
+ 239              		.cfi_def_cfa_offset 12
+ 240 0034 BD46     		mov	sp, r7
+ 241              		.cfi_def_cfa_register 13
+ 242              		@ sp needed
+ 243 0036 90BD     		pop	{r4, r7, pc}
+ 244              		.cfi_endproc
+ 245              	.LFE246:
+ 247              		.section	.text.xmit_spi_multi,"ax",%progbits
+ 248              		.align	1
+ 249              		.syntax unified
+ 250              		.thumb
+ 251              		.thumb_func
+ 253              	xmit_spi_multi:
+ 254              	.LFB247:
+ 126:FATFS/Target/user_diskio_spi.c **** 
+ 127:FATFS/Target/user_diskio_spi.c **** 
+ 128:FATFS/Target/user_diskio_spi.c **** #if _USE_WRITE
+ 129:FATFS/Target/user_diskio_spi.c **** /* Send multiple byte */
+ 130:FATFS/Target/user_diskio_spi.c **** static
+ 131:FATFS/Target/user_diskio_spi.c **** void xmit_spi_multi (
+ 132:FATFS/Target/user_diskio_spi.c **** 	const BYTE *buff,	/* Pointer to the data */
+ 133:FATFS/Target/user_diskio_spi.c **** 	UINT btx			/* Number of bytes to send (even number) */
+ 134:FATFS/Target/user_diskio_spi.c **** )
+ 135:FATFS/Target/user_diskio_spi.c **** {
+ 255              		.loc 1 135 1
+ 256              		.cfi_startproc
+ 257              		@ args = 0, pretend = 0, frame = 8
+ 258              		@ frame_needed = 1, uses_anonymous_args = 0
+ 259 0000 80B5     		push	{r7, lr}
+ 260              		.cfi_def_cfa_offset 8
+ 261              		.cfi_offset 7, -8
+ 262              		.cfi_offset 14, -4
+ 263 0002 82B0     		sub	sp, sp, #8
+ 264              		.cfi_def_cfa_offset 16
+ 265 0004 00AF     		add	r7, sp, #0
+ 266              		.cfi_def_cfa_register 7
+ 267 0006 7860     		str	r0, [r7, #4]
+ 268 0008 3960     		str	r1, [r7]
+ 136:FATFS/Target/user_diskio_spi.c **** 	HAL_SPI_Transmit(&SD_SPI_HANDLE, buff, btx, HAL_MAX_DELAY);
+ 269              		.loc 1 136 2
+ 270 000a 3B68     		ldr	r3, [r7]
+ 271 000c 9AB2     		uxth	r2, r3
+ 272 000e 4FF0FF33 		mov	r3, #-1
+ 273 0012 7968     		ldr	r1, [r7, #4]
+ 274 0014 0348     		ldr	r0, .L16
+ 275 0016 FFF7FEFF 		bl	HAL_SPI_Transmit
+ 137:FATFS/Target/user_diskio_spi.c **** }
+ 276              		.loc 1 137 1
+ 277 001a 00BF     		nop
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 8
+
+
+ 278 001c 0837     		adds	r7, r7, #8
+ 279              		.cfi_def_cfa_offset 8
+ 280 001e BD46     		mov	sp, r7
+ 281              		.cfi_def_cfa_register 13
+ 282              		@ sp needed
+ 283 0020 80BD     		pop	{r7, pc}
+ 284              	.L17:
+ 285 0022 00BF     		.align	2
+ 286              	.L16:
+ 287 0024 00000000 		.word	hspi1
+ 288              		.cfi_endproc
+ 289              	.LFE247:
+ 291              		.section	.text.wait_ready,"ax",%progbits
+ 292              		.align	1
+ 293              		.syntax unified
+ 294              		.thumb
+ 295              		.thumb_func
+ 297              	wait_ready:
+ 298              	.LFB248:
+ 138:FATFS/Target/user_diskio_spi.c **** #endif
+ 139:FATFS/Target/user_diskio_spi.c **** 
+ 140:FATFS/Target/user_diskio_spi.c **** 
+ 141:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 142:FATFS/Target/user_diskio_spi.c **** /* Wait for card ready                                                   */
+ 143:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 144:FATFS/Target/user_diskio_spi.c **** 
+ 145:FATFS/Target/user_diskio_spi.c **** static
+ 146:FATFS/Target/user_diskio_spi.c **** int wait_ready (	/* 1:Ready, 0:Timeout */
+ 147:FATFS/Target/user_diskio_spi.c **** 	UINT wt			/* Timeout [ms] */
+ 148:FATFS/Target/user_diskio_spi.c **** )
+ 149:FATFS/Target/user_diskio_spi.c **** {
+ 299              		.loc 1 149 1
+ 300              		.cfi_startproc
+ 301              		@ args = 0, pretend = 0, frame = 24
+ 302              		@ frame_needed = 1, uses_anonymous_args = 0
+ 303 0000 80B5     		push	{r7, lr}
+ 304              		.cfi_def_cfa_offset 8
+ 305              		.cfi_offset 7, -8
+ 306              		.cfi_offset 14, -4
+ 307 0002 86B0     		sub	sp, sp, #24
+ 308              		.cfi_def_cfa_offset 32
+ 309 0004 00AF     		add	r7, sp, #0
+ 310              		.cfi_def_cfa_register 7
+ 311 0006 7860     		str	r0, [r7, #4]
+ 150:FATFS/Target/user_diskio_spi.c **** 	BYTE d;
+ 151:FATFS/Target/user_diskio_spi.c **** 	//wait_ready needs its own timer, unfortunately, so it can't use the
+ 152:FATFS/Target/user_diskio_spi.c **** 	//spi_timer functions
+ 153:FATFS/Target/user_diskio_spi.c **** 	uint32_t waitSpiTimerTickStart;
+ 154:FATFS/Target/user_diskio_spi.c **** 	uint32_t waitSpiTimerTickDelay;
+ 155:FATFS/Target/user_diskio_spi.c **** 
+ 156:FATFS/Target/user_diskio_spi.c **** 	waitSpiTimerTickStart = HAL_GetTick();
+ 312              		.loc 1 156 26
+ 313 0008 FFF7FEFF 		bl	HAL_GetTick
+ 314 000c 7861     		str	r0, [r7, #20]
+ 157:FATFS/Target/user_diskio_spi.c **** 	waitSpiTimerTickDelay = (uint32_t)wt;
+ 315              		.loc 1 157 24
+ 316 000e 7B68     		ldr	r3, [r7, #4]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 9
+
+
+ 317 0010 3B61     		str	r3, [r7, #16]
+ 318              	.L20:
+ 158:FATFS/Target/user_diskio_spi.c **** 	do {
+ 159:FATFS/Target/user_diskio_spi.c **** 		d = xchg_spi(0xFF);
+ 319              		.loc 1 159 7 discriminator 2
+ 320 0012 FF20     		movs	r0, #255
+ 321 0014 FFF7FEFF 		bl	xchg_spi
+ 322 0018 0346     		mov	r3, r0
+ 323 001a FB73     		strb	r3, [r7, #15]
+ 160:FATFS/Target/user_diskio_spi.c **** 		/* This loop takes a time. Insert rot_rdq() here for multitask envilonment. */
+ 161:FATFS/Target/user_diskio_spi.c **** 	} while (d != 0xFF && ((HAL_GetTick() - waitSpiTimerTickStart) < waitSpiTimerTickDelay));	/* Wait 
+ 324              		.loc 1 161 21 discriminator 2
+ 325 001c FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 326 001e FF2B     		cmp	r3, #255
+ 327 0020 07D0     		beq	.L19
+ 328              		.loc 1 161 26 discriminator 1
+ 329 0022 FFF7FEFF 		bl	HAL_GetTick
+ 330 0026 0246     		mov	r2, r0
+ 331              		.loc 1 161 40 discriminator 1
+ 332 0028 7B69     		ldr	r3, [r7, #20]
+ 333 002a D31A     		subs	r3, r2, r3
+ 334              		.loc 1 161 21 discriminator 1
+ 335 002c 3A69     		ldr	r2, [r7, #16]
+ 336 002e 9A42     		cmp	r2, r3
+ 337 0030 EFD8     		bhi	.L20
+ 338              	.L19:
+ 162:FATFS/Target/user_diskio_spi.c **** 
+ 163:FATFS/Target/user_diskio_spi.c **** 	return (d == 0xFF) ? 1 : 0;
+ 339              		.loc 1 163 25
+ 340 0032 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 341 0034 FF2B     		cmp	r3, #255
+ 342 0036 0CBF     		ite	eq
+ 343 0038 0123     		moveq	r3, #1
+ 344 003a 0023     		movne	r3, #0
+ 345 003c DBB2     		uxtb	r3, r3
+ 164:FATFS/Target/user_diskio_spi.c **** }
+ 346              		.loc 1 164 1
+ 347 003e 1846     		mov	r0, r3
+ 348 0040 1837     		adds	r7, r7, #24
+ 349              		.cfi_def_cfa_offset 8
+ 350 0042 BD46     		mov	sp, r7
+ 351              		.cfi_def_cfa_register 13
+ 352              		@ sp needed
+ 353 0044 80BD     		pop	{r7, pc}
+ 354              		.cfi_endproc
+ 355              	.LFE248:
+ 357              		.section	.text.despiselect,"ax",%progbits
+ 358              		.align	1
+ 359              		.syntax unified
+ 360              		.thumb
+ 361              		.thumb_func
+ 363              	despiselect:
+ 364              	.LFB249:
+ 165:FATFS/Target/user_diskio_spi.c **** 
+ 166:FATFS/Target/user_diskio_spi.c **** 
+ 167:FATFS/Target/user_diskio_spi.c **** 
+ 168:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 10
+
+
+ 169:FATFS/Target/user_diskio_spi.c **** /* Despiselect card and release SPI                                         */
+ 170:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 171:FATFS/Target/user_diskio_spi.c **** 
+ 172:FATFS/Target/user_diskio_spi.c **** static
+ 173:FATFS/Target/user_diskio_spi.c **** void despiselect (void)
+ 174:FATFS/Target/user_diskio_spi.c **** {
+ 365              		.loc 1 174 1
+ 366              		.cfi_startproc
+ 367              		@ args = 0, pretend = 0, frame = 0
+ 368              		@ frame_needed = 1, uses_anonymous_args = 0
+ 369 0000 80B5     		push	{r7, lr}
+ 370              		.cfi_def_cfa_offset 8
+ 371              		.cfi_offset 7, -8
+ 372              		.cfi_offset 14, -4
+ 373 0002 00AF     		add	r7, sp, #0
+ 374              		.cfi_def_cfa_register 7
+ 175:FATFS/Target/user_diskio_spi.c **** 	CS_HIGH();		/* Set CS# high */
+ 375              		.loc 1 175 2
+ 376 0004 0122     		movs	r2, #1
+ 377 0006 1021     		movs	r1, #16
+ 378 0008 0348     		ldr	r0, .L23
+ 379 000a FFF7FEFF 		bl	HAL_GPIO_WritePin
+ 176:FATFS/Target/user_diskio_spi.c **** 	xchg_spi(0xFF);	/* Dummy clock (force DO hi-z for multiple slave SPI) */
+ 380              		.loc 1 176 2
+ 381 000e FF20     		movs	r0, #255
+ 382 0010 FFF7FEFF 		bl	xchg_spi
+ 177:FATFS/Target/user_diskio_spi.c **** 
+ 178:FATFS/Target/user_diskio_spi.c **** }
+ 383              		.loc 1 178 1
+ 384 0014 00BF     		nop
+ 385 0016 80BD     		pop	{r7, pc}
+ 386              	.L24:
+ 387              		.align	2
+ 388              	.L23:
+ 389 0018 00000240 		.word	1073872896
+ 390              		.cfi_endproc
+ 391              	.LFE249:
+ 393              		.section	.text.spiselect,"ax",%progbits
+ 394              		.align	1
+ 395              		.syntax unified
+ 396              		.thumb
+ 397              		.thumb_func
+ 399              	spiselect:
+ 400              	.LFB250:
+ 179:FATFS/Target/user_diskio_spi.c **** 
+ 180:FATFS/Target/user_diskio_spi.c **** 
+ 181:FATFS/Target/user_diskio_spi.c **** 
+ 182:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 183:FATFS/Target/user_diskio_spi.c **** /* Select card and wait for ready                                        */
+ 184:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 185:FATFS/Target/user_diskio_spi.c **** 
+ 186:FATFS/Target/user_diskio_spi.c **** static
+ 187:FATFS/Target/user_diskio_spi.c **** int spiselect (void)	/* 1:OK, 0:Timeout */
+ 188:FATFS/Target/user_diskio_spi.c **** {
+ 401              		.loc 1 188 1
+ 402              		.cfi_startproc
+ 403              		@ args = 0, pretend = 0, frame = 0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 11
+
+
+ 404              		@ frame_needed = 1, uses_anonymous_args = 0
+ 405 0000 80B5     		push	{r7, lr}
+ 406              		.cfi_def_cfa_offset 8
+ 407              		.cfi_offset 7, -8
+ 408              		.cfi_offset 14, -4
+ 409 0002 00AF     		add	r7, sp, #0
+ 410              		.cfi_def_cfa_register 7
+ 189:FATFS/Target/user_diskio_spi.c **** 	CS_LOW();		/* Set CS# low */
+ 411              		.loc 1 189 2
+ 412 0004 0022     		movs	r2, #0
+ 413 0006 1021     		movs	r1, #16
+ 414 0008 0948     		ldr	r0, .L28
+ 415 000a FFF7FEFF 		bl	HAL_GPIO_WritePin
+ 190:FATFS/Target/user_diskio_spi.c **** 	xchg_spi(0xFF);	/* Dummy clock (force DO enabled) */
+ 416              		.loc 1 190 2
+ 417 000e FF20     		movs	r0, #255
+ 418 0010 FFF7FEFF 		bl	xchg_spi
+ 191:FATFS/Target/user_diskio_spi.c **** 	if (wait_ready(500)) return 1;	/* Wait for card ready */
+ 419              		.loc 1 191 6
+ 420 0014 4FF4FA70 		mov	r0, #500
+ 421 0018 FFF7FEFF 		bl	wait_ready
+ 422 001c 0346     		mov	r3, r0
+ 423              		.loc 1 191 5
+ 424 001e 002B     		cmp	r3, #0
+ 425 0020 01D0     		beq	.L26
+ 426              		.loc 1 191 30 discriminator 1
+ 427 0022 0123     		movs	r3, #1
+ 428 0024 02E0     		b	.L27
+ 429              	.L26:
+ 192:FATFS/Target/user_diskio_spi.c **** 
+ 193:FATFS/Target/user_diskio_spi.c **** 	despiselect();
+ 430              		.loc 1 193 2
+ 431 0026 FFF7FEFF 		bl	despiselect
+ 194:FATFS/Target/user_diskio_spi.c **** 	return 0;	/* Timeout */
+ 432              		.loc 1 194 9
+ 433 002a 0023     		movs	r3, #0
+ 434              	.L27:
+ 195:FATFS/Target/user_diskio_spi.c **** }
+ 435              		.loc 1 195 1
+ 436 002c 1846     		mov	r0, r3
+ 437 002e 80BD     		pop	{r7, pc}
+ 438              	.L29:
+ 439              		.align	2
+ 440              	.L28:
+ 441 0030 00000240 		.word	1073872896
+ 442              		.cfi_endproc
+ 443              	.LFE250:
+ 445              		.section	.text.rcvr_datablock,"ax",%progbits
+ 446              		.align	1
+ 447              		.syntax unified
+ 448              		.thumb
+ 449              		.thumb_func
+ 451              	rcvr_datablock:
+ 452              	.LFB251:
+ 196:FATFS/Target/user_diskio_spi.c **** 
+ 197:FATFS/Target/user_diskio_spi.c **** 
+ 198:FATFS/Target/user_diskio_spi.c **** 
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 12
+
+
+ 199:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 200:FATFS/Target/user_diskio_spi.c **** /* Receive a data packet from the MMC                                    */
+ 201:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 202:FATFS/Target/user_diskio_spi.c **** 
+ 203:FATFS/Target/user_diskio_spi.c **** static
+ 204:FATFS/Target/user_diskio_spi.c **** int rcvr_datablock (	/* 1:OK, 0:Error */
+ 205:FATFS/Target/user_diskio_spi.c **** 	BYTE *buff,			/* Data buffer */
+ 206:FATFS/Target/user_diskio_spi.c **** 	UINT btr			/* Data block length (byte) */
+ 207:FATFS/Target/user_diskio_spi.c **** )
+ 208:FATFS/Target/user_diskio_spi.c **** {
+ 453              		.loc 1 208 1
+ 454              		.cfi_startproc
+ 455              		@ args = 0, pretend = 0, frame = 16
+ 456              		@ frame_needed = 1, uses_anonymous_args = 0
+ 457 0000 80B5     		push	{r7, lr}
+ 458              		.cfi_def_cfa_offset 8
+ 459              		.cfi_offset 7, -8
+ 460              		.cfi_offset 14, -4
+ 461 0002 84B0     		sub	sp, sp, #16
+ 462              		.cfi_def_cfa_offset 24
+ 463 0004 00AF     		add	r7, sp, #0
+ 464              		.cfi_def_cfa_register 7
+ 465 0006 7860     		str	r0, [r7, #4]
+ 466 0008 3960     		str	r1, [r7]
+ 209:FATFS/Target/user_diskio_spi.c **** 	BYTE token;
+ 210:FATFS/Target/user_diskio_spi.c **** 
+ 211:FATFS/Target/user_diskio_spi.c **** 
+ 212:FATFS/Target/user_diskio_spi.c **** 	SPI_Timer_On(200);
+ 467              		.loc 1 212 2
+ 468 000a C820     		movs	r0, #200
+ 469 000c FFF7FEFF 		bl	SPI_Timer_On
+ 470              	.L32:
+ 213:FATFS/Target/user_diskio_spi.c **** 	do {							/* Wait for DataStart token in timeout of 200ms */
+ 214:FATFS/Target/user_diskio_spi.c **** 		token = xchg_spi(0xFF);
+ 471              		.loc 1 214 11 discriminator 2
+ 472 0010 FF20     		movs	r0, #255
+ 473 0012 FFF7FEFF 		bl	xchg_spi
+ 474 0016 0346     		mov	r3, r0
+ 475 0018 FB73     		strb	r3, [r7, #15]
+ 215:FATFS/Target/user_diskio_spi.c **** 		/* This loop will take a time. Insert rot_rdq() here for multitask envilonment. */
+ 216:FATFS/Target/user_diskio_spi.c **** 	} while ((token == 0xFF) && SPI_Timer_Status());
+ 476              		.loc 1 216 27 discriminator 2
+ 477 001a FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 478 001c FF2B     		cmp	r3, #255
+ 479 001e 04D1     		bne	.L31
+ 480              		.loc 1 216 30 discriminator 1
+ 481 0020 FFF7FEFF 		bl	SPI_Timer_Status
+ 482 0024 0346     		mov	r3, r0
+ 483              		.loc 1 216 27 discriminator 1
+ 484 0026 002B     		cmp	r3, #0
+ 485 0028 F2D1     		bne	.L32
+ 486              	.L31:
+ 217:FATFS/Target/user_diskio_spi.c **** 	if(token != 0xFE) return 0;		/* Function fails if invalid DataStart token or timeout */
+ 487              		.loc 1 217 4
+ 488 002a FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 489 002c FE2B     		cmp	r3, #254
+ 490 002e 01D0     		beq	.L33
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 13
+
+
+ 491              		.loc 1 217 27 discriminator 1
+ 492 0030 0023     		movs	r3, #0
+ 493 0032 0AE0     		b	.L34
+ 494              	.L33:
+ 218:FATFS/Target/user_diskio_spi.c **** 
+ 219:FATFS/Target/user_diskio_spi.c **** 	rcvr_spi_multi(buff, btr);		/* Store trailing data to the buffer */
+ 495              		.loc 1 219 2
+ 496 0034 3968     		ldr	r1, [r7]
+ 497 0036 7868     		ldr	r0, [r7, #4]
+ 498 0038 FFF7FEFF 		bl	rcvr_spi_multi
+ 220:FATFS/Target/user_diskio_spi.c **** 	xchg_spi(0xFF); xchg_spi(0xFF);			/* Discard CRC */
+ 499              		.loc 1 220 2
+ 500 003c FF20     		movs	r0, #255
+ 501 003e FFF7FEFF 		bl	xchg_spi
+ 502              		.loc 1 220 18
+ 503 0042 FF20     		movs	r0, #255
+ 504 0044 FFF7FEFF 		bl	xchg_spi
+ 221:FATFS/Target/user_diskio_spi.c **** 
+ 222:FATFS/Target/user_diskio_spi.c **** 	return 1;						/* Function succeeded */
+ 505              		.loc 1 222 9
+ 506 0048 0123     		movs	r3, #1
+ 507              	.L34:
+ 223:FATFS/Target/user_diskio_spi.c **** }
+ 508              		.loc 1 223 1
+ 509 004a 1846     		mov	r0, r3
+ 510 004c 1037     		adds	r7, r7, #16
+ 511              		.cfi_def_cfa_offset 8
+ 512 004e BD46     		mov	sp, r7
+ 513              		.cfi_def_cfa_register 13
+ 514              		@ sp needed
+ 515 0050 80BD     		pop	{r7, pc}
+ 516              		.cfi_endproc
+ 517              	.LFE251:
+ 519              		.section	.text.xmit_datablock,"ax",%progbits
+ 520              		.align	1
+ 521              		.syntax unified
+ 522              		.thumb
+ 523              		.thumb_func
+ 525              	xmit_datablock:
+ 526              	.LFB252:
+ 224:FATFS/Target/user_diskio_spi.c **** 
+ 225:FATFS/Target/user_diskio_spi.c **** 
+ 226:FATFS/Target/user_diskio_spi.c **** 
+ 227:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 228:FATFS/Target/user_diskio_spi.c **** /* Send a data packet to the MMC                                         */
+ 229:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 230:FATFS/Target/user_diskio_spi.c **** 
+ 231:FATFS/Target/user_diskio_spi.c **** #if _USE_WRITE
+ 232:FATFS/Target/user_diskio_spi.c **** static
+ 233:FATFS/Target/user_diskio_spi.c **** int xmit_datablock (	/* 1:OK, 0:Failed */
+ 234:FATFS/Target/user_diskio_spi.c **** 	const BYTE *buff,	/* Ponter to 512 byte data to be sent */
+ 235:FATFS/Target/user_diskio_spi.c **** 	BYTE token			/* Token */
+ 236:FATFS/Target/user_diskio_spi.c **** )
+ 237:FATFS/Target/user_diskio_spi.c **** {
+ 527              		.loc 1 237 1
+ 528              		.cfi_startproc
+ 529              		@ args = 0, pretend = 0, frame = 16
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 14
+
+
+ 530              		@ frame_needed = 1, uses_anonymous_args = 0
+ 531 0000 80B5     		push	{r7, lr}
+ 532              		.cfi_def_cfa_offset 8
+ 533              		.cfi_offset 7, -8
+ 534              		.cfi_offset 14, -4
+ 535 0002 84B0     		sub	sp, sp, #16
+ 536              		.cfi_def_cfa_offset 24
+ 537 0004 00AF     		add	r7, sp, #0
+ 538              		.cfi_def_cfa_register 7
+ 539 0006 7860     		str	r0, [r7, #4]
+ 540 0008 0B46     		mov	r3, r1
+ 541 000a FB70     		strb	r3, [r7, #3]
+ 238:FATFS/Target/user_diskio_spi.c **** 	BYTE resp;
+ 239:FATFS/Target/user_diskio_spi.c **** 
+ 240:FATFS/Target/user_diskio_spi.c **** 
+ 241:FATFS/Target/user_diskio_spi.c **** 	if (!wait_ready(500)) return 0;		/* Wait for card ready */
+ 542              		.loc 1 241 7
+ 543 000c 4FF4FA70 		mov	r0, #500
+ 544 0010 FFF7FEFF 		bl	wait_ready
+ 545 0014 0346     		mov	r3, r0
+ 546              		.loc 1 241 5
+ 547 0016 002B     		cmp	r3, #0
+ 548 0018 01D1     		bne	.L36
+ 549              		.loc 1 241 31 discriminator 1
+ 550 001a 0023     		movs	r3, #0
+ 551 001c 1EE0     		b	.L37
+ 552              	.L36:
+ 242:FATFS/Target/user_diskio_spi.c **** 
+ 243:FATFS/Target/user_diskio_spi.c **** 	xchg_spi(token);					/* Send token */
+ 553              		.loc 1 243 2
+ 554 001e FB78     		ldrb	r3, [r7, #3]	@ zero_extendqisi2
+ 555 0020 1846     		mov	r0, r3
+ 556 0022 FFF7FEFF 		bl	xchg_spi
+ 244:FATFS/Target/user_diskio_spi.c **** 	if (token != 0xFD) {				/* Send data if token is other than StopTran */
+ 557              		.loc 1 244 5
+ 558 0026 FB78     		ldrb	r3, [r7, #3]	@ zero_extendqisi2
+ 559 0028 FD2B     		cmp	r3, #253
+ 560 002a 16D0     		beq	.L38
+ 245:FATFS/Target/user_diskio_spi.c **** 		xmit_spi_multi(buff, 512);		/* Data */
+ 561              		.loc 1 245 3
+ 562 002c 4FF40071 		mov	r1, #512
+ 563 0030 7868     		ldr	r0, [r7, #4]
+ 564 0032 FFF7FEFF 		bl	xmit_spi_multi
+ 246:FATFS/Target/user_diskio_spi.c **** 		xchg_spi(0xFF); xchg_spi(0xFF);	/* Dummy CRC */
+ 565              		.loc 1 246 3
+ 566 0036 FF20     		movs	r0, #255
+ 567 0038 FFF7FEFF 		bl	xchg_spi
+ 568              		.loc 1 246 19
+ 569 003c FF20     		movs	r0, #255
+ 570 003e FFF7FEFF 		bl	xchg_spi
+ 247:FATFS/Target/user_diskio_spi.c **** 
+ 248:FATFS/Target/user_diskio_spi.c **** 		resp = xchg_spi(0xFF);				/* Receive data resp */
+ 571              		.loc 1 248 10
+ 572 0042 FF20     		movs	r0, #255
+ 573 0044 FFF7FEFF 		bl	xchg_spi
+ 574 0048 0346     		mov	r3, r0
+ 575 004a FB73     		strb	r3, [r7, #15]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 15
+
+
+ 249:FATFS/Target/user_diskio_spi.c **** 		if ((resp & 0x1F) != 0x05) return 0;	/* Function fails if the data packet was not accepted */
+ 576              		.loc 1 249 13
+ 577 004c FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 578 004e 03F01F03 		and	r3, r3, #31
+ 579              		.loc 1 249 6
+ 580 0052 052B     		cmp	r3, #5
+ 581 0054 01D0     		beq	.L38
+ 582              		.loc 1 249 37 discriminator 1
+ 583 0056 0023     		movs	r3, #0
+ 584 0058 00E0     		b	.L37
+ 585              	.L38:
+ 250:FATFS/Target/user_diskio_spi.c **** 	}
+ 251:FATFS/Target/user_diskio_spi.c **** 	return 1;
+ 586              		.loc 1 251 9
+ 587 005a 0123     		movs	r3, #1
+ 588              	.L37:
+ 252:FATFS/Target/user_diskio_spi.c **** }
+ 589              		.loc 1 252 1
+ 590 005c 1846     		mov	r0, r3
+ 591 005e 1037     		adds	r7, r7, #16
+ 592              		.cfi_def_cfa_offset 8
+ 593 0060 BD46     		mov	sp, r7
+ 594              		.cfi_def_cfa_register 13
+ 595              		@ sp needed
+ 596 0062 80BD     		pop	{r7, pc}
+ 597              		.cfi_endproc
+ 598              	.LFE252:
+ 600              		.section	.text.send_cmd,"ax",%progbits
+ 601              		.align	1
+ 602              		.syntax unified
+ 603              		.thumb
+ 604              		.thumb_func
+ 606              	send_cmd:
+ 607              	.LFB253:
+ 253:FATFS/Target/user_diskio_spi.c **** #endif
+ 254:FATFS/Target/user_diskio_spi.c **** 
+ 255:FATFS/Target/user_diskio_spi.c **** 
+ 256:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 257:FATFS/Target/user_diskio_spi.c **** /* Send a command packet to the MMC                                      */
+ 258:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 259:FATFS/Target/user_diskio_spi.c **** 
+ 260:FATFS/Target/user_diskio_spi.c **** static
+ 261:FATFS/Target/user_diskio_spi.c **** BYTE send_cmd (		/* Return value: R1 resp (bit7==1:Failed to send) */
+ 262:FATFS/Target/user_diskio_spi.c **** 	BYTE cmd,		/* Command index */
+ 263:FATFS/Target/user_diskio_spi.c **** 	DWORD arg		/* Argument */
+ 264:FATFS/Target/user_diskio_spi.c **** )
+ 265:FATFS/Target/user_diskio_spi.c **** {
+ 608              		.loc 1 265 1
+ 609              		.cfi_startproc
+ 610              		@ args = 0, pretend = 0, frame = 16
+ 611              		@ frame_needed = 1, uses_anonymous_args = 0
+ 612 0000 80B5     		push	{r7, lr}
+ 613              		.cfi_def_cfa_offset 8
+ 614              		.cfi_offset 7, -8
+ 615              		.cfi_offset 14, -4
+ 616 0002 84B0     		sub	sp, sp, #16
+ 617              		.cfi_def_cfa_offset 24
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 16
+
+
+ 618 0004 00AF     		add	r7, sp, #0
+ 619              		.cfi_def_cfa_register 7
+ 620 0006 0346     		mov	r3, r0
+ 621 0008 3960     		str	r1, [r7]
+ 622 000a FB71     		strb	r3, [r7, #7]
+ 266:FATFS/Target/user_diskio_spi.c **** 	BYTE n, res;
+ 267:FATFS/Target/user_diskio_spi.c **** 
+ 268:FATFS/Target/user_diskio_spi.c **** 
+ 269:FATFS/Target/user_diskio_spi.c **** 	if (cmd & 0x80) {	/* Send a CMD55 prior to ACMD<n> */
+ 623              		.loc 1 269 6
+ 624 000c 97F90730 		ldrsb	r3, [r7, #7]
+ 625              		.loc 1 269 5
+ 626 0010 002B     		cmp	r3, #0
+ 627 0012 0EDA     		bge	.L40
+ 270:FATFS/Target/user_diskio_spi.c **** 		cmd &= 0x7F;
+ 628              		.loc 1 270 7
+ 629 0014 FB79     		ldrb	r3, [r7, #7]
+ 630 0016 03F07F03 		and	r3, r3, #127
+ 631 001a FB71     		strb	r3, [r7, #7]
+ 271:FATFS/Target/user_diskio_spi.c **** 		res = send_cmd(CMD55, 0);
+ 632              		.loc 1 271 9
+ 633 001c 0021     		movs	r1, #0
+ 634 001e 3720     		movs	r0, #55
+ 635 0020 FFF7EEFF 		bl	send_cmd
+ 636 0024 0346     		mov	r3, r0
+ 637 0026 BB73     		strb	r3, [r7, #14]
+ 272:FATFS/Target/user_diskio_spi.c **** 		if (res > 1) return res;
+ 638              		.loc 1 272 6
+ 639 0028 BB7B     		ldrb	r3, [r7, #14]	@ zero_extendqisi2
+ 640 002a 012B     		cmp	r3, #1
+ 641 002c 01D9     		bls	.L40
+ 642              		.loc 1 272 23 discriminator 1
+ 643 002e BB7B     		ldrb	r3, [r7, #14]	@ zero_extendqisi2
+ 644 0030 51E0     		b	.L41
+ 645              	.L40:
+ 273:FATFS/Target/user_diskio_spi.c **** 	}
+ 274:FATFS/Target/user_diskio_spi.c **** 
+ 275:FATFS/Target/user_diskio_spi.c **** 	/* Select the card and wait for ready except to stop multiple block read */
+ 276:FATFS/Target/user_diskio_spi.c **** 	if (cmd != CMD12) {
+ 646              		.loc 1 276 5
+ 647 0032 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 648 0034 0C2B     		cmp	r3, #12
+ 649 0036 08D0     		beq	.L42
+ 277:FATFS/Target/user_diskio_spi.c **** 		despiselect();
+ 650              		.loc 1 277 3
+ 651 0038 FFF7FEFF 		bl	despiselect
+ 278:FATFS/Target/user_diskio_spi.c **** 		if (!spiselect()) return 0xFF;
+ 652              		.loc 1 278 8
+ 653 003c FFF7FEFF 		bl	spiselect
+ 654 0040 0346     		mov	r3, r0
+ 655              		.loc 1 278 6
+ 656 0042 002B     		cmp	r3, #0
+ 657 0044 01D1     		bne	.L42
+ 658              		.loc 1 278 28 discriminator 1
+ 659 0046 FF23     		movs	r3, #255
+ 660 0048 45E0     		b	.L41
+ 661              	.L42:
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 17
+
+
+ 279:FATFS/Target/user_diskio_spi.c **** 	}
+ 280:FATFS/Target/user_diskio_spi.c **** 
+ 281:FATFS/Target/user_diskio_spi.c **** 	/* Send command packet */
+ 282:FATFS/Target/user_diskio_spi.c **** 	xchg_spi(0x40 | cmd);				/* Start + command index */
+ 662              		.loc 1 282 2
+ 663 004a FB79     		ldrb	r3, [r7, #7]
+ 664 004c 43F04003 		orr	r3, r3, #64
+ 665 0050 DBB2     		uxtb	r3, r3
+ 666 0052 1846     		mov	r0, r3
+ 667 0054 FFF7FEFF 		bl	xchg_spi
+ 283:FATFS/Target/user_diskio_spi.c **** 	xchg_spi((BYTE)(arg >> 24));		/* Argument[31..24] */
+ 668              		.loc 1 283 22
+ 669 0058 3B68     		ldr	r3, [r7]
+ 670 005a 1B0E     		lsrs	r3, r3, #24
+ 671              		.loc 1 283 2
+ 672 005c DBB2     		uxtb	r3, r3
+ 673 005e 1846     		mov	r0, r3
+ 674 0060 FFF7FEFF 		bl	xchg_spi
+ 284:FATFS/Target/user_diskio_spi.c **** 	xchg_spi((BYTE)(arg >> 16));		/* Argument[23..16] */
+ 675              		.loc 1 284 22
+ 676 0064 3B68     		ldr	r3, [r7]
+ 677 0066 1B0C     		lsrs	r3, r3, #16
+ 678              		.loc 1 284 2
+ 679 0068 DBB2     		uxtb	r3, r3
+ 680 006a 1846     		mov	r0, r3
+ 681 006c FFF7FEFF 		bl	xchg_spi
+ 285:FATFS/Target/user_diskio_spi.c **** 	xchg_spi((BYTE)(arg >> 8));			/* Argument[15..8] */
+ 682              		.loc 1 285 22
+ 683 0070 3B68     		ldr	r3, [r7]
+ 684 0072 1B0A     		lsrs	r3, r3, #8
+ 685              		.loc 1 285 2
+ 686 0074 DBB2     		uxtb	r3, r3
+ 687 0076 1846     		mov	r0, r3
+ 688 0078 FFF7FEFF 		bl	xchg_spi
+ 286:FATFS/Target/user_diskio_spi.c **** 	xchg_spi((BYTE)arg);				/* Argument[7..0] */
+ 689              		.loc 1 286 2
+ 690 007c 3B68     		ldr	r3, [r7]
+ 691 007e DBB2     		uxtb	r3, r3
+ 692 0080 1846     		mov	r0, r3
+ 693 0082 FFF7FEFF 		bl	xchg_spi
+ 287:FATFS/Target/user_diskio_spi.c **** 	n = 0x01;							/* Dummy CRC + Stop */
+ 694              		.loc 1 287 4
+ 695 0086 0123     		movs	r3, #1
+ 696 0088 FB73     		strb	r3, [r7, #15]
+ 288:FATFS/Target/user_diskio_spi.c **** 	if (cmd == CMD0) n = 0x95;			/* Valid CRC for CMD0(0) */
+ 697              		.loc 1 288 5
+ 698 008a FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 699 008c 002B     		cmp	r3, #0
+ 700 008e 01D1     		bne	.L43
+ 701              		.loc 1 288 21 discriminator 1
+ 702 0090 9523     		movs	r3, #149
+ 703 0092 FB73     		strb	r3, [r7, #15]
+ 704              	.L43:
+ 289:FATFS/Target/user_diskio_spi.c **** 	if (cmd == CMD8) n = 0x87;			/* Valid CRC for CMD8(0x1AA) */
+ 705              		.loc 1 289 5
+ 706 0094 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 707 0096 082B     		cmp	r3, #8
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 18
+
+
+ 708 0098 01D1     		bne	.L44
+ 709              		.loc 1 289 21 discriminator 1
+ 710 009a 8723     		movs	r3, #135
+ 711 009c FB73     		strb	r3, [r7, #15]
+ 712              	.L44:
+ 290:FATFS/Target/user_diskio_spi.c **** 	xchg_spi(n);
+ 713              		.loc 1 290 2
+ 714 009e FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 715 00a0 1846     		mov	r0, r3
+ 716 00a2 FFF7FEFF 		bl	xchg_spi
+ 291:FATFS/Target/user_diskio_spi.c **** 
+ 292:FATFS/Target/user_diskio_spi.c **** 	/* Receive command resp */
+ 293:FATFS/Target/user_diskio_spi.c **** 	if (cmd == CMD12) xchg_spi(0xFF);	/* Diacard following one byte when CMD12 */
+ 717              		.loc 1 293 5
+ 718 00a6 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 719 00a8 0C2B     		cmp	r3, #12
+ 720 00aa 02D1     		bne	.L45
+ 721              		.loc 1 293 20 discriminator 1
+ 722 00ac FF20     		movs	r0, #255
+ 723 00ae FFF7FEFF 		bl	xchg_spi
+ 724              	.L45:
+ 294:FATFS/Target/user_diskio_spi.c **** 	n = 10;								/* Wait for response (10 bytes max) */
+ 725              		.loc 1 294 4
+ 726 00b2 0A23     		movs	r3, #10
+ 727 00b4 FB73     		strb	r3, [r7, #15]
+ 728              	.L47:
+ 295:FATFS/Target/user_diskio_spi.c **** 	do {
+ 296:FATFS/Target/user_diskio_spi.c **** 		res = xchg_spi(0xFF);
+ 729              		.loc 1 296 9 discriminator 2
+ 730 00b6 FF20     		movs	r0, #255
+ 731 00b8 FFF7FEFF 		bl	xchg_spi
+ 732 00bc 0346     		mov	r3, r0
+ 733 00be BB73     		strb	r3, [r7, #14]
+ 297:FATFS/Target/user_diskio_spi.c **** 	} while ((res & 0x80) && --n);
+ 734              		.loc 1 297 11 discriminator 2
+ 735 00c0 97F90E30 		ldrsb	r3, [r7, #14]
+ 736              		.loc 1 297 24 discriminator 2
+ 737 00c4 002B     		cmp	r3, #0
+ 738 00c6 05DA     		bge	.L46
+ 739              		.loc 1 297 24 is_stmt 0 discriminator 1
+ 740 00c8 FB7B     		ldrb	r3, [r7, #15]
+ 741 00ca 013B     		subs	r3, r3, #1
+ 742 00cc FB73     		strb	r3, [r7, #15]
+ 743 00ce FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 744 00d0 002B     		cmp	r3, #0
+ 745 00d2 F0D1     		bne	.L47
+ 746              	.L46:
+ 298:FATFS/Target/user_diskio_spi.c **** 
+ 299:FATFS/Target/user_diskio_spi.c **** 	return res;							/* Return received response */
+ 747              		.loc 1 299 9 is_stmt 1
+ 748 00d4 BB7B     		ldrb	r3, [r7, #14]	@ zero_extendqisi2
+ 749              	.L41:
+ 300:FATFS/Target/user_diskio_spi.c **** }
+ 750              		.loc 1 300 1
+ 751 00d6 1846     		mov	r0, r3
+ 752 00d8 1037     		adds	r7, r7, #16
+ 753              		.cfi_def_cfa_offset 8
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 19
+
+
+ 754 00da BD46     		mov	sp, r7
+ 755              		.cfi_def_cfa_register 13
+ 756              		@ sp needed
+ 757 00dc 80BD     		pop	{r7, pc}
+ 758              		.cfi_endproc
+ 759              	.LFE253:
+ 761              		.section	.text.USER_SPI_initialize,"ax",%progbits
+ 762              		.align	1
+ 763              		.global	USER_SPI_initialize
+ 764              		.syntax unified
+ 765              		.thumb
+ 766              		.thumb_func
+ 768              	USER_SPI_initialize:
+ 769              	.LFB254:
+ 301:FATFS/Target/user_diskio_spi.c **** 
+ 302:FATFS/Target/user_diskio_spi.c **** 
+ 303:FATFS/Target/user_diskio_spi.c **** /*--------------------------------------------------------------------------
+ 304:FATFS/Target/user_diskio_spi.c **** 
+ 305:FATFS/Target/user_diskio_spi.c ****    Public FatFs Functions (wrapped in user_diskio.c)
+ 306:FATFS/Target/user_diskio_spi.c **** 
+ 307:FATFS/Target/user_diskio_spi.c **** ---------------------------------------------------------------------------*/
+ 308:FATFS/Target/user_diskio_spi.c **** 
+ 309:FATFS/Target/user_diskio_spi.c **** //The following functions are defined as inline because they aren't the functions that
+ 310:FATFS/Target/user_diskio_spi.c **** //are passed to FatFs - they are wrapped by autogenerated (non-inline) cubemx template
+ 311:FATFS/Target/user_diskio_spi.c **** //code.
+ 312:FATFS/Target/user_diskio_spi.c **** //If you do not wish to use cubemx, remove the "inline" from these functions here
+ 313:FATFS/Target/user_diskio_spi.c **** //and in the associated .h
+ 314:FATFS/Target/user_diskio_spi.c **** 
+ 315:FATFS/Target/user_diskio_spi.c **** 
+ 316:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 317:FATFS/Target/user_diskio_spi.c **** /* Initialize disk drive                                                 */
+ 318:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 319:FATFS/Target/user_diskio_spi.c **** 
+ 320:FATFS/Target/user_diskio_spi.c **** inline DSTATUS USER_SPI_initialize (
+ 321:FATFS/Target/user_diskio_spi.c **** 	BYTE drv		/* Physical drive number (0) */
+ 322:FATFS/Target/user_diskio_spi.c **** )
+ 323:FATFS/Target/user_diskio_spi.c **** {
+ 770              		.loc 1 323 1
+ 771              		.cfi_startproc
+ 772              		@ args = 0, pretend = 0, frame = 16
+ 773              		@ frame_needed = 1, uses_anonymous_args = 0
+ 774 0000 90B5     		push	{r4, r7, lr}
+ 775              		.cfi_def_cfa_offset 12
+ 776              		.cfi_offset 4, -12
+ 777              		.cfi_offset 7, -8
+ 778              		.cfi_offset 14, -4
+ 779 0002 85B0     		sub	sp, sp, #20
+ 780              		.cfi_def_cfa_offset 32
+ 781 0004 00AF     		add	r7, sp, #0
+ 782              		.cfi_def_cfa_register 7
+ 783 0006 0346     		mov	r3, r0
+ 784 0008 FB71     		strb	r3, [r7, #7]
+ 324:FATFS/Target/user_diskio_spi.c **** 	BYTE n, cmd, ty, ocr[4];
+ 325:FATFS/Target/user_diskio_spi.c **** 
+ 326:FATFS/Target/user_diskio_spi.c **** 	if (drv != 0) return STA_NOINIT;		/* Supports only drive 0 */
+ 785              		.loc 1 326 5
+ 786 000a FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 20
+
+
+ 787 000c 002B     		cmp	r3, #0
+ 788 000e 01D0     		beq	.L49
+ 789              		.loc 1 326 23 discriminator 1
+ 790 0010 0123     		movs	r3, #1
+ 791 0012 D6E0     		b	.L71
+ 792              	.L49:
+ 327:FATFS/Target/user_diskio_spi.c **** 	//assume SPI already init init_spi();	/* Initialize SPI */
+ 328:FATFS/Target/user_diskio_spi.c **** 
+ 329:FATFS/Target/user_diskio_spi.c **** 	if (Stat & STA_NODISK) return Stat;	/* Is card existing in the soket? */
+ 793              		.loc 1 329 11
+ 794 0014 6D4B     		ldr	r3, .L73
+ 795 0016 1B78     		ldrb	r3, [r3]
+ 796 0018 DBB2     		uxtb	r3, r3
+ 797 001a 03F00203 		and	r3, r3, #2
+ 798              		.loc 1 329 5
+ 799 001e 002B     		cmp	r3, #0
+ 800 0020 03D0     		beq	.L51
+ 801              		.loc 1 329 32 discriminator 1
+ 802 0022 6A4B     		ldr	r3, .L73
+ 803 0024 1B78     		ldrb	r3, [r3]
+ 804 0026 DBB2     		uxtb	r3, r3
+ 805 0028 CBE0     		b	.L71
+ 806              	.L51:
+ 330:FATFS/Target/user_diskio_spi.c **** 
+ 331:FATFS/Target/user_diskio_spi.c **** 	FCLK_SLOW();
+ 807              		.loc 1 331 2
+ 808 002a 694B     		ldr	r3, .L73+4
+ 809 002c 1B68     		ldr	r3, [r3]
+ 810 002e 1B68     		ldr	r3, [r3]
+ 811 0030 23F03802 		bic	r2, r3, #56
+ 812 0034 664B     		ldr	r3, .L73+4
+ 813 0036 1B68     		ldr	r3, [r3]
+ 814 0038 42F03002 		orr	r2, r2, #48
+ 815 003c 1A60     		str	r2, [r3]
+ 332:FATFS/Target/user_diskio_spi.c **** 	for (n = 10; n; n--) xchg_spi(0xFF);	/* Send 80 dummy clocks */
+ 816              		.loc 1 332 9
+ 817 003e 0A23     		movs	r3, #10
+ 818 0040 FB73     		strb	r3, [r7, #15]
+ 819              		.loc 1 332 2
+ 820 0042 05E0     		b	.L52
+ 821              	.L53:
+ 822              		.loc 1 332 23 discriminator 3
+ 823 0044 FF20     		movs	r0, #255
+ 824 0046 FFF7FEFF 		bl	xchg_spi
+ 825              		.loc 1 332 19 discriminator 3
+ 826 004a FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 827 004c 013B     		subs	r3, r3, #1
+ 828 004e FB73     		strb	r3, [r7, #15]
+ 829              	.L52:
+ 830              		.loc 1 332 15 discriminator 1
+ 831 0050 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 832 0052 002B     		cmp	r3, #0
+ 833 0054 F6D1     		bne	.L53
+ 333:FATFS/Target/user_diskio_spi.c **** 
+ 334:FATFS/Target/user_diskio_spi.c **** 	ty = 0;
+ 834              		.loc 1 334 5
+ 835 0056 0023     		movs	r3, #0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 21
+
+
+ 836 0058 7B73     		strb	r3, [r7, #13]
+ 335:FATFS/Target/user_diskio_spi.c **** 	if (send_cmd(CMD0, 0) == 1) {			/* Put the card SPI/Idle state */
+ 837              		.loc 1 335 6
+ 838 005a 0021     		movs	r1, #0
+ 839 005c 0020     		movs	r0, #0
+ 840 005e FFF7FEFF 		bl	send_cmd
+ 841 0062 0346     		mov	r3, r0
+ 842              		.loc 1 335 5
+ 843 0064 012B     		cmp	r3, #1
+ 844 0066 40F08B80 		bne	.L54
+ 336:FATFS/Target/user_diskio_spi.c **** 		SPI_Timer_On(1000);					/* Initialization timeout = 1 sec */
+ 845              		.loc 1 336 3
+ 846 006a 4FF47A70 		mov	r0, #1000
+ 847 006e FFF7FEFF 		bl	SPI_Timer_On
+ 337:FATFS/Target/user_diskio_spi.c **** 		if (send_cmd(CMD8, 0x1AA) == 1) {	/* SDv2? */
+ 848              		.loc 1 337 7
+ 849 0072 4FF4D571 		mov	r1, #426
+ 850 0076 0820     		movs	r0, #8
+ 851 0078 FFF7FEFF 		bl	send_cmd
+ 852 007c 0346     		mov	r3, r0
+ 853              		.loc 1 337 6
+ 854 007e 012B     		cmp	r3, #1
+ 855 0080 51D1     		bne	.L55
+ 338:FATFS/Target/user_diskio_spi.c **** 			for (n = 0; n < 4; n++) ocr[n] = xchg_spi(0xFF);	/* Get 32 bit return value of R7 resp */
+ 856              		.loc 1 338 11
+ 857 0082 0023     		movs	r3, #0
+ 858 0084 FB73     		strb	r3, [r7, #15]
+ 859              		.loc 1 338 4
+ 860 0086 0DE0     		b	.L56
+ 861              	.L57:
+ 862              		.loc 1 338 31 discriminator 3
+ 863 0088 FC7B     		ldrb	r4, [r7, #15]	@ zero_extendqisi2
+ 864              		.loc 1 338 37 discriminator 3
+ 865 008a FF20     		movs	r0, #255
+ 866 008c FFF7FEFF 		bl	xchg_spi
+ 867 0090 0346     		mov	r3, r0
+ 868 0092 1A46     		mov	r2, r3
+ 869              		.loc 1 338 35 discriminator 3
+ 870 0094 04F11003 		add	r3, r4, #16
+ 871 0098 3B44     		add	r3, r3, r7
+ 872 009a 03F8082C 		strb	r2, [r3, #-8]
+ 873              		.loc 1 338 24 discriminator 3
+ 874 009e FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 875 00a0 0133     		adds	r3, r3, #1
+ 876 00a2 FB73     		strb	r3, [r7, #15]
+ 877              	.L56:
+ 878              		.loc 1 338 18 discriminator 1
+ 879 00a4 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 880 00a6 032B     		cmp	r3, #3
+ 881 00a8 EED9     		bls	.L57
+ 339:FATFS/Target/user_diskio_spi.c **** 			if (ocr[2] == 0x01 && ocr[3] == 0xAA) {				/* Is the card supports vcc of 2.7-3.6V? */
+ 882              		.loc 1 339 11
+ 883 00aa BB7A     		ldrb	r3, [r7, #10]	@ zero_extendqisi2
+ 884              		.loc 1 339 7
+ 885 00ac 012B     		cmp	r3, #1
+ 886 00ae 67D1     		bne	.L54
+ 887              		.loc 1 339 29 discriminator 1
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 22
+
+
+ 888 00b0 FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 889              		.loc 1 339 23 discriminator 1
+ 890 00b2 AA2B     		cmp	r3, #170
+ 891 00b4 64D1     		bne	.L54
+ 340:FATFS/Target/user_diskio_spi.c **** 				while (SPI_Timer_Status() && send_cmd(ACMD41, 1UL << 30)) ;	/* Wait for end of initialization w
+ 892              		.loc 1 340 11
+ 893 00b6 00BF     		nop
+ 894              	.L59:
+ 895              		.loc 1 340 12 discriminator 2
+ 896 00b8 FFF7FEFF 		bl	SPI_Timer_Status
+ 897 00bc 0346     		mov	r3, r0
+ 898              		.loc 1 340 31 discriminator 2
+ 899 00be 002B     		cmp	r3, #0
+ 900 00c0 07D0     		beq	.L58
+ 901              		.loc 1 340 34 discriminator 1
+ 902 00c2 4FF08041 		mov	r1, #1073741824
+ 903 00c6 A920     		movs	r0, #169
+ 904 00c8 FFF7FEFF 		bl	send_cmd
+ 905 00cc 0346     		mov	r3, r0
+ 906              		.loc 1 340 31 discriminator 1
+ 907 00ce 002B     		cmp	r3, #0
+ 908 00d0 F2D1     		bne	.L59
+ 909              	.L58:
+ 341:FATFS/Target/user_diskio_spi.c **** 				if (SPI_Timer_Status() && send_cmd(CMD58, 0) == 0) {		/* Check CCS bit in the OCR */
+ 910              		.loc 1 341 9
+ 911 00d2 FFF7FEFF 		bl	SPI_Timer_Status
+ 912 00d6 0346     		mov	r3, r0
+ 913              		.loc 1 341 8
+ 914 00d8 002B     		cmp	r3, #0
+ 915 00da 51D0     		beq	.L54
+ 916              		.loc 1 341 31 discriminator 1
+ 917 00dc 0021     		movs	r1, #0
+ 918 00de 3A20     		movs	r0, #58
+ 919 00e0 FFF7FEFF 		bl	send_cmd
+ 920 00e4 0346     		mov	r3, r0
+ 921              		.loc 1 341 28 discriminator 1
+ 922 00e6 002B     		cmp	r3, #0
+ 923 00e8 4AD1     		bne	.L54
+ 342:FATFS/Target/user_diskio_spi.c **** 					for (n = 0; n < 4; n++) ocr[n] = xchg_spi(0xFF);
+ 924              		.loc 1 342 13
+ 925 00ea 0023     		movs	r3, #0
+ 926 00ec FB73     		strb	r3, [r7, #15]
+ 927              		.loc 1 342 6
+ 928 00ee 0DE0     		b	.L60
+ 929              	.L61:
+ 930              		.loc 1 342 33 discriminator 3
+ 931 00f0 FC7B     		ldrb	r4, [r7, #15]	@ zero_extendqisi2
+ 932              		.loc 1 342 39 discriminator 3
+ 933 00f2 FF20     		movs	r0, #255
+ 934 00f4 FFF7FEFF 		bl	xchg_spi
+ 935 00f8 0346     		mov	r3, r0
+ 936 00fa 1A46     		mov	r2, r3
+ 937              		.loc 1 342 37 discriminator 3
+ 938 00fc 04F11003 		add	r3, r4, #16
+ 939 0100 3B44     		add	r3, r3, r7
+ 940 0102 03F8082C 		strb	r2, [r3, #-8]
+ 941              		.loc 1 342 26 discriminator 3
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 23
+
+
+ 942 0106 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 943 0108 0133     		adds	r3, r3, #1
+ 944 010a FB73     		strb	r3, [r7, #15]
+ 945              	.L60:
+ 946              		.loc 1 342 20 discriminator 1
+ 947 010c FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 948 010e 032B     		cmp	r3, #3
+ 949 0110 EED9     		bls	.L61
+ 343:FATFS/Target/user_diskio_spi.c **** 					ty = (ocr[0] & 0x40) ? CT_SD2 | CT_BLOCK : CT_SD2;	/* Card id SDv2 */
+ 950              		.loc 1 343 15
+ 951 0112 3B7A     		ldrb	r3, [r7, #8]	@ zero_extendqisi2
+ 952              		.loc 1 343 19
+ 953 0114 03F04003 		and	r3, r3, #64
+ 954              		.loc 1 343 9
+ 955 0118 002B     		cmp	r3, #0
+ 956 011a 01D0     		beq	.L62
+ 957              		.loc 1 343 9 is_stmt 0 discriminator 1
+ 958 011c 0C23     		movs	r3, #12
+ 959 011e 00E0     		b	.L63
+ 960              	.L62:
+ 961              		.loc 1 343 9 discriminator 2
+ 962 0120 0423     		movs	r3, #4
+ 963              	.L63:
+ 964              		.loc 1 343 9 discriminator 4
+ 965 0122 7B73     		strb	r3, [r7, #13]
+ 966 0124 2CE0     		b	.L54
+ 967              	.L55:
+ 344:FATFS/Target/user_diskio_spi.c **** 				}
+ 345:FATFS/Target/user_diskio_spi.c **** 			}
+ 346:FATFS/Target/user_diskio_spi.c **** 		} else {	/* Not SDv2 card */
+ 347:FATFS/Target/user_diskio_spi.c **** 			if (send_cmd(ACMD41, 0) <= 1) 	{	/* SDv1 or MMC? */
+ 968              		.loc 1 347 8 is_stmt 1
+ 969 0126 0021     		movs	r1, #0
+ 970 0128 A920     		movs	r0, #169
+ 971 012a FFF7FEFF 		bl	send_cmd
+ 972 012e 0346     		mov	r3, r0
+ 973              		.loc 1 347 7
+ 974 0130 012B     		cmp	r3, #1
+ 975 0132 04D8     		bhi	.L64
+ 348:FATFS/Target/user_diskio_spi.c **** 				ty = CT_SD1; cmd = ACMD41;	/* SDv1 (ACMD41(0)) */
+ 976              		.loc 1 348 8
+ 977 0134 0223     		movs	r3, #2
+ 978 0136 7B73     		strb	r3, [r7, #13]
+ 979              		.loc 1 348 22
+ 980 0138 A923     		movs	r3, #169
+ 981 013a BB73     		strb	r3, [r7, #14]
+ 982 013c 03E0     		b	.L72
+ 983              	.L64:
+ 349:FATFS/Target/user_diskio_spi.c **** 			} else {
+ 350:FATFS/Target/user_diskio_spi.c **** 				ty = CT_MMC; cmd = CMD1;	/* MMCv3 (CMD1(0)) */
+ 984              		.loc 1 350 8
+ 985 013e 0123     		movs	r3, #1
+ 986 0140 7B73     		strb	r3, [r7, #13]
+ 987              		.loc 1 350 22
+ 988 0142 0123     		movs	r3, #1
+ 989 0144 BB73     		strb	r3, [r7, #14]
+ 990              	.L72:
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 24
+
+
+ 351:FATFS/Target/user_diskio_spi.c **** 			}
+ 352:FATFS/Target/user_diskio_spi.c **** 			while (SPI_Timer_Status() && send_cmd(cmd, 0)) ;		/* Wait for end of initialization */
+ 991              		.loc 1 352 10
+ 992 0146 00BF     		nop
+ 993              	.L67:
+ 994              		.loc 1 352 11 discriminator 2
+ 995 0148 FFF7FEFF 		bl	SPI_Timer_Status
+ 996 014c 0346     		mov	r3, r0
+ 997              		.loc 1 352 30 discriminator 2
+ 998 014e 002B     		cmp	r3, #0
+ 999 0150 07D0     		beq	.L66
+ 1000              		.loc 1 352 33 discriminator 1
+ 1001 0152 BB7B     		ldrb	r3, [r7, #14]	@ zero_extendqisi2
+ 1002 0154 0021     		movs	r1, #0
+ 1003 0156 1846     		mov	r0, r3
+ 1004 0158 FFF7FEFF 		bl	send_cmd
+ 1005 015c 0346     		mov	r3, r0
+ 1006              		.loc 1 352 30 discriminator 1
+ 1007 015e 002B     		cmp	r3, #0
+ 1008 0160 F2D1     		bne	.L67
+ 1009              	.L66:
+ 353:FATFS/Target/user_diskio_spi.c **** 			if (!SPI_Timer_Status() || send_cmd(CMD16, 512) != 0)	/* Set block length: 512 */
+ 1010              		.loc 1 353 9
+ 1011 0162 FFF7FEFF 		bl	SPI_Timer_Status
+ 1012 0166 0346     		mov	r3, r0
+ 1013              		.loc 1 353 7
+ 1014 0168 002B     		cmp	r3, #0
+ 1015 016a 07D0     		beq	.L68
+ 1016              		.loc 1 353 31 discriminator 1
+ 1017 016c 4FF40071 		mov	r1, #512
+ 1018 0170 1020     		movs	r0, #16
+ 1019 0172 FFF7FEFF 		bl	send_cmd
+ 1020 0176 0346     		mov	r3, r0
+ 1021              		.loc 1 353 28 discriminator 1
+ 1022 0178 002B     		cmp	r3, #0
+ 1023 017a 01D0     		beq	.L54
+ 1024              	.L68:
+ 354:FATFS/Target/user_diskio_spi.c **** 				ty = 0;
+ 1025              		.loc 1 354 8
+ 1026 017c 0023     		movs	r3, #0
+ 1027 017e 7B73     		strb	r3, [r7, #13]
+ 1028              	.L54:
+ 355:FATFS/Target/user_diskio_spi.c **** 		}
+ 356:FATFS/Target/user_diskio_spi.c **** 	}
+ 357:FATFS/Target/user_diskio_spi.c **** 	CardType = ty;	/* Card type */
+ 1029              		.loc 1 357 11
+ 1030 0180 144A     		ldr	r2, .L73+8
+ 1031 0182 7B7B     		ldrb	r3, [r7, #13]
+ 1032 0184 1370     		strb	r3, [r2]
+ 358:FATFS/Target/user_diskio_spi.c **** 	despiselect();
+ 1033              		.loc 1 358 2
+ 1034 0186 FFF7FEFF 		bl	despiselect
+ 359:FATFS/Target/user_diskio_spi.c **** 
+ 360:FATFS/Target/user_diskio_spi.c **** 	if (ty) {			/* OK */
+ 1035              		.loc 1 360 5
+ 1036 018a 7B7B     		ldrb	r3, [r7, #13]	@ zero_extendqisi2
+ 1037 018c 002B     		cmp	r3, #0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 25
+
+
+ 1038 018e 12D0     		beq	.L69
+ 361:FATFS/Target/user_diskio_spi.c **** 		FCLK_FAST();			/* Set fast clock */
+ 1039              		.loc 1 361 3
+ 1040 0190 0F4B     		ldr	r3, .L73+4
+ 1041 0192 1B68     		ldr	r3, [r3]
+ 1042 0194 1B68     		ldr	r3, [r3]
+ 1043 0196 23F03802 		bic	r2, r3, #56
+ 1044 019a 0D4B     		ldr	r3, .L73+4
+ 1045 019c 1B68     		ldr	r3, [r3]
+ 1046 019e 42F01002 		orr	r2, r2, #16
+ 1047 01a2 1A60     		str	r2, [r3]
+ 362:FATFS/Target/user_diskio_spi.c **** 		Stat &= ~STA_NOINIT;	/* Clear STA_NOINIT flag */
+ 1048              		.loc 1 362 8
+ 1049 01a4 094B     		ldr	r3, .L73
+ 1050 01a6 1B78     		ldrb	r3, [r3]
+ 1051 01a8 DBB2     		uxtb	r3, r3
+ 1052 01aa 23F00103 		bic	r3, r3, #1
+ 1053 01ae DAB2     		uxtb	r2, r3
+ 1054 01b0 064B     		ldr	r3, .L73
+ 1055 01b2 1A70     		strb	r2, [r3]
+ 1056 01b4 02E0     		b	.L70
+ 1057              	.L69:
+ 363:FATFS/Target/user_diskio_spi.c **** 	} else {			/* Failed */
+ 364:FATFS/Target/user_diskio_spi.c **** 		Stat = STA_NOINIT;
+ 1058              		.loc 1 364 8
+ 1059 01b6 054B     		ldr	r3, .L73
+ 1060 01b8 0122     		movs	r2, #1
+ 1061 01ba 1A70     		strb	r2, [r3]
+ 1062              	.L70:
+ 365:FATFS/Target/user_diskio_spi.c **** 	}
+ 366:FATFS/Target/user_diskio_spi.c **** 
+ 367:FATFS/Target/user_diskio_spi.c **** 	return Stat;
+ 1063              		.loc 1 367 9
+ 1064 01bc 034B     		ldr	r3, .L73
+ 1065 01be 1B78     		ldrb	r3, [r3]
+ 1066 01c0 DBB2     		uxtb	r3, r3
+ 1067              	.L71:
+ 368:FATFS/Target/user_diskio_spi.c **** }
+ 1068              		.loc 1 368 1 discriminator 1
+ 1069 01c2 1846     		mov	r0, r3
+ 1070 01c4 1437     		adds	r7, r7, #20
+ 1071              		.cfi_def_cfa_offset 12
+ 1072 01c6 BD46     		mov	sp, r7
+ 1073              		.cfi_def_cfa_register 13
+ 1074              		@ sp needed
+ 1075 01c8 90BD     		pop	{r4, r7, pc}
+ 1076              	.L74:
+ 1077 01ca 00BF     		.align	2
+ 1078              	.L73:
+ 1079 01cc 00000000 		.word	Stat
+ 1080 01d0 00000000 		.word	hspi1
+ 1081 01d4 00000000 		.word	CardType
+ 1082              		.cfi_endproc
+ 1083              	.LFE254:
+ 1085              		.section	.text.USER_SPI_status,"ax",%progbits
+ 1086              		.align	1
+ 1087              		.global	USER_SPI_status
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 26
+
+
+ 1088              		.syntax unified
+ 1089              		.thumb
+ 1090              		.thumb_func
+ 1092              	USER_SPI_status:
+ 1093              	.LFB255:
+ 369:FATFS/Target/user_diskio_spi.c **** 
+ 370:FATFS/Target/user_diskio_spi.c **** 
+ 371:FATFS/Target/user_diskio_spi.c **** 
+ 372:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 373:FATFS/Target/user_diskio_spi.c **** /* Get disk status                                                       */
+ 374:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 375:FATFS/Target/user_diskio_spi.c **** 
+ 376:FATFS/Target/user_diskio_spi.c **** inline DSTATUS USER_SPI_status (
+ 377:FATFS/Target/user_diskio_spi.c **** 	BYTE drv		/* Physical drive number (0) */
+ 378:FATFS/Target/user_diskio_spi.c **** )
+ 379:FATFS/Target/user_diskio_spi.c **** {
+ 1094              		.loc 1 379 1
+ 1095              		.cfi_startproc
+ 1096              		@ args = 0, pretend = 0, frame = 8
+ 1097              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1098              		@ link register save eliminated.
+ 1099 0000 80B4     		push	{r7}
+ 1100              		.cfi_def_cfa_offset 4
+ 1101              		.cfi_offset 7, -4
+ 1102 0002 83B0     		sub	sp, sp, #12
+ 1103              		.cfi_def_cfa_offset 16
+ 1104 0004 00AF     		add	r7, sp, #0
+ 1105              		.cfi_def_cfa_register 7
+ 1106 0006 0346     		mov	r3, r0
+ 1107 0008 FB71     		strb	r3, [r7, #7]
+ 380:FATFS/Target/user_diskio_spi.c **** 	if (drv) return STA_NOINIT;		/* Supports only drive 0 */
+ 1108              		.loc 1 380 5
+ 1109 000a FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 1110 000c 002B     		cmp	r3, #0
+ 1111 000e 01D0     		beq	.L76
+ 1112              		.loc 1 380 18 discriminator 1
+ 1113 0010 0123     		movs	r3, #1
+ 1114 0012 02E0     		b	.L77
+ 1115              	.L76:
+ 381:FATFS/Target/user_diskio_spi.c **** 
+ 382:FATFS/Target/user_diskio_spi.c **** 	return Stat;	/* Return disk status */
+ 1116              		.loc 1 382 9
+ 1117 0014 044B     		ldr	r3, .L78
+ 1118 0016 1B78     		ldrb	r3, [r3]
+ 1119 0018 DBB2     		uxtb	r3, r3
+ 1120              	.L77:
+ 383:FATFS/Target/user_diskio_spi.c **** }
+ 1121              		.loc 1 383 1
+ 1122 001a 1846     		mov	r0, r3
+ 1123 001c 0C37     		adds	r7, r7, #12
+ 1124              		.cfi_def_cfa_offset 4
+ 1125 001e BD46     		mov	sp, r7
+ 1126              		.cfi_def_cfa_register 13
+ 1127              		@ sp needed
+ 1128 0020 5DF8047B 		ldr	r7, [sp], #4
+ 1129              		.cfi_restore 7
+ 1130              		.cfi_def_cfa_offset 0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 27
+
+
+ 1131 0024 7047     		bx	lr
+ 1132              	.L79:
+ 1133 0026 00BF     		.align	2
+ 1134              	.L78:
+ 1135 0028 00000000 		.word	Stat
+ 1136              		.cfi_endproc
+ 1137              	.LFE255:
+ 1139              		.section	.text.USER_SPI_read,"ax",%progbits
+ 1140              		.align	1
+ 1141              		.global	USER_SPI_read
+ 1142              		.syntax unified
+ 1143              		.thumb
+ 1144              		.thumb_func
+ 1146              	USER_SPI_read:
+ 1147              	.LFB256:
+ 384:FATFS/Target/user_diskio_spi.c **** 
+ 385:FATFS/Target/user_diskio_spi.c **** 
+ 386:FATFS/Target/user_diskio_spi.c **** 
+ 387:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 388:FATFS/Target/user_diskio_spi.c **** /* Read sector(s)                                                        */
+ 389:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 390:FATFS/Target/user_diskio_spi.c **** 
+ 391:FATFS/Target/user_diskio_spi.c **** inline DRESULT USER_SPI_read (
+ 392:FATFS/Target/user_diskio_spi.c **** 	BYTE drv,		/* Physical drive number (0) */
+ 393:FATFS/Target/user_diskio_spi.c **** 	BYTE *buff,		/* Pointer to the data buffer to store read data */
+ 394:FATFS/Target/user_diskio_spi.c **** 	DWORD sector,	/* Start sector number (LBA) */
+ 395:FATFS/Target/user_diskio_spi.c **** 	UINT count		/* Number of sectors to read (1..128) */
+ 396:FATFS/Target/user_diskio_spi.c **** )
+ 397:FATFS/Target/user_diskio_spi.c **** {
+ 1148              		.loc 1 397 1
+ 1149              		.cfi_startproc
+ 1150              		@ args = 0, pretend = 0, frame = 16
+ 1151              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1152 0000 80B5     		push	{r7, lr}
+ 1153              		.cfi_def_cfa_offset 8
+ 1154              		.cfi_offset 7, -8
+ 1155              		.cfi_offset 14, -4
+ 1156 0002 84B0     		sub	sp, sp, #16
+ 1157              		.cfi_def_cfa_offset 24
+ 1158 0004 00AF     		add	r7, sp, #0
+ 1159              		.cfi_def_cfa_register 7
+ 1160 0006 B960     		str	r1, [r7, #8]
+ 1161 0008 7A60     		str	r2, [r7, #4]
+ 1162 000a 3B60     		str	r3, [r7]
+ 1163 000c 0346     		mov	r3, r0
+ 1164 000e FB73     		strb	r3, [r7, #15]
+ 398:FATFS/Target/user_diskio_spi.c **** 	if (drv || !count) return RES_PARERR;		/* Check parameter */
+ 1165              		.loc 1 398 5
+ 1166 0010 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 1167 0012 002B     		cmp	r3, #0
+ 1168 0014 02D1     		bne	.L81
+ 1169              		.loc 1 398 10 discriminator 2
+ 1170 0016 3B68     		ldr	r3, [r7]
+ 1171 0018 002B     		cmp	r3, #0
+ 1172 001a 01D1     		bne	.L82
+ 1173              	.L81:
+ 1174              		.loc 1 398 28 discriminator 3
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 28
+
+
+ 1175 001c 0423     		movs	r3, #4
+ 1176 001e 4DE0     		b	.L83
+ 1177              	.L82:
+ 399:FATFS/Target/user_diskio_spi.c **** 	if (Stat & STA_NOINIT) return RES_NOTRDY;	/* Check if drive is ready */
+ 1178              		.loc 1 399 11
+ 1179 0020 284B     		ldr	r3, .L92
+ 1180 0022 1B78     		ldrb	r3, [r3]
+ 1181 0024 DBB2     		uxtb	r3, r3
+ 1182 0026 03F00103 		and	r3, r3, #1
+ 1183              		.loc 1 399 5
+ 1184 002a 002B     		cmp	r3, #0
+ 1185 002c 01D0     		beq	.L84
+ 1186              		.loc 1 399 32 discriminator 1
+ 1187 002e 0323     		movs	r3, #3
+ 1188 0030 44E0     		b	.L83
+ 1189              	.L84:
+ 400:FATFS/Target/user_diskio_spi.c **** 
+ 401:FATFS/Target/user_diskio_spi.c **** 	if (!(CardType & CT_BLOCK)) sector *= 512;	/* LBA ot BA conversion (byte addressing cards) */
+ 1190              		.loc 1 401 17
+ 1191 0032 254B     		ldr	r3, .L92+4
+ 1192 0034 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1193 0036 03F00803 		and	r3, r3, #8
+ 1194              		.loc 1 401 5
+ 1195 003a 002B     		cmp	r3, #0
+ 1196 003c 02D1     		bne	.L85
+ 1197              		.loc 1 401 37 discriminator 1
+ 1198 003e 7B68     		ldr	r3, [r7, #4]
+ 1199 0040 5B02     		lsls	r3, r3, #9
+ 1200 0042 7B60     		str	r3, [r7, #4]
+ 1201              	.L85:
+ 402:FATFS/Target/user_diskio_spi.c **** 
+ 403:FATFS/Target/user_diskio_spi.c **** 	if (count == 1) {	/* Single sector read */
+ 1202              		.loc 1 403 5
+ 1203 0044 3B68     		ldr	r3, [r7]
+ 1204 0046 012B     		cmp	r3, #1
+ 1205 0048 11D1     		bne	.L86
+ 404:FATFS/Target/user_diskio_spi.c **** 		if ((send_cmd(CMD17, sector) == 0)	/* READ_SINGLE_BLOCK */
+ 1206              		.loc 1 404 8
+ 1207 004a 7968     		ldr	r1, [r7, #4]
+ 1208 004c 1120     		movs	r0, #17
+ 1209 004e FFF7FEFF 		bl	send_cmd
+ 1210 0052 0346     		mov	r3, r0
+ 1211              		.loc 1 404 6
+ 1212 0054 002B     		cmp	r3, #0
+ 1213 0056 29D1     		bne	.L87
+ 405:FATFS/Target/user_diskio_spi.c **** 			&& rcvr_datablock(buff, 512)) {
+ 1214              		.loc 1 405 7
+ 1215 0058 4FF40071 		mov	r1, #512
+ 1216 005c B868     		ldr	r0, [r7, #8]
+ 1217 005e FFF7FEFF 		bl	rcvr_datablock
+ 1218 0062 0346     		mov	r3, r0
+ 1219              		.loc 1 405 4
+ 1220 0064 002B     		cmp	r3, #0
+ 1221 0066 21D0     		beq	.L87
+ 406:FATFS/Target/user_diskio_spi.c **** 			count = 0;
+ 1222              		.loc 1 406 10
+ 1223 0068 0023     		movs	r3, #0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 29
+
+
+ 1224 006a 3B60     		str	r3, [r7]
+ 1225 006c 1EE0     		b	.L87
+ 1226              	.L86:
+ 407:FATFS/Target/user_diskio_spi.c **** 		}
+ 408:FATFS/Target/user_diskio_spi.c **** 	}
+ 409:FATFS/Target/user_diskio_spi.c **** 	else {				/* Multiple sector read */
+ 410:FATFS/Target/user_diskio_spi.c **** 		if (send_cmd(CMD18, sector) == 0) {	/* READ_MULTIPLE_BLOCK */
+ 1227              		.loc 1 410 7
+ 1228 006e 7968     		ldr	r1, [r7, #4]
+ 1229 0070 1220     		movs	r0, #18
+ 1230 0072 FFF7FEFF 		bl	send_cmd
+ 1231 0076 0346     		mov	r3, r0
+ 1232              		.loc 1 410 6
+ 1233 0078 002B     		cmp	r3, #0
+ 1234 007a 17D1     		bne	.L87
+ 1235              	.L90:
+ 411:FATFS/Target/user_diskio_spi.c **** 			do {
+ 412:FATFS/Target/user_diskio_spi.c **** 				if (!rcvr_datablock(buff, 512)) break;
+ 1236              		.loc 1 412 10
+ 1237 007c 4FF40071 		mov	r1, #512
+ 1238 0080 B868     		ldr	r0, [r7, #8]
+ 1239 0082 FFF7FEFF 		bl	rcvr_datablock
+ 1240 0086 0346     		mov	r3, r0
+ 1241              		.loc 1 412 8
+ 1242 0088 002B     		cmp	r3, #0
+ 1243 008a 0AD0     		beq	.L91
+ 413:FATFS/Target/user_diskio_spi.c **** 				buff += 512;
+ 1244              		.loc 1 413 10
+ 1245 008c BB68     		ldr	r3, [r7, #8]
+ 1246 008e 03F50073 		add	r3, r3, #512
+ 1247 0092 BB60     		str	r3, [r7, #8]
+ 414:FATFS/Target/user_diskio_spi.c **** 			} while (--count);
+ 1248              		.loc 1 414 13
+ 1249 0094 3B68     		ldr	r3, [r7]
+ 1250 0096 013B     		subs	r3, r3, #1
+ 1251 0098 3B60     		str	r3, [r7]
+ 1252 009a 3B68     		ldr	r3, [r7]
+ 1253 009c 002B     		cmp	r3, #0
+ 1254 009e EDD1     		bne	.L90
+ 1255 00a0 00E0     		b	.L89
+ 1256              	.L91:
+ 412:FATFS/Target/user_diskio_spi.c **** 				buff += 512;
+ 1257              		.loc 1 412 37
+ 1258 00a2 00BF     		nop
+ 1259              	.L89:
+ 415:FATFS/Target/user_diskio_spi.c **** 			send_cmd(CMD12, 0);				/* STOP_TRANSMISSION */
+ 1260              		.loc 1 415 4
+ 1261 00a4 0021     		movs	r1, #0
+ 1262 00a6 0C20     		movs	r0, #12
+ 1263 00a8 FFF7FEFF 		bl	send_cmd
+ 1264              	.L87:
+ 416:FATFS/Target/user_diskio_spi.c **** 		}
+ 417:FATFS/Target/user_diskio_spi.c **** 	}
+ 418:FATFS/Target/user_diskio_spi.c **** 	despiselect();
+ 1265              		.loc 1 418 2
+ 1266 00ac FFF7FEFF 		bl	despiselect
+ 419:FATFS/Target/user_diskio_spi.c **** 
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 30
+
+
+ 420:FATFS/Target/user_diskio_spi.c **** 	return count ? RES_ERROR : RES_OK;	/* Return result */
+ 1267              		.loc 1 420 27
+ 1268 00b0 3B68     		ldr	r3, [r7]
+ 1269 00b2 002B     		cmp	r3, #0
+ 1270 00b4 14BF     		ite	ne
+ 1271 00b6 0123     		movne	r3, #1
+ 1272 00b8 0023     		moveq	r3, #0
+ 1273 00ba DBB2     		uxtb	r3, r3
+ 1274              	.L83:
+ 421:FATFS/Target/user_diskio_spi.c **** }
+ 1275              		.loc 1 421 1
+ 1276 00bc 1846     		mov	r0, r3
+ 1277 00be 1037     		adds	r7, r7, #16
+ 1278              		.cfi_def_cfa_offset 8
+ 1279 00c0 BD46     		mov	sp, r7
+ 1280              		.cfi_def_cfa_register 13
+ 1281              		@ sp needed
+ 1282 00c2 80BD     		pop	{r7, pc}
+ 1283              	.L93:
+ 1284              		.align	2
+ 1285              	.L92:
+ 1286 00c4 00000000 		.word	Stat
+ 1287 00c8 00000000 		.word	CardType
+ 1288              		.cfi_endproc
+ 1289              	.LFE256:
+ 1291              		.section	.text.USER_SPI_write,"ax",%progbits
+ 1292              		.align	1
+ 1293              		.global	USER_SPI_write
+ 1294              		.syntax unified
+ 1295              		.thumb
+ 1296              		.thumb_func
+ 1298              	USER_SPI_write:
+ 1299              	.LFB257:
+ 422:FATFS/Target/user_diskio_spi.c **** 
+ 423:FATFS/Target/user_diskio_spi.c **** 
+ 424:FATFS/Target/user_diskio_spi.c **** 
+ 425:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 426:FATFS/Target/user_diskio_spi.c **** /* Write sector(s)                                                       */
+ 427:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 428:FATFS/Target/user_diskio_spi.c **** 
+ 429:FATFS/Target/user_diskio_spi.c **** #if _USE_WRITE
+ 430:FATFS/Target/user_diskio_spi.c **** inline DRESULT USER_SPI_write (
+ 431:FATFS/Target/user_diskio_spi.c **** 	BYTE drv,			/* Physical drive number (0) */
+ 432:FATFS/Target/user_diskio_spi.c **** 	const BYTE *buff,	/* Ponter to the data to write */
+ 433:FATFS/Target/user_diskio_spi.c **** 	DWORD sector,		/* Start sector number (LBA) */
+ 434:FATFS/Target/user_diskio_spi.c **** 	UINT count			/* Number of sectors to write (1..128) */
+ 435:FATFS/Target/user_diskio_spi.c **** )
+ 436:FATFS/Target/user_diskio_spi.c **** {
+ 1300              		.loc 1 436 1
+ 1301              		.cfi_startproc
+ 1302              		@ args = 0, pretend = 0, frame = 16
+ 1303              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1304 0000 80B5     		push	{r7, lr}
+ 1305              		.cfi_def_cfa_offset 8
+ 1306              		.cfi_offset 7, -8
+ 1307              		.cfi_offset 14, -4
+ 1308 0002 84B0     		sub	sp, sp, #16
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 31
+
+
+ 1309              		.cfi_def_cfa_offset 24
+ 1310 0004 00AF     		add	r7, sp, #0
+ 1311              		.cfi_def_cfa_register 7
+ 1312 0006 B960     		str	r1, [r7, #8]
+ 1313 0008 7A60     		str	r2, [r7, #4]
+ 1314 000a 3B60     		str	r3, [r7]
+ 1315 000c 0346     		mov	r3, r0
+ 1316 000e FB73     		strb	r3, [r7, #15]
+ 437:FATFS/Target/user_diskio_spi.c **** 	if (drv || !count) return RES_PARERR;		/* Check parameter */
+ 1317              		.loc 1 437 5
+ 1318 0010 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 1319 0012 002B     		cmp	r3, #0
+ 1320 0014 02D1     		bne	.L95
+ 1321              		.loc 1 437 10 discriminator 2
+ 1322 0016 3B68     		ldr	r3, [r7]
+ 1323 0018 002B     		cmp	r3, #0
+ 1324 001a 01D1     		bne	.L96
+ 1325              	.L95:
+ 1326              		.loc 1 437 28 discriminator 3
+ 1327 001c 0423     		movs	r3, #4
+ 1328 001e 63E0     		b	.L97
+ 1329              	.L96:
+ 438:FATFS/Target/user_diskio_spi.c **** 	if (Stat & STA_NOINIT) return RES_NOTRDY;	/* Check drive status */
+ 1330              		.loc 1 438 11
+ 1331 0020 334B     		ldr	r3, .L108
+ 1332 0022 1B78     		ldrb	r3, [r3]
+ 1333 0024 DBB2     		uxtb	r3, r3
+ 1334 0026 03F00103 		and	r3, r3, #1
+ 1335              		.loc 1 438 5
+ 1336 002a 002B     		cmp	r3, #0
+ 1337 002c 01D0     		beq	.L98
+ 1338              		.loc 1 438 32 discriminator 1
+ 1339 002e 0323     		movs	r3, #3
+ 1340 0030 5AE0     		b	.L97
+ 1341              	.L98:
+ 439:FATFS/Target/user_diskio_spi.c **** 	if (Stat & STA_PROTECT) return RES_WRPRT;	/* Check write protect */
+ 1342              		.loc 1 439 11
+ 1343 0032 2F4B     		ldr	r3, .L108
+ 1344 0034 1B78     		ldrb	r3, [r3]
+ 1345 0036 DBB2     		uxtb	r3, r3
+ 1346 0038 03F00403 		and	r3, r3, #4
+ 1347              		.loc 1 439 5
+ 1348 003c 002B     		cmp	r3, #0
+ 1349 003e 01D0     		beq	.L99
+ 1350              		.loc 1 439 33 discriminator 1
+ 1351 0040 0223     		movs	r3, #2
+ 1352 0042 51E0     		b	.L97
+ 1353              	.L99:
+ 440:FATFS/Target/user_diskio_spi.c **** 
+ 441:FATFS/Target/user_diskio_spi.c **** 	if (!(CardType & CT_BLOCK)) sector *= 512;	/* LBA ==> BA conversion (byte addressing cards) */
+ 1354              		.loc 1 441 17
+ 1355 0044 2B4B     		ldr	r3, .L108+4
+ 1356 0046 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1357 0048 03F00803 		and	r3, r3, #8
+ 1358              		.loc 1 441 5
+ 1359 004c 002B     		cmp	r3, #0
+ 1360 004e 02D1     		bne	.L100
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 32
+
+
+ 1361              		.loc 1 441 37 discriminator 1
+ 1362 0050 7B68     		ldr	r3, [r7, #4]
+ 1363 0052 5B02     		lsls	r3, r3, #9
+ 1364 0054 7B60     		str	r3, [r7, #4]
+ 1365              	.L100:
+ 442:FATFS/Target/user_diskio_spi.c **** 
+ 443:FATFS/Target/user_diskio_spi.c **** 	if (count == 1) {	/* Single sector write */
+ 1366              		.loc 1 443 5
+ 1367 0056 3B68     		ldr	r3, [r7]
+ 1368 0058 012B     		cmp	r3, #1
+ 1369 005a 10D1     		bne	.L101
+ 444:FATFS/Target/user_diskio_spi.c **** 		if ((send_cmd(CMD24, sector) == 0)	/* WRITE_BLOCK */
+ 1370              		.loc 1 444 8
+ 1371 005c 7968     		ldr	r1, [r7, #4]
+ 1372 005e 1820     		movs	r0, #24
+ 1373 0060 FFF7FEFF 		bl	send_cmd
+ 1374 0064 0346     		mov	r3, r0
+ 1375              		.loc 1 444 6
+ 1376 0066 002B     		cmp	r3, #0
+ 1377 0068 36D1     		bne	.L102
+ 445:FATFS/Target/user_diskio_spi.c **** 			&& xmit_datablock(buff, 0xFE)) {
+ 1378              		.loc 1 445 7
+ 1379 006a FE21     		movs	r1, #254
+ 1380 006c B868     		ldr	r0, [r7, #8]
+ 1381 006e FFF7FEFF 		bl	xmit_datablock
+ 1382 0072 0346     		mov	r3, r0
+ 1383              		.loc 1 445 4
+ 1384 0074 002B     		cmp	r3, #0
+ 1385 0076 2FD0     		beq	.L102
+ 446:FATFS/Target/user_diskio_spi.c **** 			count = 0;
+ 1386              		.loc 1 446 10
+ 1387 0078 0023     		movs	r3, #0
+ 1388 007a 3B60     		str	r3, [r7]
+ 1389 007c 2CE0     		b	.L102
+ 1390              	.L101:
+ 447:FATFS/Target/user_diskio_spi.c **** 		}
+ 448:FATFS/Target/user_diskio_spi.c **** 	}
+ 449:FATFS/Target/user_diskio_spi.c **** 	else {				/* Multiple sector write */
+ 450:FATFS/Target/user_diskio_spi.c **** 		if (CardType & CT_SDC) send_cmd(ACMD23, count);	/* Predefine number of sectors */
+ 1391              		.loc 1 450 16
+ 1392 007e 1D4B     		ldr	r3, .L108+4
+ 1393 0080 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1394 0082 03F00603 		and	r3, r3, #6
+ 1395              		.loc 1 450 6
+ 1396 0086 002B     		cmp	r3, #0
+ 1397 0088 03D0     		beq	.L103
+ 1398              		.loc 1 450 26 discriminator 1
+ 1399 008a 3968     		ldr	r1, [r7]
+ 1400 008c 9720     		movs	r0, #151
+ 1401 008e FFF7FEFF 		bl	send_cmd
+ 1402              	.L103:
+ 451:FATFS/Target/user_diskio_spi.c **** 		if (send_cmd(CMD25, sector) == 0) {	/* WRITE_MULTIPLE_BLOCK */
+ 1403              		.loc 1 451 7
+ 1404 0092 7968     		ldr	r1, [r7, #4]
+ 1405 0094 1920     		movs	r0, #25
+ 1406 0096 FFF7FEFF 		bl	send_cmd
+ 1407 009a 0346     		mov	r3, r0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 33
+
+
+ 1408              		.loc 1 451 6
+ 1409 009c 002B     		cmp	r3, #0
+ 1410 009e 1BD1     		bne	.L102
+ 1411              	.L106:
+ 452:FATFS/Target/user_diskio_spi.c **** 			do {
+ 453:FATFS/Target/user_diskio_spi.c **** 				if (!xmit_datablock(buff, 0xFC)) break;
+ 1412              		.loc 1 453 10
+ 1413 00a0 FC21     		movs	r1, #252
+ 1414 00a2 B868     		ldr	r0, [r7, #8]
+ 1415 00a4 FFF7FEFF 		bl	xmit_datablock
+ 1416 00a8 0346     		mov	r3, r0
+ 1417              		.loc 1 453 8
+ 1418 00aa 002B     		cmp	r3, #0
+ 1419 00ac 0AD0     		beq	.L107
+ 454:FATFS/Target/user_diskio_spi.c **** 				buff += 512;
+ 1420              		.loc 1 454 10
+ 1421 00ae BB68     		ldr	r3, [r7, #8]
+ 1422 00b0 03F50073 		add	r3, r3, #512
+ 1423 00b4 BB60     		str	r3, [r7, #8]
+ 455:FATFS/Target/user_diskio_spi.c **** 			} while (--count);
+ 1424              		.loc 1 455 13
+ 1425 00b6 3B68     		ldr	r3, [r7]
+ 1426 00b8 013B     		subs	r3, r3, #1
+ 1427 00ba 3B60     		str	r3, [r7]
+ 1428 00bc 3B68     		ldr	r3, [r7]
+ 1429 00be 002B     		cmp	r3, #0
+ 1430 00c0 EED1     		bne	.L106
+ 1431 00c2 00E0     		b	.L105
+ 1432              	.L107:
+ 453:FATFS/Target/user_diskio_spi.c **** 				buff += 512;
+ 1433              		.loc 1 453 38
+ 1434 00c4 00BF     		nop
+ 1435              	.L105:
+ 456:FATFS/Target/user_diskio_spi.c **** 			if (!xmit_datablock(0, 0xFD)) count = 1;	/* STOP_TRAN token */
+ 1436              		.loc 1 456 9
+ 1437 00c6 FD21     		movs	r1, #253
+ 1438 00c8 0020     		movs	r0, #0
+ 1439 00ca FFF7FEFF 		bl	xmit_datablock
+ 1440 00ce 0346     		mov	r3, r0
+ 1441              		.loc 1 456 7
+ 1442 00d0 002B     		cmp	r3, #0
+ 1443 00d2 01D1     		bne	.L102
+ 1444              		.loc 1 456 40 discriminator 1
+ 1445 00d4 0123     		movs	r3, #1
+ 1446 00d6 3B60     		str	r3, [r7]
+ 1447              	.L102:
+ 457:FATFS/Target/user_diskio_spi.c **** 		}
+ 458:FATFS/Target/user_diskio_spi.c **** 	}
+ 459:FATFS/Target/user_diskio_spi.c **** 	despiselect();
+ 1448              		.loc 1 459 2
+ 1449 00d8 FFF7FEFF 		bl	despiselect
+ 460:FATFS/Target/user_diskio_spi.c **** 
+ 461:FATFS/Target/user_diskio_spi.c **** 	return count ? RES_ERROR : RES_OK;	/* Return result */
+ 1450              		.loc 1 461 27
+ 1451 00dc 3B68     		ldr	r3, [r7]
+ 1452 00de 002B     		cmp	r3, #0
+ 1453 00e0 14BF     		ite	ne
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 34
+
+
+ 1454 00e2 0123     		movne	r3, #1
+ 1455 00e4 0023     		moveq	r3, #0
+ 1456 00e6 DBB2     		uxtb	r3, r3
+ 1457              	.L97:
+ 462:FATFS/Target/user_diskio_spi.c **** }
+ 1458              		.loc 1 462 1
+ 1459 00e8 1846     		mov	r0, r3
+ 1460 00ea 1037     		adds	r7, r7, #16
+ 1461              		.cfi_def_cfa_offset 8
+ 1462 00ec BD46     		mov	sp, r7
+ 1463              		.cfi_def_cfa_register 13
+ 1464              		@ sp needed
+ 1465 00ee 80BD     		pop	{r7, pc}
+ 1466              	.L109:
+ 1467              		.align	2
+ 1468              	.L108:
+ 1469 00f0 00000000 		.word	Stat
+ 1470 00f4 00000000 		.word	CardType
+ 1471              		.cfi_endproc
+ 1472              	.LFE257:
+ 1474              		.section	.text.USER_SPI_ioctl,"ax",%progbits
+ 1475              		.align	1
+ 1476              		.global	USER_SPI_ioctl
+ 1477              		.syntax unified
+ 1478              		.thumb
+ 1479              		.thumb_func
+ 1481              	USER_SPI_ioctl:
+ 1482              	.LFB258:
+ 463:FATFS/Target/user_diskio_spi.c **** #endif
+ 464:FATFS/Target/user_diskio_spi.c **** 
+ 465:FATFS/Target/user_diskio_spi.c **** 
+ 466:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 467:FATFS/Target/user_diskio_spi.c **** /* Miscellaneous drive controls other than data read/write               */
+ 468:FATFS/Target/user_diskio_spi.c **** /*-----------------------------------------------------------------------*/
+ 469:FATFS/Target/user_diskio_spi.c **** 
+ 470:FATFS/Target/user_diskio_spi.c **** #if _USE_IOCTL
+ 471:FATFS/Target/user_diskio_spi.c **** inline DRESULT USER_SPI_ioctl (
+ 472:FATFS/Target/user_diskio_spi.c **** 	BYTE drv,		/* Physical drive number (0) */
+ 473:FATFS/Target/user_diskio_spi.c **** 	BYTE cmd,		/* Control command code */
+ 474:FATFS/Target/user_diskio_spi.c **** 	void *buff		/* Pointer to the conrtol data */
+ 475:FATFS/Target/user_diskio_spi.c **** )
+ 476:FATFS/Target/user_diskio_spi.c **** {
+ 1483              		.loc 1 476 1
+ 1484              		.cfi_startproc
+ 1485              		@ args = 0, pretend = 0, frame = 48
+ 1486              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1487 0000 80B5     		push	{r7, lr}
+ 1488              		.cfi_def_cfa_offset 8
+ 1489              		.cfi_offset 7, -8
+ 1490              		.cfi_offset 14, -4
+ 1491 0002 8CB0     		sub	sp, sp, #48
+ 1492              		.cfi_def_cfa_offset 56
+ 1493 0004 00AF     		add	r7, sp, #0
+ 1494              		.cfi_def_cfa_register 7
+ 1495 0006 0346     		mov	r3, r0
+ 1496 0008 3A60     		str	r2, [r7]
+ 1497 000a FB71     		strb	r3, [r7, #7]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 35
+
+
+ 1498 000c 0B46     		mov	r3, r1
+ 1499 000e BB71     		strb	r3, [r7, #6]
+ 477:FATFS/Target/user_diskio_spi.c **** 	DRESULT res;
+ 478:FATFS/Target/user_diskio_spi.c **** 	BYTE n, csd[16];
+ 479:FATFS/Target/user_diskio_spi.c **** 	DWORD *dp, st, ed, csize;
+ 480:FATFS/Target/user_diskio_spi.c **** 
+ 481:FATFS/Target/user_diskio_spi.c **** 
+ 482:FATFS/Target/user_diskio_spi.c **** 	if (drv) return RES_PARERR;					/* Check parameter */
+ 1500              		.loc 1 482 5
+ 1501 0010 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 1502 0012 002B     		cmp	r3, #0
+ 1503 0014 01D0     		beq	.L111
+ 1504              		.loc 1 482 18 discriminator 1
+ 1505 0016 0423     		movs	r3, #4
+ 1506 0018 5AE1     		b	.L136
+ 1507              	.L111:
+ 483:FATFS/Target/user_diskio_spi.c **** 	if (Stat & STA_NOINIT) return RES_NOTRDY;	/* Check if drive is ready */
+ 1508              		.loc 1 483 11
+ 1509 001a AF4B     		ldr	r3, .L144
+ 1510 001c 1B78     		ldrb	r3, [r3]
+ 1511 001e DBB2     		uxtb	r3, r3
+ 1512 0020 03F00103 		and	r3, r3, #1
+ 1513              		.loc 1 483 5
+ 1514 0024 002B     		cmp	r3, #0
+ 1515 0026 01D0     		beq	.L113
+ 1516              		.loc 1 483 32 discriminator 1
+ 1517 0028 0323     		movs	r3, #3
+ 1518 002a 51E1     		b	.L136
+ 1519              	.L113:
+ 484:FATFS/Target/user_diskio_spi.c **** 
+ 485:FATFS/Target/user_diskio_spi.c **** 	res = RES_ERROR;
+ 1520              		.loc 1 485 6
+ 1521 002c 0123     		movs	r3, #1
+ 1522 002e 87F82F30 		strb	r3, [r7, #47]
+ 486:FATFS/Target/user_diskio_spi.c **** 
+ 487:FATFS/Target/user_diskio_spi.c **** 	switch (cmd) {
+ 1523              		.loc 1 487 2
+ 1524 0032 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 1525 0034 042B     		cmp	r3, #4
+ 1526 0036 00F23681 		bhi	.L114
+ 1527 003a 01A2     		adr	r2, .L116
+ 1528 003c 52F823F0 		ldr	pc, [r2, r3, lsl #2]
+ 1529              		.p2align 2
+ 1530              	.L116:
+ 1531 0040 55000000 		.word	.L119+1
+ 1532 0044 69000000 		.word	.L118+1
+ 1533 0048 A7020000 		.word	.L114+1
+ 1534 004c 15010000 		.word	.L117+1
+ 1535 0050 0B020000 		.word	.L115+1
+ 1536              		.p2align 1
+ 1537              	.L119:
+ 488:FATFS/Target/user_diskio_spi.c **** 	case CTRL_SYNC :		/* Wait for end of internal write process of the drive */
+ 489:FATFS/Target/user_diskio_spi.c **** 		if (spiselect()) res = RES_OK;
+ 1538              		.loc 1 489 7
+ 1539 0054 FFF7FEFF 		bl	spiselect
+ 1540 0058 0346     		mov	r3, r0
+ 1541              		.loc 1 489 6
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 36
+
+
+ 1542 005a 002B     		cmp	r3, #0
+ 1543 005c 00F02781 		beq	.L137
+ 1544              		.loc 1 489 24 discriminator 1
+ 1545 0060 0023     		movs	r3, #0
+ 1546 0062 87F82F30 		strb	r3, [r7, #47]
+ 490:FATFS/Target/user_diskio_spi.c **** 		break;
+ 1547              		.loc 1 490 3 discriminator 1
+ 1548 0066 22E1     		b	.L137
+ 1549              	.L118:
+ 491:FATFS/Target/user_diskio_spi.c **** 
+ 492:FATFS/Target/user_diskio_spi.c **** 	case GET_SECTOR_COUNT :	/* Get drive capacity in unit of sector (DWORD) */
+ 493:FATFS/Target/user_diskio_spi.c **** 		if ((send_cmd(CMD9, 0) == 0) && rcvr_datablock(csd, 16)) {
+ 1550              		.loc 1 493 8
+ 1551 0068 0021     		movs	r1, #0
+ 1552 006a 0920     		movs	r0, #9
+ 1553 006c FFF7FEFF 		bl	send_cmd
+ 1554 0070 0346     		mov	r3, r0
+ 1555              		.loc 1 493 6
+ 1556 0072 002B     		cmp	r3, #0
+ 1557 0074 40F01D81 		bne	.L138
+ 1558              		.loc 1 493 35 discriminator 1
+ 1559 0078 07F10C03 		add	r3, r7, #12
+ 1560 007c 1021     		movs	r1, #16
+ 1561 007e 1846     		mov	r0, r3
+ 1562 0080 FFF7FEFF 		bl	rcvr_datablock
+ 1563 0084 0346     		mov	r3, r0
+ 1564              		.loc 1 493 32 discriminator 1
+ 1565 0086 002B     		cmp	r3, #0
+ 1566 0088 00F01381 		beq	.L138
+ 494:FATFS/Target/user_diskio_spi.c **** 			if ((csd[0] >> 6) == 1) {	/* SDC ver 2.00 */
+ 1567              		.loc 1 494 12
+ 1568 008c 3B7B     		ldrb	r3, [r7, #12]	@ zero_extendqisi2
+ 1569              		.loc 1 494 22
+ 1570 008e 9B09     		lsrs	r3, r3, #6
+ 1571 0090 DBB2     		uxtb	r3, r3
+ 1572              		.loc 1 494 7
+ 1573 0092 012B     		cmp	r3, #1
+ 1574 0094 11D1     		bne	.L123
+ 495:FATFS/Target/user_diskio_spi.c **** 				csize = csd[9] + ((WORD)csd[8] << 8) + ((DWORD)(csd[7] & 63) << 16) + 1;
+ 1575              		.loc 1 495 16
+ 1576 0096 7B7D     		ldrb	r3, [r7, #21]	@ zero_extendqisi2
+ 1577 0098 1A46     		mov	r2, r3
+ 1578              		.loc 1 495 32
+ 1579 009a 3B7D     		ldrb	r3, [r7, #20]	@ zero_extendqisi2
+ 1580              		.loc 1 495 36
+ 1581 009c 1B02     		lsls	r3, r3, #8
+ 1582              		.loc 1 495 20
+ 1583 009e 1344     		add	r3, r3, r2
+ 1584 00a0 1A46     		mov	r2, r3
+ 1585              		.loc 1 495 56
+ 1586 00a2 FB7C     		ldrb	r3, [r7, #19]	@ zero_extendqisi2
+ 1587              		.loc 1 495 66
+ 1588 00a4 1B04     		lsls	r3, r3, #16
+ 1589 00a6 03F47C13 		and	r3, r3, #4128768
+ 1590              		.loc 1 495 42
+ 1591 00aa 1344     		add	r3, r3, r2
+ 1592              		.loc 1 495 11
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 37
+
+
+ 1593 00ac 0133     		adds	r3, r3, #1
+ 1594 00ae FB61     		str	r3, [r7, #28]
+ 496:FATFS/Target/user_diskio_spi.c **** 				*(DWORD*)buff = csize << 10;
+ 1595              		.loc 1 496 27
+ 1596 00b0 FB69     		ldr	r3, [r7, #28]
+ 1597 00b2 9A02     		lsls	r2, r3, #10
+ 1598              		.loc 1 496 19
+ 1599 00b4 3B68     		ldr	r3, [r7]
+ 1600 00b6 1A60     		str	r2, [r3]
+ 1601 00b8 28E0     		b	.L124
+ 1602              	.L123:
+ 497:FATFS/Target/user_diskio_spi.c **** 			} else {					/* SDC ver 1.XX or MMC ver 3 */
+ 498:FATFS/Target/user_diskio_spi.c **** 				n = (csd[5] & 15) + ((csd[10] & 128) >> 7) + ((csd[9] & 3) << 1) + 2;
+ 1603              		.loc 1 498 13
+ 1604 00ba 7B7C     		ldrb	r3, [r7, #17]	@ zero_extendqisi2
+ 1605              		.loc 1 498 17
+ 1606 00bc 03F00F03 		and	r3, r3, #15
+ 1607 00c0 DAB2     		uxtb	r2, r3
+ 1608              		.loc 1 498 30
+ 1609 00c2 BB7D     		ldrb	r3, [r7, #22]	@ zero_extendqisi2
+ 1610              		.loc 1 498 42
+ 1611 00c4 DB09     		lsrs	r3, r3, #7
+ 1612 00c6 DBB2     		uxtb	r3, r3
+ 1613              		.loc 1 498 23
+ 1614 00c8 1344     		add	r3, r3, r2
+ 1615 00ca DAB2     		uxtb	r2, r3
+ 1616              		.loc 1 498 55
+ 1617 00cc 7B7D     		ldrb	r3, [r7, #21]	@ zero_extendqisi2
+ 1618              		.loc 1 498 64
+ 1619 00ce 5B00     		lsls	r3, r3, #1
+ 1620 00d0 DBB2     		uxtb	r3, r3
+ 1621 00d2 03F00603 		and	r3, r3, #6
+ 1622 00d6 DBB2     		uxtb	r3, r3
+ 1623              		.loc 1 498 48
+ 1624 00d8 1344     		add	r3, r3, r2
+ 1625 00da DBB2     		uxtb	r3, r3
+ 1626              		.loc 1 498 7
+ 1627 00dc 0233     		adds	r3, r3, #2
+ 1628 00de 87F82E30 		strb	r3, [r7, #46]
+ 499:FATFS/Target/user_diskio_spi.c **** 				csize = (csd[8] >> 6) + ((WORD)csd[7] << 2) + ((WORD)(csd[6] & 3) << 10) + 1;
+ 1629              		.loc 1 499 17
+ 1630 00e2 3B7D     		ldrb	r3, [r7, #20]	@ zero_extendqisi2
+ 1631              		.loc 1 499 21
+ 1632 00e4 9B09     		lsrs	r3, r3, #6
+ 1633 00e6 DBB2     		uxtb	r3, r3
+ 1634 00e8 1A46     		mov	r2, r3
+ 1635              		.loc 1 499 39
+ 1636 00ea FB7C     		ldrb	r3, [r7, #19]	@ zero_extendqisi2
+ 1637              		.loc 1 499 43
+ 1638 00ec 9B00     		lsls	r3, r3, #2
+ 1639              		.loc 1 499 27
+ 1640 00ee 1A44     		add	r2, r2, r3
+ 1641              		.loc 1 499 62
+ 1642 00f0 BB7C     		ldrb	r3, [r7, #18]	@ zero_extendqisi2
+ 1643              		.loc 1 499 71
+ 1644 00f2 9B02     		lsls	r3, r3, #10
+ 1645 00f4 03F44063 		and	r3, r3, #3072
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 38
+
+
+ 1646              		.loc 1 499 49
+ 1647 00f8 1344     		add	r3, r3, r2
+ 1648              		.loc 1 499 78
+ 1649 00fa 0133     		adds	r3, r3, #1
+ 1650              		.loc 1 499 11
+ 1651 00fc FB61     		str	r3, [r7, #28]
+ 500:FATFS/Target/user_diskio_spi.c **** 				*(DWORD*)buff = csize << (n - 9);
+ 1652              		.loc 1 500 33
+ 1653 00fe 97F82E30 		ldrb	r3, [r7, #46]	@ zero_extendqisi2
+ 1654 0102 093B     		subs	r3, r3, #9
+ 1655              		.loc 1 500 27
+ 1656 0104 FA69     		ldr	r2, [r7, #28]
+ 1657 0106 9A40     		lsls	r2, r2, r3
+ 1658              		.loc 1 500 19
+ 1659 0108 3B68     		ldr	r3, [r7]
+ 1660 010a 1A60     		str	r2, [r3]
+ 1661              	.L124:
+ 501:FATFS/Target/user_diskio_spi.c **** 			}
+ 502:FATFS/Target/user_diskio_spi.c **** 			res = RES_OK;
+ 1662              		.loc 1 502 8
+ 1663 010c 0023     		movs	r3, #0
+ 1664 010e 87F82F30 		strb	r3, [r7, #47]
+ 503:FATFS/Target/user_diskio_spi.c **** 		}
+ 504:FATFS/Target/user_diskio_spi.c **** 		break;
+ 1665              		.loc 1 504 3
+ 1666 0112 CEE0     		b	.L138
+ 1667              	.L117:
+ 505:FATFS/Target/user_diskio_spi.c **** 
+ 506:FATFS/Target/user_diskio_spi.c **** 	case GET_BLOCK_SIZE :	/* Get erase block size in unit of sector (DWORD) */
+ 507:FATFS/Target/user_diskio_spi.c **** 		if (CardType & CT_SD2) {	/* SDC ver 2.00 */
+ 1668              		.loc 1 507 16
+ 1669 0114 714B     		ldr	r3, .L144+4
+ 1670 0116 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1671 0118 03F00403 		and	r3, r3, #4
+ 1672              		.loc 1 507 6
+ 1673 011c 002B     		cmp	r3, #0
+ 1674 011e 31D0     		beq	.L125
+ 508:FATFS/Target/user_diskio_spi.c **** 			if (send_cmd(ACMD13, 0) == 0) {	/* Read SD status */
+ 1675              		.loc 1 508 8
+ 1676 0120 0021     		movs	r1, #0
+ 1677 0122 8D20     		movs	r0, #141
+ 1678 0124 FFF7FEFF 		bl	send_cmd
+ 1679 0128 0346     		mov	r3, r0
+ 1680              		.loc 1 508 7
+ 1681 012a 002B     		cmp	r3, #0
+ 1682 012c 40F0C380 		bne	.L139
+ 509:FATFS/Target/user_diskio_spi.c **** 				xchg_spi(0xFF);
+ 1683              		.loc 1 509 5
+ 1684 0130 FF20     		movs	r0, #255
+ 1685 0132 FFF7FEFF 		bl	xchg_spi
+ 510:FATFS/Target/user_diskio_spi.c **** 				if (rcvr_datablock(csd, 16)) {				/* Read partial block */
+ 1686              		.loc 1 510 9
+ 1687 0136 07F10C03 		add	r3, r7, #12
+ 1688 013a 1021     		movs	r1, #16
+ 1689 013c 1846     		mov	r0, r3
+ 1690 013e FFF7FEFF 		bl	rcvr_datablock
+ 1691 0142 0346     		mov	r3, r0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 39
+
+
+ 1692              		.loc 1 510 8
+ 1693 0144 002B     		cmp	r3, #0
+ 1694 0146 00F0B680 		beq	.L139
+ 511:FATFS/Target/user_diskio_spi.c **** 					for (n = 64 - 16; n; n--) xchg_spi(0xFF);	/* Purge trailing data */
+ 1695              		.loc 1 511 13
+ 1696 014a 3023     		movs	r3, #48
+ 1697 014c 87F82E30 		strb	r3, [r7, #46]
+ 1698              		.loc 1 511 6
+ 1699 0150 07E0     		b	.L127
+ 1700              	.L128:
+ 1701              		.loc 1 511 32 discriminator 3
+ 1702 0152 FF20     		movs	r0, #255
+ 1703 0154 FFF7FEFF 		bl	xchg_spi
+ 1704              		.loc 1 511 28 discriminator 3
+ 1705 0158 97F82E30 		ldrb	r3, [r7, #46]	@ zero_extendqisi2
+ 1706 015c 013B     		subs	r3, r3, #1
+ 1707 015e 87F82E30 		strb	r3, [r7, #46]
+ 1708              	.L127:
+ 1709              		.loc 1 511 24 discriminator 1
+ 1710 0162 97F82E30 		ldrb	r3, [r7, #46]	@ zero_extendqisi2
+ 1711 0166 002B     		cmp	r3, #0
+ 1712 0168 F3D1     		bne	.L128
+ 512:FATFS/Target/user_diskio_spi.c **** 					*(DWORD*)buff = 16UL << (csd[10] >> 4);
+ 1713              		.loc 1 512 34
+ 1714 016a BB7D     		ldrb	r3, [r7, #22]	@ zero_extendqisi2
+ 1715              		.loc 1 512 39
+ 1716 016c 1B09     		lsrs	r3, r3, #4
+ 1717 016e DBB2     		uxtb	r3, r3
+ 1718 0170 1A46     		mov	r2, r3
+ 1719              		.loc 1 512 27
+ 1720 0172 1023     		movs	r3, #16
+ 1721 0174 03FA02F2 		lsl	r2, r3, r2
+ 1722              		.loc 1 512 20
+ 1723 0178 3B68     		ldr	r3, [r7]
+ 1724 017a 1A60     		str	r2, [r3]
+ 513:FATFS/Target/user_diskio_spi.c **** 					res = RES_OK;
+ 1725              		.loc 1 513 10
+ 1726 017c 0023     		movs	r3, #0
+ 1727 017e 87F82F30 		strb	r3, [r7, #47]
+ 514:FATFS/Target/user_diskio_spi.c **** 				}
+ 515:FATFS/Target/user_diskio_spi.c **** 			}
+ 516:FATFS/Target/user_diskio_spi.c **** 		} else {					/* SDC ver 1.XX or MMC */
+ 517:FATFS/Target/user_diskio_spi.c **** 			if ((send_cmd(CMD9, 0) == 0) && rcvr_datablock(csd, 16)) {	/* Read CSD */
+ 518:FATFS/Target/user_diskio_spi.c **** 				if (CardType & CT_SD1) {	/* SDC ver 1.XX */
+ 519:FATFS/Target/user_diskio_spi.c **** 					*(DWORD*)buff = (((csd[10] & 63) << 1) + ((WORD)(csd[11] & 128) >> 7) + 1) << ((csd[13] >> 6) 
+ 520:FATFS/Target/user_diskio_spi.c **** 				} else {					/* MMC */
+ 521:FATFS/Target/user_diskio_spi.c **** 					*(DWORD*)buff = ((WORD)((csd[10] & 124) >> 2) + 1) * (((csd[11] & 3) << 3) + ((csd[11] & 224) 
+ 522:FATFS/Target/user_diskio_spi.c **** 				}
+ 523:FATFS/Target/user_diskio_spi.c **** 				res = RES_OK;
+ 524:FATFS/Target/user_diskio_spi.c **** 			}
+ 525:FATFS/Target/user_diskio_spi.c **** 		}
+ 526:FATFS/Target/user_diskio_spi.c **** 		break;
+ 1728              		.loc 1 526 3
+ 1729 0182 98E0     		b	.L139
+ 1730              	.L125:
+ 517:FATFS/Target/user_diskio_spi.c **** 				if (CardType & CT_SD1) {	/* SDC ver 1.XX */
+ 1731              		.loc 1 517 9
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 40
+
+
+ 1732 0184 0021     		movs	r1, #0
+ 1733 0186 0920     		movs	r0, #9
+ 1734 0188 FFF7FEFF 		bl	send_cmd
+ 1735 018c 0346     		mov	r3, r0
+ 517:FATFS/Target/user_diskio_spi.c **** 				if (CardType & CT_SD1) {	/* SDC ver 1.XX */
+ 1736              		.loc 1 517 7
+ 1737 018e 002B     		cmp	r3, #0
+ 1738 0190 40F09180 		bne	.L139
+ 517:FATFS/Target/user_diskio_spi.c **** 				if (CardType & CT_SD1) {	/* SDC ver 1.XX */
+ 1739              		.loc 1 517 36 discriminator 1
+ 1740 0194 07F10C03 		add	r3, r7, #12
+ 1741 0198 1021     		movs	r1, #16
+ 1742 019a 1846     		mov	r0, r3
+ 1743 019c FFF7FEFF 		bl	rcvr_datablock
+ 1744 01a0 0346     		mov	r3, r0
+ 517:FATFS/Target/user_diskio_spi.c **** 				if (CardType & CT_SD1) {	/* SDC ver 1.XX */
+ 1745              		.loc 1 517 33 discriminator 1
+ 1746 01a2 002B     		cmp	r3, #0
+ 1747 01a4 00F08780 		beq	.L139
+ 518:FATFS/Target/user_diskio_spi.c **** 					*(DWORD*)buff = (((csd[10] & 63) << 1) + ((WORD)(csd[11] & 128) >> 7) + 1) << ((csd[13] >> 6) 
+ 1748              		.loc 1 518 18
+ 1749 01a8 4C4B     		ldr	r3, .L144+4
+ 1750 01aa 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1751 01ac 03F00203 		and	r3, r3, #2
+ 518:FATFS/Target/user_diskio_spi.c **** 					*(DWORD*)buff = (((csd[10] & 63) << 1) + ((WORD)(csd[11] & 128) >> 7) + 1) << ((csd[13] >> 6) 
+ 1752              		.loc 1 518 8
+ 1753 01b0 002B     		cmp	r3, #0
+ 1754 01b2 12D0     		beq	.L129
+ 519:FATFS/Target/user_diskio_spi.c **** 				} else {					/* MMC */
+ 1755              		.loc 1 519 28
+ 1756 01b4 BB7D     		ldrb	r3, [r7, #22]	@ zero_extendqisi2
+ 519:FATFS/Target/user_diskio_spi.c **** 				} else {					/* MMC */
+ 1757              		.loc 1 519 39
+ 1758 01b6 5B00     		lsls	r3, r3, #1
+ 1759 01b8 03F07E03 		and	r3, r3, #126
+ 519:FATFS/Target/user_diskio_spi.c **** 				} else {					/* MMC */
+ 1760              		.loc 1 519 58
+ 1761 01bc FA7D     		ldrb	r2, [r7, #23]	@ zero_extendqisi2
+ 519:FATFS/Target/user_diskio_spi.c **** 				} else {					/* MMC */
+ 1762              		.loc 1 519 70
+ 1763 01be D209     		lsrs	r2, r2, #7
+ 1764 01c0 D2B2     		uxtb	r2, r2
+ 519:FATFS/Target/user_diskio_spi.c **** 				} else {					/* MMC */
+ 1765              		.loc 1 519 45
+ 1766 01c2 1344     		add	r3, r3, r2
+ 519:FATFS/Target/user_diskio_spi.c **** 				} else {					/* MMC */
+ 1767              		.loc 1 519 76
+ 1768 01c4 5A1C     		adds	r2, r3, #1
+ 519:FATFS/Target/user_diskio_spi.c **** 				} else {					/* MMC */
+ 1769              		.loc 1 519 89
+ 1770 01c6 7B7E     		ldrb	r3, [r7, #25]	@ zero_extendqisi2
+ 519:FATFS/Target/user_diskio_spi.c **** 				} else {					/* MMC */
+ 1771              		.loc 1 519 94
+ 1772 01c8 9B09     		lsrs	r3, r3, #6
+ 1773 01ca DBB2     		uxtb	r3, r3
+ 519:FATFS/Target/user_diskio_spi.c **** 				} else {					/* MMC */
+ 1774              		.loc 1 519 100
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 41
+
+
+ 1775 01cc 013B     		subs	r3, r3, #1
+ 519:FATFS/Target/user_diskio_spi.c **** 				} else {					/* MMC */
+ 1776              		.loc 1 519 81
+ 1777 01ce 02FA03F3 		lsl	r3, r2, r3
+ 1778 01d2 1A46     		mov	r2, r3
+ 519:FATFS/Target/user_diskio_spi.c **** 				} else {					/* MMC */
+ 1779              		.loc 1 519 20
+ 1780 01d4 3B68     		ldr	r3, [r7]
+ 1781 01d6 1A60     		str	r2, [r3]
+ 1782 01d8 13E0     		b	.L130
+ 1783              	.L129:
+ 521:FATFS/Target/user_diskio_spi.c **** 				}
+ 1784              		.loc 1 521 34
+ 1785 01da BB7D     		ldrb	r3, [r7, #22]	@ zero_extendqisi2
+ 521:FATFS/Target/user_diskio_spi.c **** 				}
+ 1786              		.loc 1 521 46
+ 1787 01dc 9B10     		asrs	r3, r3, #2
+ 521:FATFS/Target/user_diskio_spi.c **** 				}
+ 1788              		.loc 1 521 23
+ 1789 01de 9BB2     		uxth	r3, r3
+ 1790 01e0 03F01F03 		and	r3, r3, #31
+ 521:FATFS/Target/user_diskio_spi.c **** 				}
+ 1791              		.loc 1 521 52
+ 1792 01e4 0133     		adds	r3, r3, #1
+ 521:FATFS/Target/user_diskio_spi.c **** 				}
+ 1793              		.loc 1 521 65
+ 1794 01e6 FA7D     		ldrb	r2, [r7, #23]	@ zero_extendqisi2
+ 521:FATFS/Target/user_diskio_spi.c **** 				}
+ 1795              		.loc 1 521 75
+ 1796 01e8 D200     		lsls	r2, r2, #3
+ 1797 01ea 02F01802 		and	r2, r2, #24
+ 521:FATFS/Target/user_diskio_spi.c **** 				}
+ 1798              		.loc 1 521 88
+ 1799 01ee F97D     		ldrb	r1, [r7, #23]	@ zero_extendqisi2
+ 521:FATFS/Target/user_diskio_spi.c **** 				}
+ 1800              		.loc 1 521 100
+ 1801 01f0 4909     		lsrs	r1, r1, #5
+ 1802 01f2 C9B2     		uxtb	r1, r1
+ 521:FATFS/Target/user_diskio_spi.c **** 				}
+ 1803              		.loc 1 521 81
+ 1804 01f4 0A44     		add	r2, r2, r1
+ 521:FATFS/Target/user_diskio_spi.c **** 				}
+ 1805              		.loc 1 521 106
+ 1806 01f6 0132     		adds	r2, r2, #1
+ 521:FATFS/Target/user_diskio_spi.c **** 				}
+ 1807              		.loc 1 521 57
+ 1808 01f8 02FB03F3 		mul	r3, r2, r3
+ 1809 01fc 1A46     		mov	r2, r3
+ 521:FATFS/Target/user_diskio_spi.c **** 				}
+ 1810              		.loc 1 521 20
+ 1811 01fe 3B68     		ldr	r3, [r7]
+ 1812 0200 1A60     		str	r2, [r3]
+ 1813              	.L130:
+ 523:FATFS/Target/user_diskio_spi.c **** 			}
+ 1814              		.loc 1 523 9
+ 1815 0202 0023     		movs	r3, #0
+ 1816 0204 87F82F30 		strb	r3, [r7, #47]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 42
+
+
+ 1817              		.loc 1 526 3
+ 1818 0208 55E0     		b	.L139
+ 1819              	.L115:
+ 527:FATFS/Target/user_diskio_spi.c **** 
+ 528:FATFS/Target/user_diskio_spi.c **** 	case CTRL_TRIM :	/* Erase a block of sectors (used when _USE_ERASE == 1) */
+ 529:FATFS/Target/user_diskio_spi.c **** 		if (!(CardType & CT_SDC)) break;				/* Check if the card is SDC */
+ 1820              		.loc 1 529 18
+ 1821 020a 344B     		ldr	r3, .L144+4
+ 1822 020c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1823 020e 03F00603 		and	r3, r3, #6
+ 1824              		.loc 1 529 6
+ 1825 0212 002B     		cmp	r3, #0
+ 1826 0214 51D0     		beq	.L140
+ 530:FATFS/Target/user_diskio_spi.c **** 		if (USER_SPI_ioctl(drv, MMC_GET_CSD, csd)) break;	/* Get CSD */
+ 1827              		.loc 1 530 7
+ 1828 0216 07F10C02 		add	r2, r7, #12
+ 1829 021a FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 1830 021c 0B21     		movs	r1, #11
+ 1831 021e 1846     		mov	r0, r3
+ 1832 0220 FFF7FEFF 		bl	USER_SPI_ioctl
+ 1833 0224 0346     		mov	r3, r0
+ 1834              		.loc 1 530 6
+ 1835 0226 002B     		cmp	r3, #0
+ 1836 0228 49D1     		bne	.L141
+ 531:FATFS/Target/user_diskio_spi.c **** 		if (!(csd[0] >> 6) && !(csd[10] & 0x40)) break;	/* Check if sector erase can be applied to the ca
+ 1837              		.loc 1 531 12
+ 1838 022a 3B7B     		ldrb	r3, [r7, #12]	@ zero_extendqisi2
+ 1839              		.loc 1 531 7
+ 1840 022c 9B09     		lsrs	r3, r3, #6
+ 1841 022e DBB2     		uxtb	r3, r3
+ 1842              		.loc 1 531 6
+ 1843 0230 002B     		cmp	r3, #0
+ 1844 0232 04D1     		bne	.L133
+ 1845              		.loc 1 531 30 discriminator 1
+ 1846 0234 BB7D     		ldrb	r3, [r7, #22]	@ zero_extendqisi2
+ 1847              		.loc 1 531 35 discriminator 1
+ 1848 0236 03F04003 		and	r3, r3, #64
+ 1849              		.loc 1 531 22 discriminator 1
+ 1850 023a 002B     		cmp	r3, #0
+ 1851 023c 41D0     		beq	.L142
+ 1852              	.L133:
+ 532:FATFS/Target/user_diskio_spi.c **** 		dp = buff; st = dp[0]; ed = dp[1];				/* Load sector block */
+ 1853              		.loc 1 532 6
+ 1854 023e 3B68     		ldr	r3, [r7]
+ 1855 0240 3B62     		str	r3, [r7, #32]
+ 1856              		.loc 1 532 17
+ 1857 0242 3B6A     		ldr	r3, [r7, #32]
+ 1858 0244 1B68     		ldr	r3, [r3]
+ 1859 0246 BB62     		str	r3, [r7, #40]
+ 1860              		.loc 1 532 29
+ 1861 0248 3B6A     		ldr	r3, [r7, #32]
+ 1862 024a 5B68     		ldr	r3, [r3, #4]
+ 1863 024c 7B62     		str	r3, [r7, #36]
+ 533:FATFS/Target/user_diskio_spi.c **** 		if (!(CardType & CT_BLOCK)) {
+ 1864              		.loc 1 533 18
+ 1865 024e 234B     		ldr	r3, .L144+4
+ 1866 0250 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 43
+
+
+ 1867 0252 03F00803 		and	r3, r3, #8
+ 1868              		.loc 1 533 6
+ 1869 0256 002B     		cmp	r3, #0
+ 1870 0258 05D1     		bne	.L134
+ 534:FATFS/Target/user_diskio_spi.c **** 			st *= 512; ed *= 512;
+ 1871              		.loc 1 534 7
+ 1872 025a BB6A     		ldr	r3, [r7, #40]
+ 1873 025c 5B02     		lsls	r3, r3, #9
+ 1874 025e BB62     		str	r3, [r7, #40]
+ 1875              		.loc 1 534 18
+ 1876 0260 7B6A     		ldr	r3, [r7, #36]
+ 1877 0262 5B02     		lsls	r3, r3, #9
+ 1878 0264 7B62     		str	r3, [r7, #36]
+ 1879              	.L134:
+ 535:FATFS/Target/user_diskio_spi.c **** 		}
+ 536:FATFS/Target/user_diskio_spi.c **** 		if (send_cmd(CMD32, st) == 0 && send_cmd(CMD33, ed) == 0 && send_cmd(CMD38, 0) == 0 && wait_ready
+ 1880              		.loc 1 536 7
+ 1881 0266 B96A     		ldr	r1, [r7, #40]
+ 1882 0268 2020     		movs	r0, #32
+ 1883 026a FFF7FEFF 		bl	send_cmd
+ 1884 026e 0346     		mov	r3, r0
+ 1885              		.loc 1 536 6
+ 1886 0270 002B     		cmp	r3, #0
+ 1887 0272 28D1     		bne	.L143
+ 1888              		.loc 1 536 35 discriminator 1
+ 1889 0274 796A     		ldr	r1, [r7, #36]
+ 1890 0276 2120     		movs	r0, #33
+ 1891 0278 FFF7FEFF 		bl	send_cmd
+ 1892 027c 0346     		mov	r3, r0
+ 1893              		.loc 1 536 32 discriminator 1
+ 1894 027e 002B     		cmp	r3, #0
+ 1895 0280 21D1     		bne	.L143
+ 1896              		.loc 1 536 63 discriminator 2
+ 1897 0282 0021     		movs	r1, #0
+ 1898 0284 2620     		movs	r0, #38
+ 1899 0286 FFF7FEFF 		bl	send_cmd
+ 1900 028a 0346     		mov	r3, r0
+ 1901              		.loc 1 536 60 discriminator 2
+ 1902 028c 002B     		cmp	r3, #0
+ 1903 028e 1AD1     		bne	.L143
+ 1904              		.loc 1 536 90 discriminator 3
+ 1905 0290 47F23050 		movw	r0, #30000
+ 1906 0294 FFF7FEFF 		bl	wait_ready
+ 1907 0298 0346     		mov	r3, r0
+ 1908              		.loc 1 536 87 discriminator 3
+ 1909 029a 002B     		cmp	r3, #0
+ 1910 029c 13D0     		beq	.L143
+ 537:FATFS/Target/user_diskio_spi.c **** 			res = RES_OK;	/* FatFs does not check result of this command */
+ 1911              		.loc 1 537 8
+ 1912 029e 0023     		movs	r3, #0
+ 1913 02a0 87F82F30 		strb	r3, [r7, #47]
+ 538:FATFS/Target/user_diskio_spi.c **** 		}
+ 539:FATFS/Target/user_diskio_spi.c **** 		break;
+ 1914              		.loc 1 539 3
+ 1915 02a4 0FE0     		b	.L143
+ 1916              	.L114:
+ 540:FATFS/Target/user_diskio_spi.c **** 
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 44
+
+
+ 541:FATFS/Target/user_diskio_spi.c **** 	default:
+ 542:FATFS/Target/user_diskio_spi.c **** 		res = RES_PARERR;
+ 1917              		.loc 1 542 7
+ 1918 02a6 0423     		movs	r3, #4
+ 1919 02a8 87F82F30 		strb	r3, [r7, #47]
+ 1920 02ac 0CE0     		b	.L121
+ 1921              	.L137:
+ 490:FATFS/Target/user_diskio_spi.c **** 
+ 1922              		.loc 1 490 3
+ 1923 02ae 00BF     		nop
+ 1924 02b0 0AE0     		b	.L121
+ 1925              	.L138:
+ 504:FATFS/Target/user_diskio_spi.c **** 
+ 1926              		.loc 1 504 3
+ 1927 02b2 00BF     		nop
+ 1928 02b4 08E0     		b	.L121
+ 1929              	.L139:
+ 526:FATFS/Target/user_diskio_spi.c **** 
+ 1930              		.loc 1 526 3
+ 1931 02b6 00BF     		nop
+ 1932 02b8 06E0     		b	.L121
+ 1933              	.L140:
+ 529:FATFS/Target/user_diskio_spi.c **** 		if (USER_SPI_ioctl(drv, MMC_GET_CSD, csd)) break;	/* Get CSD */
+ 1934              		.loc 1 529 29
+ 1935 02ba 00BF     		nop
+ 1936 02bc 04E0     		b	.L121
+ 1937              	.L141:
+ 530:FATFS/Target/user_diskio_spi.c **** 		if (!(csd[0] >> 6) && !(csd[10] & 0x40)) break;	/* Check if sector erase can be applied to the ca
+ 1938              		.loc 1 530 46
+ 1939 02be 00BF     		nop
+ 1940 02c0 02E0     		b	.L121
+ 1941              	.L142:
+ 531:FATFS/Target/user_diskio_spi.c **** 		dp = buff; st = dp[0]; ed = dp[1];				/* Load sector block */
+ 1942              		.loc 1 531 44
+ 1943 02c2 00BF     		nop
+ 1944 02c4 00E0     		b	.L121
+ 1945              	.L143:
+ 539:FATFS/Target/user_diskio_spi.c **** 
+ 1946              		.loc 1 539 3
+ 1947 02c6 00BF     		nop
+ 1948              	.L121:
+ 543:FATFS/Target/user_diskio_spi.c **** 	}
+ 544:FATFS/Target/user_diskio_spi.c **** 
+ 545:FATFS/Target/user_diskio_spi.c **** 	despiselect();
+ 1949              		.loc 1 545 2
+ 1950 02c8 FFF7FEFF 		bl	despiselect
+ 546:FATFS/Target/user_diskio_spi.c **** 
+ 547:FATFS/Target/user_diskio_spi.c **** 	return res;
+ 1951              		.loc 1 547 9
+ 1952 02cc 97F82F30 		ldrb	r3, [r7, #47]	@ zero_extendqisi2
+ 1953              	.L136:
+ 548:FATFS/Target/user_diskio_spi.c **** }
+ 1954              		.loc 1 548 1 discriminator 2
+ 1955 02d0 1846     		mov	r0, r3
+ 1956 02d2 3037     		adds	r7, r7, #48
+ 1957              		.cfi_def_cfa_offset 8
+ 1958 02d4 BD46     		mov	sp, r7
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 45
+
+
+ 1959              		.cfi_def_cfa_register 13
+ 1960              		@ sp needed
+ 1961 02d6 80BD     		pop	{r7, pc}
+ 1962              	.L145:
+ 1963              		.align	2
+ 1964              	.L144:
+ 1965 02d8 00000000 		.word	Stat
+ 1966 02dc 00000000 		.word	CardType
+ 1967              		.cfi_endproc
+ 1968              	.LFE258:
+ 1970              		.text
+ 1971              	.Letext0:
+ 1972              		.file 2 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 1973              		.file 3 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 1974              		.file 4 "Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f446xx.h"
+ 1975              		.file 5 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h"
+ 1976              		.file 6 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_gpio.h"
+ 1977              		.file 7 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma.h"
+ 1978              		.file 8 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h"
+ 1979              		.file 9 "Middlewares/Third_Party/FatFs/src/integer.h"
+ 1980              		.file 10 "Middlewares/Third_Party/FatFs/src/diskio.h"
+ 1981              		.file 11 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h"
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 46
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 user_diskio_spi.c
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:23     .data.Stat:00000000 Stat
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:28     .bss.CardType:00000000 CardType
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:29     .bss.CardType:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:35     .bss.spiTimerTickStart:00000000 spiTimerTickStart
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:32     .bss.spiTimerTickStart:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:42     .bss.spiTimerTickDelay:00000000 spiTimerTickDelay
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:39     .bss.spiTimerTickDelay:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:45     .text.SPI_Timer_On:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:51     .text.SPI_Timer_On:00000000 SPI_Timer_On
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:87     .text.SPI_Timer_On:00000020 $d
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:93     .text.SPI_Timer_Status:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:99     .text.SPI_Timer_Status:00000000 SPI_Timer_Status
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:132    .text.SPI_Timer_Status:00000024 $d
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:138    .text.xchg_spi:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:143    .text.xchg_spi:00000000 xchg_spi
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:180    .text.xchg_spi:00000028 $d
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:185    .text.rcvr_spi_multi:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:190    .text.rcvr_spi_multi:00000000 rcvr_spi_multi
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:248    .text.xmit_spi_multi:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:253    .text.xmit_spi_multi:00000000 xmit_spi_multi
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:287    .text.xmit_spi_multi:00000024 $d
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:292    .text.wait_ready:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:297    .text.wait_ready:00000000 wait_ready
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:358    .text.despiselect:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:363    .text.despiselect:00000000 despiselect
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:389    .text.despiselect:00000018 $d
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:394    .text.spiselect:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:399    .text.spiselect:00000000 spiselect
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:441    .text.spiselect:00000030 $d
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:446    .text.rcvr_datablock:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:451    .text.rcvr_datablock:00000000 rcvr_datablock
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:520    .text.xmit_datablock:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:525    .text.xmit_datablock:00000000 xmit_datablock
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:601    .text.send_cmd:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:606    .text.send_cmd:00000000 send_cmd
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:762    .text.USER_SPI_initialize:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:768    .text.USER_SPI_initialize:00000000 USER_SPI_initialize
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:1079   .text.USER_SPI_initialize:000001cc $d
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:1086   .text.USER_SPI_status:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:1092   .text.USER_SPI_status:00000000 USER_SPI_status
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:1135   .text.USER_SPI_status:00000028 $d
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:1140   .text.USER_SPI_read:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:1146   .text.USER_SPI_read:00000000 USER_SPI_read
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:1286   .text.USER_SPI_read:000000c4 $d
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:1292   .text.USER_SPI_write:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:1298   .text.USER_SPI_write:00000000 USER_SPI_write
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:1469   .text.USER_SPI_write:000000f0 $d
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:1475   .text.USER_SPI_ioctl:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:1481   .text.USER_SPI_ioctl:00000000 USER_SPI_ioctl
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:1531   .text.USER_SPI_ioctl:00000040 $d
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:1536   .text.USER_SPI_ioctl:00000054 $t
+C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s:1965   .text.USER_SPI_ioctl:000002d8 $d
+                           .group:00000000 wm4.0.fbeba72283fbbed79c5ed62adcf8946b
+                           .group:00000000 wm4.stm32f4xx_hal_conf.h.25.834fd89df99f7f3fe75169badeed02aa
+                           .group:00000000 wm4.stm32f4xx.h.38.63e3ea23bd63a94457417730025259b6
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 47
+
+
+                           .group:00000000 wm4.stm32f446xx.h.34.dd43cebd7192f96bce7a5ff975201274
+                           .group:00000000 wm4._newlib_version.h.4.6d111ab2e95434b664b53815e5c8ccba
+                           .group:00000000 wm4.features.h.33.3e67abe6fb64142d4f6fa9496796153c
+                           .group:00000000 wm4._default_types.h.15.247e5cd201eca3442cbf5404108c4935
+                           .group:00000000 wm4._intsup.h.10.48bafbb683905c4daa4565a85aeeb264
+                           .group:00000000 wm4._stdint.h.10.c24fa3af3bc1706662bb5593a907e841
+                           .group:00000000 wm4.stdint.h.23.d53047a68f4a85177f80b422d52785ed
+                           .group:00000000 wm4.cmsis_version.h.32.0ac195c83bb4537824e6ad1c47474b79
+                           .group:00000000 wm4.core_cm4.h.66.e4ff136c4a17abc46741866f64f8e729
+                           .group:00000000 wm4.cmsis_gcc.h.26.498d0ad17a45fc9ef20fdc01caf02259
+                           .group:00000000 wm4.core_cm4.h.174.62be9b4588d49bed18171771001331df
+                           .group:00000000 wm4.mpu_armv7.h.32.83326921a797fa9d6f70449916b4b839
+                           .group:00000000 wm4.stm32f446xx.h.917.13927c85cbbf4787955bc4173c54fa12
+                           .group:00000000 wm4.stm32f4xx.h.195.a4b8bf80f37cc96981498656ffe5f588
+                           .group:00000000 wm4.stm32_hal_legacy.h.22.8b7d303dc46a0b7ac6d3edf19ce2608d
+                           .group:00000000 wm4.stddef.h.39.3e0425629195acf083c9561151306b4d
+                           .group:00000000 wm4.stm32f4xx_hal_def.h.58.3cb484e92e5ccf2e55312a4714e27917
+                           .group:00000000 wm4.stm32f4xx_hal_rcc_ex.h.20.9b6e314009d4800dd71c0ec1c264a1ea
+                           .group:00000000 wm4.stm32f4xx_hal_rcc.h.106.0887cf5d985ae88e345b0aed0ceb4729
+                           .group:00000000 wm4.stm32f4xx_hal_gpio.h.21.22da6a14b6049d6ac156577be74df1d7
+                           .group:00000000 wm4.stm32f4xx_hal_gpio_ex.h.21.33ea7ea24fd170b1d3dce3d23330c9d3
+                           .group:00000000 wm4.stm32f4xx_hal_gpio.h.254.d7e07832f748fe8bcb575db0b8373592
+                           .group:00000000 wm4.stm32f4xx_hal_exti.h.21.4fc7f37c3cc97fb821b368ede79414b6
+                           .group:00000000 wm4.stm32f4xx_hal_dma.h.21.8e4b1421c914345c23be719e5e528779
+                           .group:00000000 wm4.stm32f4xx_hal_dma.h.720.ac2d7eef74792e4026acc4d2923c5da4
+                           .group:00000000 wm4.stm32f4xx_hal_cortex.h.20.03673e4f79386680bf73ba399c19306b
+                           .group:00000000 wm4.stm32f4xx_ll_adc.h.21.8ab9bf4d55f678506dbbe8102cb12bbc
+                           .group:00000000 wm4.stm32f4xx_hal_adc.h.159.62530d9b3382796f19493a9679ef426c
+                           .group:00000000 wm4.stm32f4xx_hal_adc_ex.h.21.94e87945640619cdd4cff40627e1380a
+                           .group:00000000 wm4.stm32f4xx_hal_adc.h.639.c30c49256117cbda0ada83149c65b3d8
+                           .group:00000000 wm4.stm32f4xx_hal_flash.h.20.2f1e0d1b7010b3a81a7980aaf712e7e5
+                           .group:00000000 wm4.stm32f4xx_hal_flash_ex.h.20.77cb3e5c0f1e426426a4cbc884a1eed8
+                           .group:00000000 wm4.stm32f4xx_hal_flash.h.361.23bc19b9eac79b0956d913651841ede8
+                           .group:00000000 wm4.stm32f4xx_hal_i2c.h.21.147e96a27b1f7b1f2f8ee22132703ee3
+                           .group:00000000 wm4.stm32f4xx_hal_i2c_ex.h.21.951ef5bfa13cf131d2015c338e82e461
+                           .group:00000000 wm4.stm32f4xx_hal_i2c.h.647.ade9c3447780b1cc0ece02f0ce83aedc
+                           .group:00000000 wm4.stm32f4xx_hal_pwr.h.20.1905a0783a9c83adefd7df0c4b501e40
+                           .group:00000000 wm4.stm32f4xx_hal_pwr_ex.h.20.9786dbd699c850465fa7b77273740267
+                           .group:00000000 wm4.stm32f4xx_hal_pwr.h.338.debc0a4a62ba54688e63ab53dd99c4ea
+                           .group:00000000 wm4.stm32f4xx_hal_spi.h.21.8b27a8d792c565f72ddd4cfad797986f
+                           .group:00000000 wm4.stm32f4xx_hal_tim.h.21.c31cbc03c25f07a932427770396c59d2
+                           .group:00000000 wm4.stm32f4xx_hal_tim_ex.h.21.3ff8ebb44e16ac9d5b95e2b3533221b9
+                           .group:00000000 wm4.stm32f4xx_hal_uart.h.21.ba8e24dd05c77faac3f3d48472e636ba
+                           .group:00000000 wm4.stm32f4xx_hal.h.71.02372bc31d47d29d3f67fbfe1429649e
+                           .group:00000000 wm4.diskio.h.6.8da7330f9b93c43e88f440080fbc00d0
+                           .group:00000000 wm4.diskio.h.44.fca3d6f870cedb9b0142ef6e4583e01b
+                           .group:00000000 wm4.main.h.23.9273a5913d70f07bf6f748b07ee313f7
+                           .group:00000000 wm4.FreeRTOSConfig.h.32.bc6247a01309fb09d1c77b2aa8b243d2
+                           .group:00000000 wm4.stdarg.h.31.b55da1089056868966f25de5dbfc7d3c
+                           .group:00000000 wm4.Global.h.69.e0f48c7eb64cd3647ceacea2cc368f43
+                           .group:00000000 wm4.SEGGER.h.93.885d9d7ea302677e269465e6da347b9f
+                           .group:00000000 wm4.SEGGER_SYSVIEW.h.88.65dd41e8fc33fc8f03c978fd13231926
+                           .group:00000000 wm4.SEGGER_SYSVIEW_FreeRTOS.h.80.d232dda0d91b880546b63cc6970a0231
+                           .group:00000000 wm4.projdefs.h.29.3472c8470d131a5f474bc7437ea94609
+                           .group:00000000 wm4.portmacro.h.30.ebb5f3ce711e1dad21b3172c9bc8e19f
+                           .group:00000000 wm4.portable.h.64.742f2ce568820e866a7b541b4c77966f
+                           .group:00000000 wm4.mpu_wrappers.h.29.4f9aea82ee68d943d141825e5294de63
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccL2U0dt.s 			page 48
+
+
+                           .group:00000000 wm4.FreeRTOS.h.66.cc51f96fb61ed1e446bb6cea86adf7fa
+                           .group:00000000 wm4.list.h.61.5c5a38f6bc6687eed6d893e57dabd8e6
+                           .group:00000000 wm4.task.h.46.9fb92b2c1a30a52e436f6063552b709b
+                           .group:00000000 wm4.cmsis_os.h.129.5f4adf2a422dfa714f64051974ebee7a
+                           .group:00000000 wm4.cmsis_os2.h.151.57db232dfe421e4f781dd02c42ee4360
+                           .group:00000000 wm4.cmsis_os.h.179.c36f217fbf28f1f2e754518bfb5a2ae8
+                           .group:00000000 wm4.ffconf.h.33.4fdc704f7f2d35145fb27bd48d09f536
+                           .group:00000000 wm4.ff.h.63.4a71c48ce74f1325372be3373adc3c55
+
+UNDEFINED SYMBOLS
+HAL_GetTick
+HAL_SPI_TransmitReceive
+hspi1
+HAL_SPI_Transmit
+HAL_GPIO_WritePin

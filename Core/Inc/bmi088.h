@@ -222,7 +222,10 @@ typedef struct bmi088_struct
 
 uint8_t bmi088_init(bmi088_struct_t* BMI);
 void bmi088_config(bmi088_struct_t* BMI);
-void bmi088_update(bmi088_struct_t* BMI);
+void bmi088_process_accel_data(bmi088_struct_t* BMI);
+void bmi088_process_gyro_data(bmi088_struct_t* BMI);
+HAL_StatusTypeDef bmi088_start_accel_dma(bmi088_struct_t* BMI);
+HAL_StatusTypeDef bmi088_start_gyro_dma(bmi088_struct_t* BMI);
 void bmi088_set_gyro_INT(bmi088_struct_t* BMI);
 void bmi088_set_accel_INT(bmi088_struct_t* BMI);
 void get_offset(bmi088_struct_t* BMI);

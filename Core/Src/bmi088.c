@@ -248,96 +248,137 @@ void bmi088_config(bmi088_struct_t* BMI)
 }
 
 
-void bmi088_update(bmi088_struct_t* BMI)
+HAL_StatusTypeDef bmi088_start_accel_dma(bmi088_struct_t* BMI)
 {
-	if(BMI->flags.isAccelUpdated && !BMI->flags.isDmaTransferActive)
+	HAL_StatusTypeDef ret;
+
+	if(BMI == NULL)
 	{
-		// Start DMA transfer for accelerometer data (X,Y,Z + sensor time)
-		BMI->flags.isDmaTransferActive = 1;
-		HAL_StatusTypeDef ret = HAL_I2C_Mem_Read_DMA(BMI->device_config.BMI_I2c, ACC_I2C_ADD, ACC_X_LSB, I2C_MEMADD_SIZE_8BIT, BMI->datas.raw_accel_data, 9);
-		if(ret != HAL_OK)
-		{
-			BMI->flags.isDmaTransferActive = 0;
-			BMI->flags.isAccelUpdated = 0;
-		}
+		return HAL_ERROR;
 	}
 
-	if(BMI->flags.isGyroUpdated && !BMI->flags.isDmaTransferActive)
+	if(!BMI->flags.isAccelUpdated || BMI->flags.isDmaTransferActive)
 	{
-		// Start DMA transfer for gyroscope data
-		BMI->flags.isDmaTransferActive = 1;
-		HAL_StatusTypeDef ret = HAL_I2C_Mem_Read_DMA(BMI->device_config.BMI_I2c, GYRO_I2C_ADD, GYRO_RATE_X_LSB, I2C_MEMADD_SIZE_8BIT, BMI->datas.raw_gyro_data, 6);
-		if(ret != HAL_OK)
-		{
-			BMI->flags.isDmaTransferActive = 0;
-			BMI->flags.isGyroUpdated = 0;
-		}
+		return HAL_BUSY;
 	}
 
-	// Process accelerometer data if DMA transfer is complete
-	if(BMI->flags.isAccelDmaComplete)
+	BMI->flags.isDmaTransferActive = 1;
+	ret = HAL_I2C_Mem_Read_DMA(BMI->device_config.BMI_I2c, ACC_I2C_ADD, ACC_X_LSB, I2C_MEMADD_SIZE_8BIT, BMI->datas.raw_accel_data, 9);
+	if(ret != HAL_OK)
 	{
-		// Debug: Accelerometer okuma frekansı hesaplama
-		accel_read_count++;
-		uint32_t current_time = HAL_GetTick();
-		if (current_time - accel_freq_last_time >= 1000) { // Her 1 saniyede bir hesapla
-			accel_frequency_hz = (float)accel_read_count * 1000.0f / (current_time - accel_freq_last_time);
-			accel_read_count = 0;
-			accel_freq_last_time = current_time;
-		}
-		
-		int16_t acc_x_16 = (BMI->datas.raw_accel_data[1] << 8) | BMI->datas.raw_accel_data[0];
-		int16_t acc_y_16 = (BMI->datas.raw_accel_data[3] << 8) | BMI->datas.raw_accel_data[2];
-		int16_t acc_z_16 = (BMI->datas.raw_accel_data[5] << 8) | BMI->datas.raw_accel_data[4];
-
-		BMI->datas.acc_x = ((float)acc_x_16 / 32768.0 * 1000.0 * 1.5 * pow(2.0, (float)(BMI->device_config.acc_range + 1)) - ACCEL_X_OFFSET)*9.81/1000;
-		BMI->datas.acc_y = ((float)acc_y_16 / 32768.0 * 1000.0 * 1.5 * pow(2.0, (float)(BMI->device_config.acc_range + 1)) - ACCEL_Y_OFFSET)*9.81/1000;
-		BMI->datas.acc_z = ((float)acc_z_16 / 32768.0 * 1000.0 * 1.5 * pow(2.0, (float)(BMI->device_config.acc_range + 1)) - ACCEL_Z_OFFSET)*9.81/1000;
-
-		BMI->flags.isAccelDmaComplete = 0;
-		is_time_updated = 1;
-
-		// Sıcaklık okuma kaldırıldı - sadece ivme ve gyro verisi kullanılacak
+		BMI->flags.isDmaTransferActive = 0;
+		BMI->flags.isAccelUpdated = 0;
 	}
 
-	if(BMI->flags.isGyroDmaComplete)
+	return ret;
+}
+
+HAL_StatusTypeDef bmi088_start_gyro_dma(bmi088_struct_t* BMI)
+{
+	HAL_StatusTypeDef ret;
+
+	if(BMI == NULL)
 	{
-		// Debug: Gyroscope okuma frekansı hesaplama
-		gyro_read_count++;
-		uint32_t current_time = HAL_GetTick();
-		if (current_time - gyro_freq_last_time >= 1000) { // Her 1 saniyede bir hesapla
-			gyro_frequency_hz = (float)gyro_read_count * 1000.0f / (current_time - gyro_freq_last_time);
-			gyro_read_count = 0;
-			gyro_freq_last_time = current_time;
-		}
-		
-		int16_t gyro_x_16 = (BMI->datas.raw_gyro_data[1] << 8) | BMI->datas.raw_gyro_data[0];
-		int16_t gyro_y_16 = (BMI->datas.raw_gyro_data[3] << 8) | BMI->datas.raw_gyro_data[2];
-		int16_t gyro_z_16 = (BMI->datas.raw_gyro_data[5] << 8) | BMI->datas.raw_gyro_data[4];
-
-		BMI->datas.gyro_x = (((float)gyro_x_16 / 32767.0) * (float)(2000 >> BMI->device_config.gyro_range) - BMI->device_config.offsets->gyro_offset[0]) * DEG_TO_RAD;
-		BMI->datas.gyro_y = (((float)gyro_y_16 / 32767.0) * (float)(2000 >> BMI->device_config.gyro_range) - BMI->device_config.offsets->gyro_offset[1]) * DEG_TO_RAD;
-		BMI->datas.gyro_z = (((float)gyro_z_16 / 32767.0) * (float)(2000 >> BMI->device_config.gyro_range) - BMI->device_config.offsets->gyro_offset[2]) * DEG_TO_RAD;
-
-		// Delta time hesaplama HAL_GetTick() ile (gyro processing'de yapılsın)
-		uint32_t current_hal_tick = HAL_GetTick();
-		if(is_starded)
-		{
-			BMI->datas.delta_time = (float)(current_hal_tick - last_hal_tick) / 1000.0f; // ms to seconds
-		}
-		else
-		{
-			is_starded = 1;
-			BMI->datas.delta_time = 0.0f; // İlk gyro okumasında delta_time = 0
-		}
-		last_hal_tick = current_hal_tick;
-
-		Orientation_Update(BMI->datas.gyro_y, -BMI->datas.gyro_x, BMI->datas.gyro_z,BMI->datas.acc_y,-BMI->datas.acc_x,BMI->datas.acc_z, BMI->datas.delta_time);
-		BMI->datas.theta = quaternionToThetaZ();
-		is_gyro_renewed = 1;
-
-		BMI->flags.isGyroDmaComplete = 0;
+		return HAL_ERROR;
 	}
+
+	if(!BMI->flags.isGyroUpdated || BMI->flags.isDmaTransferActive)
+	{
+		return HAL_BUSY;
+	}
+
+	BMI->flags.isDmaTransferActive = 1;
+	ret = HAL_I2C_Mem_Read_DMA(BMI->device_config.BMI_I2c, GYRO_I2C_ADD, GYRO_RATE_X_LSB, I2C_MEMADD_SIZE_8BIT, BMI->datas.raw_gyro_data, 6);
+	if(ret != HAL_OK)
+	{
+		BMI->flags.isDmaTransferActive = 0;
+		BMI->flags.isGyroUpdated = 0;
+	}
+
+	return ret;
+}
+
+void bmi088_process_accel_data(bmi088_struct_t* BMI)
+{
+	uint32_t current_time;
+	int16_t acc_x_16;
+	int16_t acc_y_16;
+	int16_t acc_z_16;
+
+	if((BMI == NULL) || !BMI->flags.isAccelDmaComplete)
+	{
+		return;
+	}
+
+	// Debug: Accelerometer okuma frekansı hesaplama
+	accel_read_count++;
+	current_time = HAL_GetTick();
+	if (current_time - accel_freq_last_time >= 1000) { // Her 1 saniyede bir hesapla
+		accel_frequency_hz = (float)accel_read_count * 1000.0f / (current_time - accel_freq_last_time);
+		accel_read_count = 0;
+		accel_freq_last_time = current_time;
+	}
+
+	acc_x_16 = (BMI->datas.raw_accel_data[1] << 8) | BMI->datas.raw_accel_data[0];
+	acc_y_16 = (BMI->datas.raw_accel_data[3] << 8) | BMI->datas.raw_accel_data[2];
+	acc_z_16 = (BMI->datas.raw_accel_data[5] << 8) | BMI->datas.raw_accel_data[4];
+
+	BMI->datas.acc_x = ((float)acc_x_16 / 32768.0 * 1000.0 * 1.5 * pow(2.0, (float)(BMI->device_config.acc_range + 1)) - ACCEL_X_OFFSET)*9.81/1000;
+	BMI->datas.acc_y = ((float)acc_y_16 / 32768.0 * 1000.0 * 1.5 * pow(2.0, (float)(BMI->device_config.acc_range + 1)) - ACCEL_Y_OFFSET)*9.81/1000;
+	BMI->datas.acc_z = ((float)acc_z_16 / 32768.0 * 1000.0 * 1.5 * pow(2.0, (float)(BMI->device_config.acc_range + 1)) - ACCEL_Z_OFFSET)*9.81/1000;
+
+	BMI->flags.isAccelDmaComplete = 0;
+	is_time_updated = 1;
+}
+
+void bmi088_process_gyro_data(bmi088_struct_t* BMI)
+{
+	uint32_t current_time;
+	uint32_t current_hal_tick;
+	int16_t gyro_x_16;
+	int16_t gyro_y_16;
+	int16_t gyro_z_16;
+
+	if((BMI == NULL) || !BMI->flags.isGyroDmaComplete)
+	{
+		return;
+	}
+
+	// Debug: Gyroscope okuma frekansı hesaplama
+	gyro_read_count++;
+	current_time = HAL_GetTick();
+	if (current_time - gyro_freq_last_time >= 1000) { // Her 1 saniyede bir hesapla
+		gyro_frequency_hz = (float)gyro_read_count * 1000.0f / (current_time - gyro_freq_last_time);
+		gyro_read_count = 0;
+		gyro_freq_last_time = current_time;
+	}
+
+	gyro_x_16 = (BMI->datas.raw_gyro_data[1] << 8) | BMI->datas.raw_gyro_data[0];
+	gyro_y_16 = (BMI->datas.raw_gyro_data[3] << 8) | BMI->datas.raw_gyro_data[2];
+	gyro_z_16 = (BMI->datas.raw_gyro_data[5] << 8) | BMI->datas.raw_gyro_data[4];
+
+	BMI->datas.gyro_x = (((float)gyro_x_16 / 32767.0) * (float)(2000 >> BMI->device_config.gyro_range) - BMI->device_config.offsets->gyro_offset[0]) * DEG_TO_RAD;
+	BMI->datas.gyro_y = (((float)gyro_y_16 / 32767.0) * (float)(2000 >> BMI->device_config.gyro_range) - BMI->device_config.offsets->gyro_offset[1]) * DEG_TO_RAD;
+	BMI->datas.gyro_z = (((float)gyro_z_16 / 32767.0) * (float)(2000 >> BMI->device_config.gyro_range) - BMI->device_config.offsets->gyro_offset[2]) * DEG_TO_RAD;
+
+	// Delta time hesaplama HAL_GetTick() ile (gyro processing'de yapılsın)
+	current_hal_tick = HAL_GetTick();
+	if(is_starded)
+	{
+		BMI->datas.delta_time = (float)(current_hal_tick - last_hal_tick) / 1000.0f; // ms to seconds
+	}
+	else
+	{
+		is_starded = 1;
+		BMI->datas.delta_time = 0.0f; // İlk gyro okumasında delta_time = 0
+	}
+	last_hal_tick = current_hal_tick;
+
+	Orientation_Update(BMI->datas.gyro_y, -BMI->datas.gyro_x, BMI->datas.gyro_z,BMI->datas.acc_y,-BMI->datas.acc_x,BMI->datas.acc_z, BMI->datas.delta_time);
+	BMI->datas.theta = quaternionToThetaZ();
+	is_gyro_renewed = 1;
+
+	BMI->flags.isGyroDmaComplete = 0;
 }
 
 
@@ -373,7 +414,13 @@ void get_offset(bmi088_struct_t* BMI)
 			return;
 		}
 		
-		bmi088_update(BMI);
+		if(BMI->flags.isGyroDmaComplete)
+		{
+			bmi088_process_gyro_data(BMI);
+			bmi088_process_accel_data(BMI);
+
+		}
+
 		if(is_gyro_renewed == 1)
 		{
 			if(offsetCounter < 1000)

@@ -1,0 +1,277 @@
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccaWo6zD.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 6
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"SEGGER_SYSVIEW_Config_FreeRTOS.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c"
+  20              		.section	.rodata
+  21              		.align	2
+  22              	.LC0:
+  23 0000 4E3D4672 		.ascii	"N=FreeRTOS First Application,D=STM32L432KC-NUCLEO,O"
+  23      65655254 
+  23      4F532046 
+  23      69727374 
+  23      20417070 
+  24 0033 3D467265 		.ascii	"=FreeRTOS\000"
+  24      6552544F 
+  24      5300
+  25 003d 000000   		.align	2
+  26              	.LC1:
+  27 0040 49233135 		.ascii	"I#15=SysTick\000"
+  27      3D537973 
+  27      5469636B 
+  27      00
+  28              		.section	.text._cbSendSystemDesc,"ax",%progbits
+  29              		.align	1
+  30              		.syntax unified
+  31              		.thumb
+  32              		.thumb_func
+  34              	_cbSendSystemDesc:
+  35              	.LFB4:
+   1:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** /*********************************************************************
+   2:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *                SEGGER Microcontroller GmbH & Co. KG                *
+   3:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *                        The Embedded Experts                        *
+   4:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** **********************************************************************
+   5:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *                                                                    *
+   6:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *       (c) 2015 - 2017  SEGGER Microcontroller GmbH & Co. KG        *
+   7:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *                                                                    *
+   8:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *       www.segger.com     Support: support@segger.com               *
+   9:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *                                                                    *
+  10:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** **********************************************************************
+  11:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *                                                                    *
+  12:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *       SEGGER SystemView * Real-time application analysis           *
+  13:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *                                                                    *
+  14:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** **********************************************************************
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccaWo6zD.s 			page 2
+
+
+  15:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *                                                                    *
+  16:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * All rights reserved.                                               *
+  17:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *                                                                    *
+  18:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * SEGGER strongly recommends to not make any changes                 *
+  19:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * to or modify the source code of this software in order to stay     *
+  20:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * compatible with the RTT protocol and J-Link.                       *
+  21:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *                                                                    *
+  22:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * Redistribution and use in source and binary forms, with or         *
+  23:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * without modification, are permitted provided that the following    *
+  24:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * conditions are met:                                                *
+  25:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *                                                                    *
+  26:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * o Redistributions of source code must retain the above copyright   *
+  27:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *   notice, this list of conditions and the following disclaimer.    *
+  28:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *                                                                    *
+  29:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * o Redistributions in binary form must reproduce the above          *
+  30:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *   copyright notice, this list of conditions and the following      *
+  31:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *   disclaimer in the documentation and/or other materials provided  *
+  32:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *   with the distribution.                                           *
+  33:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *                                                                    *
+  34:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * o Neither the name of SEGGER Microcontroller GmbH & Co. KG         *
+  35:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *   nor the names of its contributors may be used to endorse or      *
+  36:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *   promote products derived from this software without specific     *
+  37:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *   prior written permission.                                        *
+  38:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *                                                                    *
+  39:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND             *
+  40:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,        *
+  41:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF           *
+  42:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE           *
+  43:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * DISCLAIMED. IN NO EVENT SHALL SEGGER Microcontroller BE LIABLE FOR *
+  44:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR           *
+  45:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT  *
+  46:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;    *
+  47:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF      *
+  48:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT          *
+  49:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE  *
+  50:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH   *
+  51:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** * DAMAGE.                                                            *
+  52:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *                                                                    *
+  53:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** **********************************************************************
+  54:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *                                                                    *
+  55:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *       SystemView version: V2.52d                                    *
+  56:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *                                                                    *
+  57:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** **********************************************************************
+  58:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** -------------------------- END-OF-HEADER -----------------------------
+  59:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** 
+  60:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** File    : SEGGER_SYSVIEW_Config_FreeRTOS.c
+  61:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** Purpose : Sample setup configuration of SystemView with FreeRTOS.
+  62:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** Revision: $Rev: 7745 $
+  63:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** */
+  64:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** #include "FreeRTOS.h"
+  65:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** #include "SEGGER_SYSVIEW.h"
+  66:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** 
+  67:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** extern const SEGGER_SYSVIEW_OS_API SYSVIEW_X_OS_TraceAPI;
+  68:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** 
+  69:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** /*********************************************************************
+  70:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *
+  71:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *       Defines, configurable
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccaWo6zD.s 			page 3
+
+
+  72:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *
+  73:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** **********************************************************************
+  74:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** */
+  75:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** // The application name to be displayed in SystemViewer
+  76:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** #define SYSVIEW_APP_NAME        "FreeRTOS First Application"
+  77:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** 
+  78:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** // The target device name
+  79:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** #define SYSVIEW_DEVICE_NAME     "STM32L432KC-NUCLEO"
+  80:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** 
+  81:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** // Frequency of the timestamp. Must match SEGGER_SYSVIEW_GET_TIMESTAMP in SEGGER_SYSVIEW_Conf.h
+  82:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** #define SYSVIEW_TIMESTAMP_FREQ  (configCPU_CLOCK_HZ)
+  83:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** 
+  84:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** // System Frequency. SystemcoreClock is used in most CMSIS compatible projects.
+  85:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** #define SYSVIEW_CPU_FREQ        configCPU_CLOCK_HZ
+  86:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** 
+  87:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** // The lowest RAM address used for IDs (pointers)
+  88:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** #define SYSVIEW_RAM_BASE        (0x20000000)
+  89:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** 
+  90:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** /********************************************************************* 
+  91:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *
+  92:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *       _cbSendSystemDesc()
+  93:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *
+  94:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *  Function description
+  95:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *    Sends SystemView description strings.
+  96:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** */
+  97:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** static void _cbSendSystemDesc(void) {
+  36              		.loc 1 97 37
+  37              		.cfi_startproc
+  38              		@ args = 0, pretend = 0, frame = 0
+  39              		@ frame_needed = 1, uses_anonymous_args = 0
+  40 0000 80B5     		push	{r7, lr}
+  41              		.cfi_def_cfa_offset 8
+  42              		.cfi_offset 7, -8
+  43              		.cfi_offset 14, -4
+  44 0002 00AF     		add	r7, sp, #0
+  45              		.cfi_def_cfa_register 7
+  98:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c ****   SEGGER_SYSVIEW_SendSysDesc("N="SYSVIEW_APP_NAME",D="SYSVIEW_DEVICE_NAME",O=FreeRTOS");
+  46              		.loc 1 98 3
+  47 0004 0348     		ldr	r0, .L2
+  48 0006 FFF7FEFF 		bl	SEGGER_SYSVIEW_SendSysDesc
+  99:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c ****   SEGGER_SYSVIEW_SendSysDesc("I#15=SysTick");
+  49              		.loc 1 99 3
+  50 000a 0348     		ldr	r0, .L2+4
+  51 000c FFF7FEFF 		bl	SEGGER_SYSVIEW_SendSysDesc
+ 100:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** }
+  52              		.loc 1 100 1
+  53 0010 00BF     		nop
+  54 0012 80BD     		pop	{r7, pc}
+  55              	.L3:
+  56              		.align	2
+  57              	.L2:
+  58 0014 00000000 		.word	.LC0
+  59 0018 40000000 		.word	.LC1
+  60              		.cfi_endproc
+  61              	.LFE4:
+  63              		.section	.text.SEGGER_SYSVIEW_Conf,"ax",%progbits
+  64              		.align	1
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccaWo6zD.s 			page 4
+
+
+  65              		.global	SEGGER_SYSVIEW_Conf
+  66              		.syntax unified
+  67              		.thumb
+  68              		.thumb_func
+  70              	SEGGER_SYSVIEW_Conf:
+  71              	.LFB5:
+ 101:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** 
+ 102:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** /*********************************************************************
+ 103:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *
+ 104:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *       Global functions
+ 105:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** *
+ 106:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** **********************************************************************
+ 107:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** */
+ 108:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** void SEGGER_SYSVIEW_Conf(void) {
+  72              		.loc 1 108 32
+  73              		.cfi_startproc
+  74              		@ args = 0, pretend = 0, frame = 0
+  75              		@ frame_needed = 1, uses_anonymous_args = 0
+  76 0000 80B5     		push	{r7, lr}
+  77              		.cfi_def_cfa_offset 8
+  78              		.cfi_offset 7, -8
+  79              		.cfi_offset 14, -4
+  80 0002 00AF     		add	r7, sp, #0
+  81              		.cfi_def_cfa_register 7
+ 109:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c ****   SEGGER_SYSVIEW_Init(SYSVIEW_TIMESTAMP_FREQ, SYSVIEW_CPU_FREQ, 
+  82              		.loc 1 109 3
+  83 0004 064B     		ldr	r3, .L5
+  84 0006 1868     		ldr	r0, [r3]
+  85 0008 054B     		ldr	r3, .L5
+  86 000a 1968     		ldr	r1, [r3]
+  87 000c 054B     		ldr	r3, .L5+4
+  88 000e 064A     		ldr	r2, .L5+8
+  89 0010 FFF7FEFF 		bl	SEGGER_SYSVIEW_Init
+ 110:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c ****                       &SYSVIEW_X_OS_TraceAPI, _cbSendSystemDesc);
+ 111:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c ****   SEGGER_SYSVIEW_SetRAMBase(SYSVIEW_RAM_BASE);
+  90              		.loc 1 111 3
+  91 0014 4FF00050 		mov	r0, #536870912
+  92 0018 FFF7FEFF 		bl	SEGGER_SYSVIEW_SetRAMBase
+ 112:Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c **** }
+  93              		.loc 1 112 1
+  94 001c 00BF     		nop
+  95 001e 80BD     		pop	{r7, pc}
+  96              	.L6:
+  97              		.align	2
+  98              	.L5:
+  99 0020 00000000 		.word	SystemCoreClock
+ 100 0024 00000000 		.word	_cbSendSystemDesc
+ 101 0028 00000000 		.word	SYSVIEW_X_OS_TraceAPI
+ 102              		.cfi_endproc
+ 103              	.LFE5:
+ 105              		.text
+ 106              	.Letext0:
+ 107              		.file 2 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 108              		.file 3 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 109              		.file 4 "Middlewares/Third_Party/SEGGER/SEGGER/SEGGER_SYSVIEW.h"
+ 110              		.file 5 "Core/Inc/FreeRTOSConfig.h"
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccaWo6zD.s 			page 5
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 SEGGER_SYSVIEW_Config_FreeRTOS.c
+C:\Users\Halil\AppData\Local\Temp\ccaWo6zD.s:21     .rodata:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccaWo6zD.s:29     .text._cbSendSystemDesc:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccaWo6zD.s:34     .text._cbSendSystemDesc:00000000 _cbSendSystemDesc
+C:\Users\Halil\AppData\Local\Temp\ccaWo6zD.s:58     .text._cbSendSystemDesc:00000014 $d
+C:\Users\Halil\AppData\Local\Temp\ccaWo6zD.s:64     .text.SEGGER_SYSVIEW_Conf:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccaWo6zD.s:70     .text.SEGGER_SYSVIEW_Conf:00000000 SEGGER_SYSVIEW_Conf
+C:\Users\Halil\AppData\Local\Temp\ccaWo6zD.s:99     .text.SEGGER_SYSVIEW_Conf:00000020 $d
+                           .group:00000000 wm4.0.fbeba72283fbbed79c5ed62adcf8946b
+                           .group:00000000 wm4.stddef.h.39.3e0425629195acf083c9561151306b4d
+                           .group:00000000 wm4._newlib_version.h.4.6d111ab2e95434b664b53815e5c8ccba
+                           .group:00000000 wm4.features.h.33.3e67abe6fb64142d4f6fa9496796153c
+                           .group:00000000 wm4._default_types.h.15.247e5cd201eca3442cbf5404108c4935
+                           .group:00000000 wm4._intsup.h.10.48bafbb683905c4daa4565a85aeeb264
+                           .group:00000000 wm4._stdint.h.10.c24fa3af3bc1706662bb5593a907e841
+                           .group:00000000 wm4.stdint.h.23.d53047a68f4a85177f80b422d52785ed
+                           .group:00000000 wm4.FreeRTOSConfig.h.32.8e019a6631174f777e4f6ede9e2bb7e9
+                           .group:00000000 wm4.stdarg.h.31.b55da1089056868966f25de5dbfc7d3c
+                           .group:00000000 wm4.Global.h.69.e0f48c7eb64cd3647ceacea2cc368f43
+                           .group:00000000 wm4.SEGGER.h.93.885d9d7ea302677e269465e6da347b9f
+                           .group:00000000 wm4.SEGGER_SYSVIEW.h.88.65dd41e8fc33fc8f03c978fd13231926
+                           .group:00000000 wm4.SEGGER_SYSVIEW_FreeRTOS.h.80.d232dda0d91b880546b63cc6970a0231
+                           .group:00000000 wm4.projdefs.h.29.3472c8470d131a5f474bc7437ea94609
+                           .group:00000000 wm4.portmacro.h.30.ebb5f3ce711e1dad21b3172c9bc8e19f
+                           .group:00000000 wm4.portable.h.64.742f2ce568820e866a7b541b4c77966f
+                           .group:00000000 wm4.mpu_wrappers.h.29.4f9aea82ee68d943d141825e5294de63
+                           .group:00000000 wm4.FreeRTOS.h.66.cc51f96fb61ed1e446bb6cea86adf7fa
+
+UNDEFINED SYMBOLS
+SEGGER_SYSVIEW_SendSysDesc
+SEGGER_SYSVIEW_Init
+SEGGER_SYSVIEW_SetRAMBase
+SystemCoreClock
+SYSVIEW_X_OS_TraceAPI

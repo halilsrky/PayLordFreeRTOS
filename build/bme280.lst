@@ -1,0 +1,2805 @@
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 6
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"bme280.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Core/Src/bme280.c"
+  20              		.section	.bss.I2C_,"aw",%nobits
+  21              		.align	2
+  24              	I2C_:
+  25 0000 00000000 		.space	4
+  26              		.section	.bss.BME,"aw",%nobits
+  27              		.align	2
+  30              	BME:
+  31 0000 00000000 		.space	4
+  32              		.section	.bss.bme_started_flag,"aw",%nobits
+  35              	bme_started_flag:
+  36 0000 00       		.space	1
+  37              		.section	.data.last_measuring,"aw"
+  40              	last_measuring:
+  41 0000 01       		.byte	1
+  42              		.section	.bss.execution_count,"aw",%nobits
+  43              		.align	2
+  46              	execution_count:
+  47 0000 00000000 		.space	4
+  48              		.section	.bss.last_freq_check_time,"aw",%nobits
+  49              		.align	2
+  52              	last_freq_check_time:
+  53 0000 00000000 		.space	4
+  54              		.section	.bss.execution_frequency,"aw",%nobits
+  55              		.align	2
+  58              	execution_frequency:
+  59 0000 00000000 		.space	4
+  60              		.section	.text.bme280_getVals,"ax",%progbits
+  61              		.align	1
+  62              		.global	bme280_getVals
+  63              		.syntax unified
+  64              		.thumb
+  65              		.thumb_func
+  67              	bme280_getVals:
+  68              	.LFB242:
+   1:Core/Src/bme280.c **** /*
+   2:Core/Src/bme280.c ****  * bme280.c
+   3:Core/Src/bme280.c ****  *
+   4:Core/Src/bme280.c ****  *  Created on: May 1, 2024
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 2
+
+
+   5:Core/Src/bme280.c ****  *      Author: yahya
+   6:Core/Src/bme280.c ****  *  Modified on: 2025-06-24
+   7:Core/Src/bme280.c ****  *      Author: halilsrky
+   8:Core/Src/bme280.c ****  */
+   9:Core/Src/bme280.c **** 
+  10:Core/Src/bme280.c **** #include "bme280.h"
+  11:Core/Src/bme280.c **** #include <math.h>
+  12:Core/Src/bme280.c **** #include <string.h>
+  13:Core/Src/bme280.c **** #include <stdio.h>
+  14:Core/Src/bme280.c **** 
+  15:Core/Src/bme280.c **** extern BME_parameters_t bme_params;
+  16:Core/Src/bme280.c **** extern int is_BME_ok;
+  17:Core/Src/bme280.c **** extern UART_HandleTypeDef huart2;
+  18:Core/Src/bme280.c **** 
+  19:Core/Src/bme280.c **** static I2C_HandleTypeDef* I2C_;
+  20:Core/Src/bme280.c **** static BME_280_t*         BME;
+  21:Core/Src/bme280.c **** static uint8_t bme_started_flag = 0;
+  22:Core/Src/bme280.c **** static uint8_t last_measuring = 1;
+  23:Core/Src/bme280.c **** 
+  24:Core/Src/bme280.c **** // Frequency measurement variables
+  25:Core/Src/bme280.c **** static uint32_t execution_count = 0;
+  26:Core/Src/bme280.c **** static uint32_t last_freq_check_time = 0;
+  27:Core/Src/bme280.c **** static float execution_frequency = 0.0f;
+  28:Core/Src/bme280.c **** 
+  29:Core/Src/bme280.c **** 
+  30:Core/Src/bme280.c **** void bme280_getVals()
+  31:Core/Src/bme280.c **** {
+  69              		.loc 1 31 1
+  70              		.cfi_startproc
+  71              		@ args = 0, pretend = 0, frame = 16
+  72              		@ frame_needed = 1, uses_anonymous_args = 0
+  73 0000 80B5     		push	{r7, lr}
+  74              		.cfi_def_cfa_offset 8
+  75              		.cfi_offset 7, -8
+  76              		.cfi_offset 14, -4
+  77 0002 88B0     		sub	sp, sp, #32
+  78              		.cfi_def_cfa_offset 40
+  79 0004 04AF     		add	r7, sp, #16
+  80              		.cfi_def_cfa 7, 24
+  32:Core/Src/bme280.c **** 	uint8_t status;
+  33:Core/Src/bme280.c ****     HAL_StatusTypeDef retVal = HAL_I2C_Mem_Read(I2C_, BME280_ADD, BME280_STATUS, I2C_MEMADD_SIZE_8B
+  81              		.loc 1 33 32
+  82 0006 3C4B     		ldr	r3, .L4
+  83 0008 1868     		ldr	r0, [r3]
+  84 000a 6423     		movs	r3, #100
+  85 000c 0293     		str	r3, [sp, #8]
+  86 000e 0123     		movs	r3, #1
+  87 0010 0193     		str	r3, [sp, #4]
+  88 0012 07F10D03 		add	r3, r7, #13
+  89 0016 0093     		str	r3, [sp]
+  90 0018 0123     		movs	r3, #1
+  91 001a F322     		movs	r2, #243
+  92 001c EC21     		movs	r1, #236
+  93 001e FFF7FEFF 		bl	HAL_I2C_Mem_Read
+  94 0022 0346     		mov	r3, r0
+  95 0024 FB73     		strb	r3, [r7, #15]
+  34:Core/Src/bme280.c ****     BME->isUpdated = 0;
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 3
+
+
+  96              		.loc 1 34 8
+  97 0026 354B     		ldr	r3, .L4+4
+  98 0028 1B68     		ldr	r3, [r3]
+  99              		.loc 1 34 20
+ 100 002a 0022     		movs	r2, #0
+ 101 002c 83F83C20 		strb	r2, [r3, #60]
+  35:Core/Src/bme280.c ****     uint8_t current_measuring = ((status & (0x01 << 3)) == 0);
+ 102              		.loc 1 35 42
+ 103 0030 7B7B     		ldrb	r3, [r7, #13]	@ zero_extendqisi2
+ 104 0032 03F00803 		and	r3, r3, #8
+ 105              		.loc 1 35 57
+ 106 0036 002B     		cmp	r3, #0
+ 107 0038 0CBF     		ite	eq
+ 108 003a 0123     		moveq	r3, #1
+ 109 003c 0023     		movne	r3, #0
+ 110 003e DBB2     		uxtb	r3, r3
+ 111              		.loc 1 35 13
+ 112 0040 BB73     		strb	r3, [r7, #14]
+  36:Core/Src/bme280.c **** 
+  37:Core/Src/bme280.c ****     if ((last_measuring == 1) && (current_measuring == 0)) {
+ 113              		.loc 1 37 25
+ 114 0042 2F4B     		ldr	r3, .L4+8
+ 115 0044 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 116              		.loc 1 37 8
+ 117 0046 012B     		cmp	r3, #1
+ 118 0048 4FD1     		bne	.L2
+ 119              		.loc 1 37 31 discriminator 1
+ 120 004a BB7B     		ldrb	r3, [r7, #14]	@ zero_extendqisi2
+ 121 004c 002B     		cmp	r3, #0
+ 122 004e 4CD1     		bne	.L2
+ 123              	.LBB2:
+  38:Core/Src/bme280.c ****         uint8_t data[8];
+  39:Core/Src/bme280.c ****         retVal = HAL_I2C_Mem_Read(I2C_, BME280_ADD, BME280_P_MSB_ADD, I2C_MEMADD_SIZE_8BIT, data, 8
+ 124              		.loc 1 39 18
+ 125 0050 294B     		ldr	r3, .L4
+ 126 0052 1868     		ldr	r0, [r3]
+ 127 0054 1423     		movs	r3, #20
+ 128 0056 0293     		str	r3, [sp, #8]
+ 129 0058 0823     		movs	r3, #8
+ 130 005a 0193     		str	r3, [sp, #4]
+ 131 005c 3B1D     		adds	r3, r7, #4
+ 132 005e 0093     		str	r3, [sp]
+ 133 0060 0123     		movs	r3, #1
+ 134 0062 F722     		movs	r2, #247
+ 135 0064 EC21     		movs	r1, #236
+ 136 0066 FFF7FEFF 		bl	HAL_I2C_Mem_Read
+ 137 006a 0346     		mov	r3, r0
+ 138 006c FB73     		strb	r3, [r7, #15]
+  40:Core/Src/bme280.c ****         if (retVal == HAL_OK && memcmp(data, BME->lastReadings, 8) != 0) {
+ 139              		.loc 1 40 12
+ 140 006e FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 141 0070 002B     		cmp	r3, #0
+ 142 0072 3AD1     		bne	.L2
+ 143              		.loc 1 40 49 discriminator 1
+ 144 0074 214B     		ldr	r3, .L4+4
+ 145 0076 1B68     		ldr	r3, [r3]
+ 146 0078 03F13401 		add	r1, r3, #52
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 4
+
+
+ 147              		.loc 1 40 33 discriminator 1
+ 148 007c 3B1D     		adds	r3, r7, #4
+ 149 007e 0822     		movs	r2, #8
+ 150 0080 1846     		mov	r0, r3
+ 151 0082 FFF7FEFF 		bl	memcmp
+ 152 0086 0346     		mov	r3, r0
+ 153              		.loc 1 40 30 discriminator 1
+ 154 0088 002B     		cmp	r3, #0
+ 155 008a 2ED0     		beq	.L2
+  41:Core/Src/bme280.c ****             memcpy(BME->lastReadings, data, 8);
+ 156              		.loc 1 41 23
+ 157 008c 1B4B     		ldr	r3, .L4+4
+ 158 008e 1B68     		ldr	r3, [r3]
+ 159 0090 3433     		adds	r3, r3, #52
+ 160              		.loc 1 41 13
+ 161 0092 1A46     		mov	r2, r3
+ 162 0094 3B1D     		adds	r3, r7, #4
+ 163 0096 03CB     		ldmia	r3!, {r0, r1}
+ 164 0098 1060     		str	r0, [r2]	@ unaligned
+ 165 009a 5160     		str	r1, [r2, #4]	@ unaligned
+  42:Core/Src/bme280.c ****             BME->isUpdated = 1;
+ 166              		.loc 1 42 16
+ 167 009c 174B     		ldr	r3, .L4+4
+ 168 009e 1B68     		ldr	r3, [r3]
+ 169              		.loc 1 42 28
+ 170 00a0 0122     		movs	r2, #1
+ 171 00a2 83F83C20 		strb	r2, [r3, #60]
+  43:Core/Src/bme280.c **** 
+  44:Core/Src/bme280.c **** /*            execution_count++;
+  45:Core/Src/bme280.c **** 
+  46:Core/Src/bme280.c ****             uint32_t current_time = HAL_GetTick();
+  47:Core/Src/bme280.c ****             if (current_time - last_freq_check_time >= 1000) {
+  48:Core/Src/bme280.c ****                 execution_frequency = (float)execution_count / ((current_time - last_freq_check_tim
+  49:Core/Src/bme280.c ****                 execution_count = 0;
+  50:Core/Src/bme280.c ****                 last_freq_check_time = current_time;
+  51:Core/Src/bme280.c **** 
+  52:Core/Src/bme280.c ****                 // Optional: Print frequency to debug UART
+  53:Core/Src/bme280.c ****                 char freq_msg[50];
+  54:Core/Src/bme280.c ****                 sprintf(freq_msg, "BME280 Read Freq: %.2f Hz\r\n", execution_frequency);
+  55:Core/Src/bme280.c ****                 HAL_UART_Transmit(&huart2, (uint8_t*)freq_msg, strlen(freq_msg), 100);
+  56:Core/Src/bme280.c ****             }
+  57:Core/Src/bme280.c **** 
+  58:Core/Src/bme280.c **** */
+  59:Core/Src/bme280.c **** 
+  60:Core/Src/bme280.c ****             BME->adcVals.ut = ((int32_t)data[3] << 12) | ((int32_t)data[4] << 4) | ((int32_t)data[5
+ 172              		.loc 1 60 45
+ 173 00a6 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 174              		.loc 1 60 49
+ 175 00a8 1A03     		lsls	r2, r3, #12
+ 176              		.loc 1 60 72
+ 177 00aa 3B7A     		ldrb	r3, [r7, #8]	@ zero_extendqisi2
+ 178              		.loc 1 60 76
+ 179 00ac 1B01     		lsls	r3, r3, #4
+ 180              		.loc 1 60 56
+ 181 00ae 1A43     		orrs	r2, r2, r3
+ 182              		.loc 1 60 98
+ 183 00b0 7B7A     		ldrb	r3, [r7, #9]	@ zero_extendqisi2
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 5
+
+
+ 184              		.loc 1 60 102
+ 185 00b2 1B09     		lsrs	r3, r3, #4
+ 186 00b4 DBB2     		uxtb	r3, r3
+ 187 00b6 1946     		mov	r1, r3
+ 188              		.loc 1 60 16
+ 189 00b8 104B     		ldr	r3, .L4+4
+ 190 00ba 1B68     		ldr	r3, [r3]
+ 191              		.loc 1 60 82
+ 192 00bc 0A43     		orrs	r2, r2, r1
+ 193              		.loc 1 60 29
+ 194 00be 9A60     		str	r2, [r3, #8]
+  61:Core/Src/bme280.c ****             BME->adcVals.up = ((int32_t)data[0] << 12) | ((int32_t)data[1] << 4) | ((int32_t)data[2
+ 195              		.loc 1 61 45
+ 196 00c0 3B79     		ldrb	r3, [r7, #4]	@ zero_extendqisi2
+ 197              		.loc 1 61 49
+ 198 00c2 1A03     		lsls	r2, r3, #12
+ 199              		.loc 1 61 72
+ 200 00c4 7B79     		ldrb	r3, [r7, #5]	@ zero_extendqisi2
+ 201              		.loc 1 61 76
+ 202 00c6 1B01     		lsls	r3, r3, #4
+ 203              		.loc 1 61 56
+ 204 00c8 1A43     		orrs	r2, r2, r3
+ 205              		.loc 1 61 98
+ 206 00ca BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 207              		.loc 1 61 102
+ 208 00cc 1B09     		lsrs	r3, r3, #4
+ 209 00ce DBB2     		uxtb	r3, r3
+ 210 00d0 1946     		mov	r1, r3
+ 211              		.loc 1 61 16
+ 212 00d2 0A4B     		ldr	r3, .L4+4
+ 213 00d4 1B68     		ldr	r3, [r3]
+ 214              		.loc 1 61 82
+ 215 00d6 0A43     		orrs	r2, r2, r1
+ 216              		.loc 1 61 29
+ 217 00d8 DA60     		str	r2, [r3, #12]
+  62:Core/Src/bme280.c ****             BME->adcVals.uh = ((int32_t)data[6] << 8) | ((int32_t)data[7]);
+ 218              		.loc 1 62 45
+ 219 00da BB7A     		ldrb	r3, [r7, #10]	@ zero_extendqisi2
+ 220              		.loc 1 62 49
+ 221 00dc 1A02     		lsls	r2, r3, #8
+ 222              		.loc 1 62 71
+ 223 00de FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 224              		.loc 1 62 58
+ 225 00e0 1946     		mov	r1, r3
+ 226              		.loc 1 62 16
+ 227 00e2 064B     		ldr	r3, .L4+4
+ 228 00e4 1B68     		ldr	r3, [r3]
+ 229              		.loc 1 62 55
+ 230 00e6 0A43     		orrs	r2, r2, r1
+ 231              		.loc 1 62 29
+ 232 00e8 1A61     		str	r2, [r3, #16]
+ 233              	.L2:
+ 234              	.LBE2:
+  63:Core/Src/bme280.c ****         }
+  64:Core/Src/bme280.c ****     }
+  65:Core/Src/bme280.c ****     last_measuring = current_measuring;
+ 235              		.loc 1 65 20
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 6
+
+
+ 236 00ea 054A     		ldr	r2, .L4+8
+ 237 00ec BB7B     		ldrb	r3, [r7, #14]
+ 238 00ee 1370     		strb	r3, [r2]
+  66:Core/Src/bme280.c ****     UNUSED(retVal);
+  67:Core/Src/bme280.c **** }
+ 239              		.loc 1 67 1
+ 240 00f0 00BF     		nop
+ 241 00f2 1037     		adds	r7, r7, #16
+ 242              		.cfi_def_cfa_offset 8
+ 243 00f4 BD46     		mov	sp, r7
+ 244              		.cfi_def_cfa_register 13
+ 245              		@ sp needed
+ 246 00f6 80BD     		pop	{r7, pc}
+ 247              	.L5:
+ 248              		.align	2
+ 249              	.L4:
+ 250 00f8 00000000 		.word	I2C_
+ 251 00fc 00000000 		.word	BME
+ 252 0100 00000000 		.word	last_measuring
+ 253              		.cfi_endproc
+ 254              	.LFE242:
+ 256              		.global	__aeabi_f2d
+ 257              		.global	__aeabi_dsub
+ 258              		.global	__aeabi_dmul
+ 259              		.global	__aeabi_d2f
+ 260              		.section	.text.bme280_calculate_altitude,"ax",%progbits
+ 261              		.align	1
+ 262              		.global	bme280_calculate_altitude
+ 263              		.syntax unified
+ 264              		.thumb
+ 265              		.thumb_func
+ 267              	bme280_calculate_altitude:
+ 268              	.LFB243:
+  68:Core/Src/bme280.c **** 
+  69:Core/Src/bme280.c **** 
+  70:Core/Src/bme280.c **** 
+  71:Core/Src/bme280.c **** void bme280_calculate_altitude() {
+ 269              		.loc 1 71 34
+ 270              		.cfi_startproc
+ 271              		@ args = 0, pretend = 0, frame = 8
+ 272              		@ frame_needed = 1, uses_anonymous_args = 0
+ 273 0000 80B5     		push	{r7, lr}
+ 274              		.cfi_def_cfa_offset 8
+ 275              		.cfi_offset 7, -8
+ 276              		.cfi_offset 14, -4
+ 277 0002 82B0     		sub	sp, sp, #8
+ 278              		.cfi_def_cfa_offset 16
+ 279 0004 00AF     		add	r7, sp, #0
+ 280              		.cfi_def_cfa_register 7
+  72:Core/Src/bme280.c ****     // Standard sea level pressure in hPa
+  73:Core/Src/bme280.c ****     float p_seaLevel = 1013.25;
+ 281              		.loc 1 73 11
+ 282 0006 244B     		ldr	r3, .L7+16
+ 283 0008 7B60     		str	r3, [r7, #4]	@ float
+  74:Core/Src/bme280.c **** 
+  75:Core/Src/bme280.c ****     // Calculate altitude from pressure using barometric formula
+  76:Core/Src/bme280.c ****     float rawAltitude = 44330.0 * (1.0 - pow((BME->pressure / p_seaLevel), (1.0 / 5.255)));
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 7
+
+
+ 284              		.loc 1 76 50
+ 285 000a 244B     		ldr	r3, .L7+20
+ 286 000c 1B68     		ldr	r3, [r3]
+ 287 000e 93ED067A 		vldr.32	s14, [r3, #24]
+ 288              		.loc 1 76 61
+ 289 0012 D7ED017A 		vldr.32	s15, [r7, #4]
+ 290 0016 C7EE276A 		vdiv.f32	s13, s14, s15
+ 291              		.loc 1 76 42
+ 292 001a 16EE900A 		vmov	r0, s13
+ 293 001e FFF7FEFF 		bl	__aeabi_f2d
+ 294 0022 0246     		mov	r2, r0
+ 295 0024 0B46     		mov	r3, r1
+ 296 0026 9FED181B 		vldr.64	d1, .L7
+ 297 002a 43EC102B 		vmov	d0, r2, r3
+ 298 002e FFF7FEFF 		bl	pow
+ 299 0032 53EC102B 		vmov	r2, r3, d0
+ 300              		.loc 1 76 40
+ 301 0036 4FF00000 		mov	r0, #0
+ 302 003a 1949     		ldr	r1, .L7+24
+ 303 003c FFF7FEFF 		bl	__aeabi_dsub
+ 304 0040 0246     		mov	r2, r0
+ 305 0042 0B46     		mov	r3, r1
+ 306 0044 1046     		mov	r0, r2
+ 307 0046 1946     		mov	r1, r3
+ 308              		.loc 1 76 33
+ 309 0048 11A3     		adr	r3, .L7+8
+ 310 004a D3E90023 		ldrd	r2, [r3]
+ 311 004e FFF7FEFF 		bl	__aeabi_dmul
+ 312 0052 0246     		mov	r2, r0
+ 313 0054 0B46     		mov	r3, r1
+ 314              		.loc 1 76 11
+ 315 0056 1046     		mov	r0, r2
+ 316 0058 1946     		mov	r1, r3
+ 317 005a FFF7FEFF 		bl	__aeabi_d2f
+ 318 005e 0346     		mov	r3, r0	@ float
+ 319 0060 3B60     		str	r3, [r7]	@ float
+  77:Core/Src/bme280.c **** 
+  78:Core/Src/bme280.c ****     // Apply base altitude correction
+  79:Core/Src/bme280.c ****     BME->altitude = rawAltitude - BME->base_altitude;
+ 320              		.loc 1 79 38
+ 321 0062 0E4B     		ldr	r3, .L7+20
+ 322 0064 1B68     		ldr	r3, [r3]
+ 323 0066 D3ED097A 		vldr.32	s15, [r3, #36]
+ 324              		.loc 1 79 8
+ 325 006a 0C4B     		ldr	r3, .L7+20
+ 326 006c 1B68     		ldr	r3, [r3]
+ 327              		.loc 1 79 33
+ 328 006e 97ED007A 		vldr.32	s14, [r7]
+ 329 0072 77EE677A 		vsub.f32	s15, s14, s15
+ 330              		.loc 1 79 19
+ 331 0076 C3ED087A 		vstr.32	s15, [r3, #32]
+  80:Core/Src/bme280.c **** }
+ 332              		.loc 1 80 1
+ 333 007a 00BF     		nop
+ 334 007c 0837     		adds	r7, r7, #8
+ 335              		.cfi_def_cfa_offset 8
+ 336 007e BD46     		mov	sp, r7
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 8
+
+
+ 337              		.cfi_def_cfa_register 13
+ 338              		@ sp needed
+ 339 0080 80BD     		pop	{r7, pc}
+ 340              	.L8:
+ 341 0082 00BFAFF3 		.align	3
+ 341      0080
+ 342              	.L7:
+ 343 0088 6C45D9CC 		.word	-858176148
+ 344 008c 955BC83F 		.word	1070095253
+ 345 0090 00000000 		.word	0
+ 346 0094 40A5E540 		.word	1088791872
+ 347 0098 00507D44 		.word	1149063168
+ 348 009c 00000000 		.word	BME
+ 349 00a0 0000F03F 		.word	1072693248
+ 350              		.cfi_endproc
+ 351              	.LFE243:
+ 353              		.global	__aeabi_ddiv
+ 354              		.section	.text.bme280_config,"ax",%progbits
+ 355              		.align	1
+ 356              		.global	bme280_config
+ 357              		.syntax unified
+ 358              		.thumb
+ 359              		.thumb_func
+ 361              	bme280_config:
+ 362              	.LFB244:
+  81:Core/Src/bme280.c **** 
+  82:Core/Src/bme280.c **** void bme280_config()
+  83:Core/Src/bme280.c **** {
+ 363              		.loc 1 83 1
+ 364              		.cfi_startproc
+ 365              		@ args = 0, pretend = 0, frame = 56
+ 366              		@ frame_needed = 1, uses_anonymous_args = 0
+ 367 0000 80B5     		push	{r7, lr}
+ 368              		.cfi_def_cfa_offset 8
+ 369              		.cfi_offset 7, -8
+ 370              		.cfi_offset 14, -4
+ 371 0002 92B0     		sub	sp, sp, #72
+ 372              		.cfi_def_cfa_offset 80
+ 373 0004 04AF     		add	r7, sp, #16
+ 374              		.cfi_def_cfa 7, 64
+  84:Core/Src/bme280.c ****     uint8_t params[25];
+  85:Core/Src/bme280.c ****     HAL_StatusTypeDef retVal;
+  86:Core/Src/bme280.c **** 
+  87:Core/Src/bme280.c ****     BME->base_altitude = 0.0;
+ 375              		.loc 1 87 8
+ 376 0006 9B4B     		ldr	r3, .L23
+ 377 0008 1B68     		ldr	r3, [r3]
+ 378              		.loc 1 87 24
+ 379 000a 4FF00002 		mov	r2, #0
+ 380 000e 5A62     		str	r2, [r3, #36]	@ float
+  88:Core/Src/bme280.c **** 
+  89:Core/Src/bme280.c ****     // Reset and initialize I2C
+  90:Core/Src/bme280.c ****     HAL_I2C_DeInit(I2C_);
+ 381              		.loc 1 90 5
+ 382 0010 994B     		ldr	r3, .L23+4
+ 383 0012 1B68     		ldr	r3, [r3]
+ 384 0014 1846     		mov	r0, r3
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 9
+
+
+ 385 0016 FFF7FEFF 		bl	HAL_I2C_DeInit
+  91:Core/Src/bme280.c ****     HAL_Delay(5);
+ 386              		.loc 1 91 5
+ 387 001a 0520     		movs	r0, #5
+ 388 001c FFF7FEFF 		bl	HAL_Delay
+  92:Core/Src/bme280.c ****     HAL_I2C_Init(I2C_);
+ 389              		.loc 1 92 5
+ 390 0020 954B     		ldr	r3, .L23+4
+ 391 0022 1B68     		ldr	r3, [r3]
+ 392 0024 1846     		mov	r0, r3
+ 393 0026 FFF7FEFF 		bl	HAL_I2C_Init
+  93:Core/Src/bme280.c ****     HAL_Delay(5);
+ 394              		.loc 1 93 5
+ 395 002a 0520     		movs	r0, #5
+ 396 002c FFF7FEFF 		bl	HAL_Delay
+  94:Core/Src/bme280.c **** 
+  95:Core/Src/bme280.c ****     // Read calibration parameters
+  96:Core/Src/bme280.c ****     retVal = HAL_I2C_Mem_Read(I2C_, BME280_ADD, BME280_PARAM1_START, I2C_MEMADD_SIZE_8BIT, params, 
+ 397              		.loc 1 96 14
+ 398 0030 914B     		ldr	r3, .L23+4
+ 399 0032 1868     		ldr	r0, [r3]
+ 400 0034 C823     		movs	r3, #200
+ 401 0036 0293     		str	r3, [sp, #8]
+ 402 0038 1923     		movs	r3, #25
+ 403 003a 0193     		str	r3, [sp, #4]
+ 404 003c 07F10803 		add	r3, r7, #8
+ 405 0040 0093     		str	r3, [sp]
+ 406 0042 0123     		movs	r3, #1
+ 407 0044 8822     		movs	r2, #136
+ 408 0046 EC21     		movs	r1, #236
+ 409 0048 FFF7FEFF 		bl	HAL_I2C_Mem_Read
+ 410 004c 0346     		mov	r3, r0
+ 411 004e 87F82B30 		strb	r3, [r7, #43]
+  97:Core/Src/bme280.c **** 
+  98:Core/Src/bme280.c ****     BME->parameters->dig_T1 = params[0] | (uint16_t)(params[1] << 8);
+ 412              		.loc 1 98 37
+ 413 0052 3B7A     		ldrb	r3, [r7, #8]	@ zero_extendqisi2
+ 414 0054 1946     		mov	r1, r3
+ 415              		.loc 1 98 60
+ 416 0056 7B7A     		ldrb	r3, [r7, #9]	@ zero_extendqisi2
+ 417              		.loc 1 98 43
+ 418 0058 1B02     		lsls	r3, r3, #8
+ 419 005a 9AB2     		uxth	r2, r3
+ 420              		.loc 1 98 8
+ 421 005c 854B     		ldr	r3, .L23
+ 422 005e 1B68     		ldr	r3, [r3]
+ 423 0060 1B68     		ldr	r3, [r3]
+ 424              		.loc 1 98 41
+ 425 0062 0A43     		orrs	r2, r2, r1
+ 426 0064 92B2     		uxth	r2, r2
+ 427              		.loc 1 98 29
+ 428 0066 1A80     		strh	r2, [r3]	@ movhi
+  99:Core/Src/bme280.c ****     BME->parameters->dig_T2 = params[2] | ((int16_t)params[3] << 8);
+ 429              		.loc 1 99 37
+ 430 0068 BB7A     		ldrb	r3, [r7, #10]	@ zero_extendqisi2
+ 431 006a 19B2     		sxth	r1, r3
+ 432              		.loc 1 99 59
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 10
+
+
+ 433 006c FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 434              		.loc 1 99 63
+ 435 006e 1B02     		lsls	r3, r3, #8
+ 436              		.loc 1 99 41
+ 437 0070 1AB2     		sxth	r2, r3
+ 438              		.loc 1 99 8
+ 439 0072 804B     		ldr	r3, .L23
+ 440 0074 1B68     		ldr	r3, [r3]
+ 441 0076 1B68     		ldr	r3, [r3]
+ 442              		.loc 1 99 41
+ 443 0078 0A43     		orrs	r2, r2, r1
+ 444 007a 12B2     		sxth	r2, r2
+ 445              		.loc 1 99 29
+ 446 007c 5A80     		strh	r2, [r3, #2]	@ movhi
+ 100:Core/Src/bme280.c ****     BME->parameters->dig_T3 = params[4] | ((int16_t)params[5] << 8);
+ 447              		.loc 1 100 37
+ 448 007e 3B7B     		ldrb	r3, [r7, #12]	@ zero_extendqisi2
+ 449 0080 19B2     		sxth	r1, r3
+ 450              		.loc 1 100 59
+ 451 0082 7B7B     		ldrb	r3, [r7, #13]	@ zero_extendqisi2
+ 452              		.loc 1 100 63
+ 453 0084 1B02     		lsls	r3, r3, #8
+ 454              		.loc 1 100 41
+ 455 0086 1AB2     		sxth	r2, r3
+ 456              		.loc 1 100 8
+ 457 0088 7A4B     		ldr	r3, .L23
+ 458 008a 1B68     		ldr	r3, [r3]
+ 459 008c 1B68     		ldr	r3, [r3]
+ 460              		.loc 1 100 41
+ 461 008e 0A43     		orrs	r2, r2, r1
+ 462 0090 12B2     		sxth	r2, r2
+ 463              		.loc 1 100 29
+ 464 0092 9A80     		strh	r2, [r3, #4]	@ movhi
+ 101:Core/Src/bme280.c ****     BME->parameters->dig_P1 = params[6] | ((uint16_t)params[7] << 8);
+ 465              		.loc 1 101 37
+ 466 0094 BB7B     		ldrb	r3, [r7, #14]	@ zero_extendqisi2
+ 467 0096 1AB2     		sxth	r2, r3
+ 468              		.loc 1 101 60
+ 469 0098 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 470              		.loc 1 101 64
+ 471 009a 1B02     		lsls	r3, r3, #8
+ 472              		.loc 1 101 41
+ 473 009c 1BB2     		sxth	r3, r3
+ 474 009e 1343     		orrs	r3, r3, r2
+ 475 00a0 1AB2     		sxth	r2, r3
+ 476              		.loc 1 101 8
+ 477 00a2 744B     		ldr	r3, .L23
+ 478 00a4 1B68     		ldr	r3, [r3]
+ 479 00a6 1B68     		ldr	r3, [r3]
+ 480              		.loc 1 101 41
+ 481 00a8 92B2     		uxth	r2, r2
+ 482              		.loc 1 101 29
+ 483 00aa DA80     		strh	r2, [r3, #6]	@ movhi
+ 102:Core/Src/bme280.c ****     BME->parameters->dig_P2 = params[8] | ((int16_t)params[9] << 8);
+ 484              		.loc 1 102 37
+ 485 00ac 3B7C     		ldrb	r3, [r7, #16]	@ zero_extendqisi2
+ 486 00ae 19B2     		sxth	r1, r3
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 11
+
+
+ 487              		.loc 1 102 59
+ 488 00b0 7B7C     		ldrb	r3, [r7, #17]	@ zero_extendqisi2
+ 489              		.loc 1 102 63
+ 490 00b2 1B02     		lsls	r3, r3, #8
+ 491              		.loc 1 102 41
+ 492 00b4 1AB2     		sxth	r2, r3
+ 493              		.loc 1 102 8
+ 494 00b6 6F4B     		ldr	r3, .L23
+ 495 00b8 1B68     		ldr	r3, [r3]
+ 496 00ba 1B68     		ldr	r3, [r3]
+ 497              		.loc 1 102 41
+ 498 00bc 0A43     		orrs	r2, r2, r1
+ 499 00be 12B2     		sxth	r2, r2
+ 500              		.loc 1 102 29
+ 501 00c0 1A81     		strh	r2, [r3, #8]	@ movhi
+ 103:Core/Src/bme280.c ****     BME->parameters->dig_P3 = params[10] | ((int16_t)params[11] << 8);
+ 502              		.loc 1 103 37
+ 503 00c2 BB7C     		ldrb	r3, [r7, #18]	@ zero_extendqisi2
+ 504 00c4 19B2     		sxth	r1, r3
+ 505              		.loc 1 103 60
+ 506 00c6 FB7C     		ldrb	r3, [r7, #19]	@ zero_extendqisi2
+ 507              		.loc 1 103 65
+ 508 00c8 1B02     		lsls	r3, r3, #8
+ 509              		.loc 1 103 42
+ 510 00ca 1AB2     		sxth	r2, r3
+ 511              		.loc 1 103 8
+ 512 00cc 694B     		ldr	r3, .L23
+ 513 00ce 1B68     		ldr	r3, [r3]
+ 514 00d0 1B68     		ldr	r3, [r3]
+ 515              		.loc 1 103 42
+ 516 00d2 0A43     		orrs	r2, r2, r1
+ 517 00d4 12B2     		sxth	r2, r2
+ 518              		.loc 1 103 29
+ 519 00d6 5A81     		strh	r2, [r3, #10]	@ movhi
+ 104:Core/Src/bme280.c ****     BME->parameters->dig_P4 = params[12] | ((int16_t)params[13] << 8);
+ 520              		.loc 1 104 37
+ 521 00d8 3B7D     		ldrb	r3, [r7, #20]	@ zero_extendqisi2
+ 522 00da 19B2     		sxth	r1, r3
+ 523              		.loc 1 104 60
+ 524 00dc 7B7D     		ldrb	r3, [r7, #21]	@ zero_extendqisi2
+ 525              		.loc 1 104 65
+ 526 00de 1B02     		lsls	r3, r3, #8
+ 527              		.loc 1 104 42
+ 528 00e0 1AB2     		sxth	r2, r3
+ 529              		.loc 1 104 8
+ 530 00e2 644B     		ldr	r3, .L23
+ 531 00e4 1B68     		ldr	r3, [r3]
+ 532 00e6 1B68     		ldr	r3, [r3]
+ 533              		.loc 1 104 42
+ 534 00e8 0A43     		orrs	r2, r2, r1
+ 535 00ea 12B2     		sxth	r2, r2
+ 536              		.loc 1 104 29
+ 537 00ec 9A81     		strh	r2, [r3, #12]	@ movhi
+ 105:Core/Src/bme280.c ****     BME->parameters->dig_P5 = params[14] | ((int16_t)params[15] << 8);
+ 538              		.loc 1 105 37
+ 539 00ee BB7D     		ldrb	r3, [r7, #22]	@ zero_extendqisi2
+ 540 00f0 19B2     		sxth	r1, r3
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 12
+
+
+ 541              		.loc 1 105 60
+ 542 00f2 FB7D     		ldrb	r3, [r7, #23]	@ zero_extendqisi2
+ 543              		.loc 1 105 65
+ 544 00f4 1B02     		lsls	r3, r3, #8
+ 545              		.loc 1 105 42
+ 546 00f6 1AB2     		sxth	r2, r3
+ 547              		.loc 1 105 8
+ 548 00f8 5E4B     		ldr	r3, .L23
+ 549 00fa 1B68     		ldr	r3, [r3]
+ 550 00fc 1B68     		ldr	r3, [r3]
+ 551              		.loc 1 105 42
+ 552 00fe 0A43     		orrs	r2, r2, r1
+ 553 0100 12B2     		sxth	r2, r2
+ 554              		.loc 1 105 29
+ 555 0102 DA81     		strh	r2, [r3, #14]	@ movhi
+ 106:Core/Src/bme280.c ****     BME->parameters->dig_P6 = params[16] | ((int16_t)params[17] << 8);
+ 556              		.loc 1 106 37
+ 557 0104 3B7E     		ldrb	r3, [r7, #24]	@ zero_extendqisi2
+ 558 0106 19B2     		sxth	r1, r3
+ 559              		.loc 1 106 60
+ 560 0108 7B7E     		ldrb	r3, [r7, #25]	@ zero_extendqisi2
+ 561              		.loc 1 106 65
+ 562 010a 1B02     		lsls	r3, r3, #8
+ 563              		.loc 1 106 42
+ 564 010c 1AB2     		sxth	r2, r3
+ 565              		.loc 1 106 8
+ 566 010e 594B     		ldr	r3, .L23
+ 567 0110 1B68     		ldr	r3, [r3]
+ 568 0112 1B68     		ldr	r3, [r3]
+ 569              		.loc 1 106 42
+ 570 0114 0A43     		orrs	r2, r2, r1
+ 571 0116 12B2     		sxth	r2, r2
+ 572              		.loc 1 106 29
+ 573 0118 1A82     		strh	r2, [r3, #16]	@ movhi
+ 107:Core/Src/bme280.c ****     BME->parameters->dig_P7 = params[18] | ((int16_t)params[19] << 8);
+ 574              		.loc 1 107 37
+ 575 011a BB7E     		ldrb	r3, [r7, #26]	@ zero_extendqisi2
+ 576 011c 19B2     		sxth	r1, r3
+ 577              		.loc 1 107 60
+ 578 011e FB7E     		ldrb	r3, [r7, #27]	@ zero_extendqisi2
+ 579              		.loc 1 107 65
+ 580 0120 1B02     		lsls	r3, r3, #8
+ 581              		.loc 1 107 42
+ 582 0122 1AB2     		sxth	r2, r3
+ 583              		.loc 1 107 8
+ 584 0124 534B     		ldr	r3, .L23
+ 585 0126 1B68     		ldr	r3, [r3]
+ 586 0128 1B68     		ldr	r3, [r3]
+ 587              		.loc 1 107 42
+ 588 012a 0A43     		orrs	r2, r2, r1
+ 589 012c 12B2     		sxth	r2, r2
+ 590              		.loc 1 107 29
+ 591 012e 5A82     		strh	r2, [r3, #18]	@ movhi
+ 108:Core/Src/bme280.c ****     BME->parameters->dig_P8 = params[20] | ((int16_t)params[21] << 8);
+ 592              		.loc 1 108 37
+ 593 0130 3B7F     		ldrb	r3, [r7, #28]	@ zero_extendqisi2
+ 594 0132 19B2     		sxth	r1, r3
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 13
+
+
+ 595              		.loc 1 108 60
+ 596 0134 7B7F     		ldrb	r3, [r7, #29]	@ zero_extendqisi2
+ 597              		.loc 1 108 65
+ 598 0136 1B02     		lsls	r3, r3, #8
+ 599              		.loc 1 108 42
+ 600 0138 1AB2     		sxth	r2, r3
+ 601              		.loc 1 108 8
+ 602 013a 4E4B     		ldr	r3, .L23
+ 603 013c 1B68     		ldr	r3, [r3]
+ 604 013e 1B68     		ldr	r3, [r3]
+ 605              		.loc 1 108 42
+ 606 0140 0A43     		orrs	r2, r2, r1
+ 607 0142 12B2     		sxth	r2, r2
+ 608              		.loc 1 108 29
+ 609 0144 9A82     		strh	r2, [r3, #20]	@ movhi
+ 109:Core/Src/bme280.c ****     BME->parameters->dig_P9 = params[22] | ((int16_t)params[23] << 8);
+ 610              		.loc 1 109 37
+ 611 0146 BB7F     		ldrb	r3, [r7, #30]	@ zero_extendqisi2
+ 612 0148 19B2     		sxth	r1, r3
+ 613              		.loc 1 109 60
+ 614 014a FB7F     		ldrb	r3, [r7, #31]	@ zero_extendqisi2
+ 615              		.loc 1 109 65
+ 616 014c 1B02     		lsls	r3, r3, #8
+ 617              		.loc 1 109 42
+ 618 014e 1AB2     		sxth	r2, r3
+ 619              		.loc 1 109 8
+ 620 0150 484B     		ldr	r3, .L23
+ 621 0152 1B68     		ldr	r3, [r3]
+ 622 0154 1B68     		ldr	r3, [r3]
+ 623              		.loc 1 109 42
+ 624 0156 0A43     		orrs	r2, r2, r1
+ 625 0158 12B2     		sxth	r2, r2
+ 626              		.loc 1 109 29
+ 627 015a DA82     		strh	r2, [r3, #22]	@ movhi
+ 110:Core/Src/bme280.c ****     BME->parameters->dig_H1 = params[24];
+ 628              		.loc 1 110 8
+ 629 015c 454B     		ldr	r3, .L23
+ 630 015e 1B68     		ldr	r3, [r3]
+ 631 0160 1B68     		ldr	r3, [r3]
+ 632              		.loc 1 110 37
+ 633 0162 97F82020 		ldrb	r2, [r7, #32]	@ zero_extendqisi2
+ 634              		.loc 1 110 29
+ 635 0166 1A76     		strb	r2, [r3, #24]
+ 111:Core/Src/bme280.c **** 
+ 112:Core/Src/bme280.c ****     retVal = HAL_I2C_Mem_Read(I2C_, BME280_ADD, BME280_PARAM2_START, I2C_MEMADD_SIZE_8BIT, params, 
+ 636              		.loc 1 112 14
+ 637 0168 434B     		ldr	r3, .L23+4
+ 638 016a 1868     		ldr	r0, [r3]
+ 639 016c 3223     		movs	r3, #50
+ 640 016e 0293     		str	r3, [sp, #8]
+ 641 0170 0723     		movs	r3, #7
+ 642 0172 0193     		str	r3, [sp, #4]
+ 643 0174 07F10803 		add	r3, r7, #8
+ 644 0178 0093     		str	r3, [sp]
+ 645 017a 0123     		movs	r3, #1
+ 646 017c E122     		movs	r2, #225
+ 647 017e EC21     		movs	r1, #236
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 14
+
+
+ 648 0180 FFF7FEFF 		bl	HAL_I2C_Mem_Read
+ 649 0184 0346     		mov	r3, r0
+ 650 0186 87F82B30 		strb	r3, [r7, #43]
+ 113:Core/Src/bme280.c ****     BME->parameters->dig_H2 = params[0] | ((int16_t)params[1] << 8);
+ 651              		.loc 1 113 37
+ 652 018a 3B7A     		ldrb	r3, [r7, #8]	@ zero_extendqisi2
+ 653 018c 19B2     		sxth	r1, r3
+ 654              		.loc 1 113 59
+ 655 018e 7B7A     		ldrb	r3, [r7, #9]	@ zero_extendqisi2
+ 656              		.loc 1 113 63
+ 657 0190 1B02     		lsls	r3, r3, #8
+ 658              		.loc 1 113 41
+ 659 0192 1AB2     		sxth	r2, r3
+ 660              		.loc 1 113 8
+ 661 0194 374B     		ldr	r3, .L23
+ 662 0196 1B68     		ldr	r3, [r3]
+ 663 0198 1B68     		ldr	r3, [r3]
+ 664              		.loc 1 113 41
+ 665 019a 0A43     		orrs	r2, r2, r1
+ 666 019c 12B2     		sxth	r2, r2
+ 667              		.loc 1 113 29
+ 668 019e 5A83     		strh	r2, [r3, #26]	@ movhi
+ 114:Core/Src/bme280.c ****     BME->parameters->dig_H3 = params[2];
+ 669              		.loc 1 114 8
+ 670 01a0 344B     		ldr	r3, .L23
+ 671 01a2 1B68     		ldr	r3, [r3]
+ 672 01a4 1B68     		ldr	r3, [r3]
+ 673              		.loc 1 114 37
+ 674 01a6 BA7A     		ldrb	r2, [r7, #10]	@ zero_extendqisi2
+ 675              		.loc 1 114 29
+ 676 01a8 1A77     		strb	r2, [r3, #28]
+ 115:Core/Src/bme280.c ****     BME->parameters->dig_H4 = (params[4] & 0xF) | ((int16_t)params[3] << 4);
+ 677              		.loc 1 115 38
+ 678 01aa 3B7B     		ldrb	r3, [r7, #12]	@ zero_extendqisi2
+ 679 01ac 1BB2     		sxth	r3, r3
+ 680              		.loc 1 115 42
+ 681 01ae 03F00F03 		and	r3, r3, #15
+ 682 01b2 19B2     		sxth	r1, r3
+ 683              		.loc 1 115 67
+ 684 01b4 FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 685              		.loc 1 115 71
+ 686 01b6 1B01     		lsls	r3, r3, #4
+ 687              		.loc 1 115 49
+ 688 01b8 1AB2     		sxth	r2, r3
+ 689              		.loc 1 115 8
+ 690 01ba 2E4B     		ldr	r3, .L23
+ 691 01bc 1B68     		ldr	r3, [r3]
+ 692 01be 1B68     		ldr	r3, [r3]
+ 693              		.loc 1 115 49
+ 694 01c0 0A43     		orrs	r2, r2, r1
+ 695 01c2 12B2     		sxth	r2, r2
+ 696              		.loc 1 115 29
+ 697 01c4 DA83     		strh	r2, [r3, #30]	@ movhi
+ 116:Core/Src/bme280.c ****     BME->parameters->dig_H5 = ((params[4] & 0xF0) >> 4) | ((int16_t)params[5] << 4);
+ 698              		.loc 1 116 39
+ 699 01c6 3B7B     		ldrb	r3, [r7, #12]	@ zero_extendqisi2
+ 700              		.loc 1 116 51
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 15
+
+
+ 701 01c8 1B09     		lsrs	r3, r3, #4
+ 702 01ca DBB2     		uxtb	r3, r3
+ 703 01cc 19B2     		sxth	r1, r3
+ 704              		.loc 1 116 75
+ 705 01ce 7B7B     		ldrb	r3, [r7, #13]	@ zero_extendqisi2
+ 706              		.loc 1 116 79
+ 707 01d0 1B01     		lsls	r3, r3, #4
+ 708              		.loc 1 116 57
+ 709 01d2 1AB2     		sxth	r2, r3
+ 710              		.loc 1 116 8
+ 711 01d4 274B     		ldr	r3, .L23
+ 712 01d6 1B68     		ldr	r3, [r3]
+ 713 01d8 1B68     		ldr	r3, [r3]
+ 714              		.loc 1 116 57
+ 715 01da 0A43     		orrs	r2, r2, r1
+ 716 01dc 12B2     		sxth	r2, r2
+ 717              		.loc 1 116 29
+ 718 01de 1A84     		strh	r2, [r3, #32]	@ movhi
+ 117:Core/Src/bme280.c ****     BME->parameters->dig_H6 = params[6];
+ 719              		.loc 1 117 37
+ 720 01e0 BA7B     		ldrb	r2, [r7, #14]	@ zero_extendqisi2
+ 721              		.loc 1 117 8
+ 722 01e2 244B     		ldr	r3, .L23
+ 723 01e4 1B68     		ldr	r3, [r3]
+ 724 01e6 1B68     		ldr	r3, [r3]
+ 725              		.loc 1 117 37
+ 726 01e8 52B2     		sxtb	r2, r2
+ 727              		.loc 1 117 29
+ 728 01ea 83F82220 		strb	r2, [r3, #34]
+ 118:Core/Src/bme280.c **** 
+ 119:Core/Src/bme280.c ****     uint8_t data_ctrl = 0;
+ 729              		.loc 1 119 13
+ 730 01ee 0023     		movs	r3, #0
+ 731 01f0 FB71     		strb	r3, [r7, #7]
+ 120:Core/Src/bme280.c ****     data_ctrl = BME->device_config.bme280_output_speed;
+ 732              		.loc 1 120 20
+ 733 01f2 204B     		ldr	r3, .L23
+ 734 01f4 1B68     		ldr	r3, [r3]
+ 735              		.loc 1 120 35
+ 736 01f6 9B79     		ldrb	r3, [r3, #6]	@ zero_extendqisi2
+ 737              		.loc 1 120 15
+ 738 01f8 FB71     		strb	r3, [r7, #7]
+ 121:Core/Src/bme280.c ****     retVal = HAL_I2C_Mem_Write(I2C_, BME280_ADD, BME280_CTRL_HUM, I2C_MEMADD_SIZE_8BIT, &data_ctrl,
+ 739              		.loc 1 121 14
+ 740 01fa 1F4B     		ldr	r3, .L23+4
+ 741 01fc 1868     		ldr	r0, [r3]
+ 742 01fe 3223     		movs	r3, #50
+ 743 0200 0293     		str	r3, [sp, #8]
+ 744 0202 0123     		movs	r3, #1
+ 745 0204 0193     		str	r3, [sp, #4]
+ 746 0206 FB1D     		adds	r3, r7, #7
+ 747 0208 0093     		str	r3, [sp]
+ 748 020a 0123     		movs	r3, #1
+ 749 020c F222     		movs	r2, #242
+ 750 020e EC21     		movs	r1, #236
+ 751 0210 FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 752 0214 0346     		mov	r3, r0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 16
+
+
+ 753 0216 87F82B30 		strb	r3, [r7, #43]
+ 122:Core/Src/bme280.c ****     data_ctrl = 0;
+ 754              		.loc 1 122 15
+ 755 021a 0023     		movs	r3, #0
+ 756 021c FB71     		strb	r3, [r7, #7]
+ 123:Core/Src/bme280.c ****     data_ctrl = BME->device_config.bme280_mode | (BME->device_config.bme280_output_speed << 2) | (B
+ 757              		.loc 1 123 20
+ 758 021e 154B     		ldr	r3, .L23
+ 759 0220 1B68     		ldr	r3, [r3]
+ 760              		.loc 1 123 35
+ 761 0222 5B79     		ldrb	r3, [r3, #5]	@ zero_extendqisi2
+ 762 0224 5AB2     		sxtb	r2, r3
+ 763              		.loc 1 123 54
+ 764 0226 134B     		ldr	r3, .L23
+ 765 0228 1B68     		ldr	r3, [r3]
+ 766              		.loc 1 123 69
+ 767 022a 9B79     		ldrb	r3, [r3, #6]	@ zero_extendqisi2
+ 768              		.loc 1 123 90
+ 769 022c 9B00     		lsls	r3, r3, #2
+ 770              		.loc 1 123 48
+ 771 022e 5BB2     		sxtb	r3, r3
+ 772 0230 1343     		orrs	r3, r3, r2
+ 773 0232 5AB2     		sxtb	r2, r3
+ 774              		.loc 1 123 102
+ 775 0234 0F4B     		ldr	r3, .L23
+ 776 0236 1B68     		ldr	r3, [r3]
+ 777              		.loc 1 123 117
+ 778 0238 9B79     		ldrb	r3, [r3, #6]	@ zero_extendqisi2
+ 779              		.loc 1 123 138
+ 780 023a 5B01     		lsls	r3, r3, #5
+ 781              		.loc 1 123 96
+ 782 023c 5BB2     		sxtb	r3, r3
+ 783 023e 1343     		orrs	r3, r3, r2
+ 784 0240 5BB2     		sxtb	r3, r3
+ 785 0242 DBB2     		uxtb	r3, r3
+ 786              		.loc 1 123 15
+ 787 0244 FB71     		strb	r3, [r7, #7]
+ 124:Core/Src/bme280.c ****     retVal = HAL_I2C_Mem_Write(I2C_, BME280_ADD, BME280_CTRL_MEAS, I2C_MEMADD_SIZE_8BIT, &data_ctrl
+ 788              		.loc 1 124 14
+ 789 0246 0C4B     		ldr	r3, .L23+4
+ 790 0248 1868     		ldr	r0, [r3]
+ 791 024a 3223     		movs	r3, #50
+ 792 024c 0293     		str	r3, [sp, #8]
+ 793 024e 0123     		movs	r3, #1
+ 794 0250 0193     		str	r3, [sp, #4]
+ 795 0252 FB1D     		adds	r3, r7, #7
+ 796 0254 0093     		str	r3, [sp]
+ 797 0256 0123     		movs	r3, #1
+ 798 0258 F422     		movs	r2, #244
+ 799 025a EC21     		movs	r1, #236
+ 800 025c FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 801 0260 0346     		mov	r3, r0
+ 802 0262 87F82B30 		strb	r3, [r7, #43]
+ 125:Core/Src/bme280.c ****     data_ctrl = 0;
+ 803              		.loc 1 125 15
+ 804 0266 0023     		movs	r3, #0
+ 805 0268 FB71     		strb	r3, [r7, #7]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 17
+
+
+ 126:Core/Src/bme280.c ****     data_ctrl = (BME->device_config.bme280_standby_time << 5) | (BME->device_config.bme280_filter <
+ 806              		.loc 1 126 21
+ 807 026a 024B     		ldr	r3, .L23
+ 808 026c 1B68     		ldr	r3, [r3]
+ 809              		.loc 1 126 36
+ 810 026e DB79     		ldrb	r3, [r3, #7]	@ zero_extendqisi2
+ 811 0270 04E0     		b	.L24
+ 812              	.L25:
+ 813 0272 00BF     		.align	2
+ 814              	.L23:
+ 815 0274 00000000 		.word	BME
+ 816 0278 00000000 		.word	I2C_
+ 817              	.L24:
+ 818              		.loc 1 126 57
+ 819 027c 5B01     		lsls	r3, r3, #5
+ 820              		.loc 1 126 63
+ 821 027e 5AB2     		sxtb	r2, r3
+ 822              		.loc 1 126 69
+ 823 0280 5D4B     		ldr	r3, .L26+24
+ 824 0282 1B68     		ldr	r3, [r3]
+ 825              		.loc 1 126 84
+ 826 0284 1B79     		ldrb	r3, [r3, #4]	@ zero_extendqisi2
+ 827              		.loc 1 126 99
+ 828 0286 9B00     		lsls	r3, r3, #2
+ 829              		.loc 1 126 63
+ 830 0288 5BB2     		sxtb	r3, r3
+ 831 028a 1343     		orrs	r3, r3, r2
+ 832 028c 5BB2     		sxtb	r3, r3
+ 833 028e DBB2     		uxtb	r3, r3
+ 834              		.loc 1 126 15
+ 835 0290 FB71     		strb	r3, [r7, #7]
+ 127:Core/Src/bme280.c ****     retVal = HAL_I2C_Mem_Write(I2C_, BME280_ADD, BME280_CONFIG, I2C_MEMADD_SIZE_8BIT, &data_ctrl, 1
+ 836              		.loc 1 127 14
+ 837 0292 5A4B     		ldr	r3, .L26+28
+ 838 0294 1868     		ldr	r0, [r3]
+ 839 0296 3223     		movs	r3, #50
+ 840 0298 0293     		str	r3, [sp, #8]
+ 841 029a 0123     		movs	r3, #1
+ 842 029c 0193     		str	r3, [sp, #4]
+ 843 029e FB1D     		adds	r3, r7, #7
+ 844 02a0 0093     		str	r3, [sp]
+ 845 02a2 0123     		movs	r3, #1
+ 846 02a4 F522     		movs	r2, #245
+ 847 02a6 EC21     		movs	r1, #236
+ 848 02a8 FFF7FEFF 		bl	HAL_I2C_Mem_Write
+ 849 02ac 0346     		mov	r3, r0
+ 850 02ae 87F82B30 		strb	r3, [r7, #43]
+ 128:Core/Src/bme280.c **** 
+ 129:Core/Src/bme280.c **** 
+ 130:Core/Src/bme280.c ****     HAL_Delay(100);
+ 851              		.loc 1 130 5
+ 852 02b2 6420     		movs	r0, #100
+ 853 02b4 FFF7FEFF 		bl	HAL_Delay
+ 131:Core/Src/bme280.c **** 
+ 132:Core/Src/bme280.c ****         int valid_readings = 0;
+ 854              		.loc 1 132 13
+ 855 02b8 0023     		movs	r3, #0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 18
+
+
+ 856 02ba 7B63     		str	r3, [r7, #52]
+ 133:Core/Src/bme280.c ****         float readings_sum = 0.0f;
+ 857              		.loc 1 133 15
+ 858 02bc 4FF00003 		mov	r3, #0
+ 859 02c0 3B63     		str	r3, [r7, #48]	@ float
+ 860              	.LBB3:
+ 134:Core/Src/bme280.c **** 
+ 135:Core/Src/bme280.c ****         for(int i = 0; i < 100; i++) {  // Daha fazla okuma
+ 861              		.loc 1 135 17
+ 862 02c2 0023     		movs	r3, #0
+ 863 02c4 FB62     		str	r3, [r7, #44]
+ 864              		.loc 1 135 9
+ 865 02c6 69E0     		b	.L10
+ 866              	.L16:
+ 136:Core/Src/bme280.c ****             bme280_update();
+ 867              		.loc 1 136 13
+ 868 02c8 FFF7FEFF 		bl	bme280_update
+ 137:Core/Src/bme280.c **** 
+ 138:Core/Src/bme280.c ****             // Geçerli basınç okuması kontrolü
+ 139:Core/Src/bme280.c ****             if (BME->pressure > 300.0f && BME->pressure < 1200.0f) {  // Makul basınç aralığı
+ 869              		.loc 1 139 20
+ 870 02cc 4A4B     		ldr	r3, .L26+24
+ 871 02ce 1B68     		ldr	r3, [r3]
+ 872 02d0 D3ED067A 		vldr.32	s15, [r3, #24]
+ 873              		.loc 1 139 16
+ 874 02d4 9FED4A7A 		vldr.32	s14, .L26+32
+ 875 02d8 F4EEC77A 		vcmpe.f32	s15, s14
+ 876 02dc F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 877 02e0 56DD     		ble	.L11
+ 878              		.loc 1 139 46 discriminator 1
+ 879 02e2 454B     		ldr	r3, .L26+24
+ 880 02e4 1B68     		ldr	r3, [r3]
+ 881 02e6 D3ED067A 		vldr.32	s15, [r3, #24]
+ 882              		.loc 1 139 40 discriminator 1
+ 883 02ea 9FED467A 		vldr.32	s14, .L26+36
+ 884 02ee F4EEC77A 		vcmpe.f32	s15, s14
+ 885 02f2 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 886 02f6 4BD5     		bpl	.L11
+ 887              	.LBB4:
+ 140:Core/Src/bme280.c ****                 float temp_altitude = 44330.0 * (1.0 - pow((BME->pressure / 1013.25), (1.0 / 5.255)
+ 888              		.loc 1 140 64
+ 889 02f8 3F4B     		ldr	r3, .L26+24
+ 890 02fa 1B68     		ldr	r3, [r3]
+ 891 02fc 9B69     		ldr	r3, [r3, #24]	@ float
+ 892 02fe 1846     		mov	r0, r3	@ float
+ 893 0300 FFF7FEFF 		bl	__aeabi_f2d
+ 894              		.loc 1 140 56
+ 895 0304 36A3     		adr	r3, .L26
+ 896 0306 D3E90023 		ldrd	r2, [r3]
+ 897 030a FFF7FEFF 		bl	__aeabi_ddiv
+ 898 030e 0246     		mov	r2, r0
+ 899 0310 0B46     		mov	r3, r1
+ 900 0312 43EC172B 		vmov	d7, r2, r3
+ 901 0316 9FED341B 		vldr.64	d1, .L26+8
+ 902 031a B0EE470A 		vmov.f32	s0, s14
+ 903 031e F0EE670A 		vmov.f32	s1, s15
+ 904 0322 FFF7FEFF 		bl	pow
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 19
+
+
+ 905 0326 53EC102B 		vmov	r2, r3, d0
+ 906              		.loc 1 140 54
+ 907 032a 4FF00000 		mov	r0, #0
+ 908 032e 3649     		ldr	r1, .L26+40
+ 909 0330 FFF7FEFF 		bl	__aeabi_dsub
+ 910 0334 0246     		mov	r2, r0
+ 911 0336 0B46     		mov	r3, r1
+ 912 0338 1046     		mov	r0, r2
+ 913 033a 1946     		mov	r1, r3
+ 914              		.loc 1 140 47
+ 915 033c 2CA3     		adr	r3, .L26+16
+ 916 033e D3E90023 		ldrd	r2, [r3]
+ 917 0342 FFF7FEFF 		bl	__aeabi_dmul
+ 918 0346 0246     		mov	r2, r0
+ 919 0348 0B46     		mov	r3, r1
+ 920              		.loc 1 140 23
+ 921 034a 1046     		mov	r0, r2
+ 922 034c 1946     		mov	r1, r3
+ 923 034e FFF7FEFF 		bl	__aeabi_d2f
+ 924 0352 0346     		mov	r3, r0	@ float
+ 925 0354 7B62     		str	r3, [r7, #36]	@ float
+ 141:Core/Src/bme280.c **** 
+ 142:Core/Src/bme280.c ****                 // Aşırı değerleri filtrele
+ 143:Core/Src/bme280.c ****                 if (temp_altitude > -1000.0f && temp_altitude < 10000.0f) {
+ 926              		.loc 1 143 20
+ 927 0356 D7ED097A 		vldr.32	s15, [r7, #36]
+ 928 035a 9FED2C7A 		vldr.32	s14, .L26+44
+ 929 035e F4EEC77A 		vcmpe.f32	s15, s14
+ 930 0362 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 931 0366 13DD     		ble	.L11
+ 932              		.loc 1 143 46 discriminator 1
+ 933 0368 D7ED097A 		vldr.32	s15, [r7, #36]
+ 934 036c 9FED287A 		vldr.32	s14, .L26+48
+ 935 0370 F4EEC77A 		vcmpe.f32	s15, s14
+ 936 0374 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 937 0378 0AD5     		bpl	.L11
+ 144:Core/Src/bme280.c ****                     readings_sum += temp_altitude;
+ 938              		.loc 1 144 34
+ 939 037a 97ED0C7A 		vldr.32	s14, [r7, #48]
+ 940 037e D7ED097A 		vldr.32	s15, [r7, #36]
+ 941 0382 77EE277A 		vadd.f32	s15, s14, s15
+ 942 0386 C7ED0C7A 		vstr.32	s15, [r7, #48]
+ 145:Core/Src/bme280.c ****                     valid_readings++;
+ 943              		.loc 1 145 35
+ 944 038a 7B6B     		ldr	r3, [r7, #52]
+ 945 038c 0133     		adds	r3, r3, #1
+ 946 038e 7B63     		str	r3, [r7, #52]
+ 947              	.L11:
+ 948              	.LBE4:
+ 146:Core/Src/bme280.c ****                 }
+ 147:Core/Src/bme280.c ****             }
+ 148:Core/Src/bme280.c ****             HAL_Delay(20);  // Kısa bekleme
+ 949              		.loc 1 148 13 discriminator 2
+ 950 0390 1420     		movs	r0, #20
+ 951 0392 FFF7FEFF 		bl	HAL_Delay
+ 135:Core/Src/bme280.c ****             bme280_update();
+ 952              		.loc 1 135 34 discriminator 2
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 20
+
+
+ 953 0396 FB6A     		ldr	r3, [r7, #44]
+ 954 0398 0133     		adds	r3, r3, #1
+ 955 039a FB62     		str	r3, [r7, #44]
+ 956              	.L10:
+ 135:Core/Src/bme280.c ****             bme280_update();
+ 957              		.loc 1 135 26 discriminator 1
+ 958 039c FB6A     		ldr	r3, [r7, #44]
+ 959 039e 632B     		cmp	r3, #99
+ 960 03a0 92DD     		ble	.L16
+ 961              	.LBE3:
+ 149:Core/Src/bme280.c ****         }
+ 150:Core/Src/bme280.c **** 
+ 151:Core/Src/bme280.c ****         // Yeterli geçerli okuma varsa ortalama al
+ 152:Core/Src/bme280.c ****         if (valid_readings > 50) {
+ 962              		.loc 1 152 12
+ 963 03a2 7B6B     		ldr	r3, [r7, #52]
+ 964 03a4 322B     		cmp	r3, #50
+ 965 03a6 0DDD     		ble	.L17
+ 153:Core/Src/bme280.c ****             BME->base_altitude = readings_sum / valid_readings;
+ 966              		.loc 1 153 47
+ 967 03a8 7B6B     		ldr	r3, [r7, #52]
+ 968 03aa 07EE903A 		vmov	s15, r3	@ int
+ 969 03ae B8EEE77A 		vcvt.f32.s32	s14, s15
+ 970              		.loc 1 153 16
+ 971 03b2 114B     		ldr	r3, .L26+24
+ 972 03b4 1B68     		ldr	r3, [r3]
+ 973              		.loc 1 153 47
+ 974 03b6 D7ED0C6A 		vldr.32	s13, [r7, #48]
+ 975 03ba C6EE877A 		vdiv.f32	s15, s13, s14
+ 976              		.loc 1 153 32
+ 977 03be C3ED097A 		vstr.32	s15, [r3, #36]
+ 978 03c2 04E0     		b	.L18
+ 979              	.L17:
+ 154:Core/Src/bme280.c ****         } else {
+ 155:Core/Src/bme280.c ****             BME->base_altitude = 0.0f;  // Güvenli varsayılan değer
+ 980              		.loc 1 155 16
+ 981 03c4 0C4B     		ldr	r3, .L26+24
+ 982 03c6 1B68     		ldr	r3, [r3]
+ 983              		.loc 1 155 32
+ 984 03c8 4FF00002 		mov	r2, #0
+ 985 03cc 5A62     		str	r2, [r3, #36]	@ float
+ 986              	.L18:
+ 156:Core/Src/bme280.c ****         }
+ 157:Core/Src/bme280.c **** 
+ 158:Core/Src/bme280.c ****         bme280_update();
+ 987              		.loc 1 158 9
+ 988 03ce FFF7FEFF 		bl	bme280_update
+ 159:Core/Src/bme280.c **** 
+ 160:Core/Src/bme280.c ****     UNUSED(retVal);
+ 161:Core/Src/bme280.c **** }
+ 989              		.loc 1 161 1
+ 990 03d2 00BF     		nop
+ 991 03d4 3837     		adds	r7, r7, #56
+ 992              		.cfi_def_cfa_offset 8
+ 993 03d6 BD46     		mov	sp, r7
+ 994              		.cfi_def_cfa_register 13
+ 995              		@ sp needed
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 21
+
+
+ 996 03d8 80BD     		pop	{r7, pc}
+ 997              	.L27:
+ 998 03da 00BFAFF3 		.align	3
+ 998      0080
+ 999              	.L26:
+ 1000 03e0 00000000 		.word	0
+ 1001 03e4 00AA8F40 		.word	1083156992
+ 1002 03e8 6C45D9CC 		.word	-858176148
+ 1003 03ec 955BC83F 		.word	1070095253
+ 1004 03f0 00000000 		.word	0
+ 1005 03f4 40A5E540 		.word	1088791872
+ 1006 03f8 00000000 		.word	BME
+ 1007 03fc 00000000 		.word	I2C_
+ 1008 0400 00009643 		.word	1133903872
+ 1009 0404 00009644 		.word	1150681088
+ 1010 0408 0000F03F 		.word	1072693248
+ 1011 040c 00007AC4 		.word	-998637568
+ 1012 0410 00401C46 		.word	1176256512
+ 1013              		.cfi_endproc
+ 1014              	.LFE244:
+ 1016              		.section	.text.bme280_init,"ax",%progbits
+ 1017              		.align	1
+ 1018              		.global	bme280_init
+ 1019              		.syntax unified
+ 1020              		.thumb
+ 1021              		.thumb_func
+ 1023              	bme280_init:
+ 1024              	.LFB245:
+ 162:Core/Src/bme280.c **** 
+ 163:Core/Src/bme280.c **** void bme280_init(BME_280_t* BME_sensor, I2C_HandleTypeDef* I2C_bme)
+ 164:Core/Src/bme280.c **** {
+ 1025              		.loc 1 164 1
+ 1026              		.cfi_startproc
+ 1027              		@ args = 0, pretend = 0, frame = 16
+ 1028              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1029 0000 80B5     		push	{r7, lr}
+ 1030              		.cfi_def_cfa_offset 8
+ 1031              		.cfi_offset 7, -8
+ 1032              		.cfi_offset 14, -4
+ 1033 0002 88B0     		sub	sp, sp, #32
+ 1034              		.cfi_def_cfa_offset 40
+ 1035 0004 04AF     		add	r7, sp, #16
+ 1036              		.cfi_def_cfa 7, 24
+ 1037 0006 7860     		str	r0, [r7, #4]
+ 1038 0008 3960     		str	r1, [r7]
+ 165:Core/Src/bme280.c ****     BME = BME_sensor;
+ 1039              		.loc 1 165 9
+ 1040 000a 144A     		ldr	r2, .L32
+ 1041 000c 7B68     		ldr	r3, [r7, #4]
+ 1042 000e 1360     		str	r3, [r2]
+ 166:Core/Src/bme280.c ****     I2C_ = I2C_bme;
+ 1043              		.loc 1 166 10
+ 1044 0010 134A     		ldr	r2, .L32+4
+ 1045 0012 3B68     		ldr	r3, [r7]
+ 1046 0014 1360     		str	r3, [r2]
+ 167:Core/Src/bme280.c ****     BME->parameters = &bme_params;
+ 1047              		.loc 1 167 8
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 22
+
+
+ 1048 0016 114B     		ldr	r3, .L32
+ 1049 0018 1B68     		ldr	r3, [r3]
+ 1050              		.loc 1 167 21
+ 1051 001a 124A     		ldr	r2, .L32+8
+ 1052 001c 1A60     		str	r2, [r3]
+ 168:Core/Src/bme280.c ****     bme_started_flag = 0;
+ 1053              		.loc 1 168 22
+ 1054 001e 124B     		ldr	r3, .L32+12
+ 1055 0020 0022     		movs	r2, #0
+ 1056 0022 1A70     		strb	r2, [r3]
+ 169:Core/Src/bme280.c **** 
+ 170:Core/Src/bme280.c **** /*
+ 171:Core/Src/bme280.c **** 	execution_count = 0;
+ 172:Core/Src/bme280.c ****     last_freq_check_time = HAL_GetTick();
+ 173:Core/Src/bme280.c ****     execution_frequency = 0.0f;
+ 174:Core/Src/bme280.c **** */
+ 175:Core/Src/bme280.c **** 
+ 176:Core/Src/bme280.c **** 
+ 177:Core/Src/bme280.c ****     // Check BME280 ID
+ 178:Core/Src/bme280.c ****     uint8_t buf[1];
+ 179:Core/Src/bme280.c ****     HAL_I2C_Mem_Read(I2C_, BME280_ADD, BME280_ID, I2C_MEMADD_SIZE_8BIT, buf, 1, 50);
+ 1057              		.loc 1 179 5
+ 1058 0024 0E4B     		ldr	r3, .L32+4
+ 1059 0026 1868     		ldr	r0, [r3]
+ 1060 0028 3223     		movs	r3, #50
+ 1061 002a 0293     		str	r3, [sp, #8]
+ 1062 002c 0123     		movs	r3, #1
+ 1063 002e 0193     		str	r3, [sp, #4]
+ 1064 0030 07F10C03 		add	r3, r7, #12
+ 1065 0034 0093     		str	r3, [sp]
+ 1066 0036 0123     		movs	r3, #1
+ 1067 0038 D022     		movs	r2, #208
+ 1068 003a EC21     		movs	r1, #236
+ 1069 003c FFF7FEFF 		bl	HAL_I2C_Mem_Read
+ 180:Core/Src/bme280.c ****     if(*buf == 0x60)
+ 1070              		.loc 1 180 8
+ 1071 0040 3B7B     		ldrb	r3, [r7, #12]	@ zero_extendqisi2
+ 1072              		.loc 1 180 7
+ 1073 0042 602B     		cmp	r3, #96
+ 1074 0044 03D1     		bne	.L29
+ 181:Core/Src/bme280.c ****         is_BME_ok = 1;
+ 1075              		.loc 1 181 19
+ 1076 0046 094B     		ldr	r3, .L32+16
+ 1077 0048 0122     		movs	r2, #1
+ 1078 004a 1A60     		str	r2, [r3]
+ 182:Core/Src/bme280.c ****     else
+ 183:Core/Src/bme280.c ****         is_BME_ok = 0;
+ 184:Core/Src/bme280.c **** }
+ 1079              		.loc 1 184 1
+ 1080 004c 02E0     		b	.L31
+ 1081              	.L29:
+ 183:Core/Src/bme280.c **** }
+ 1082              		.loc 1 183 19
+ 1083 004e 074B     		ldr	r3, .L32+16
+ 1084 0050 0022     		movs	r2, #0
+ 1085 0052 1A60     		str	r2, [r3]
+ 1086              	.L31:
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 23
+
+
+ 1087              		.loc 1 184 1
+ 1088 0054 00BF     		nop
+ 1089 0056 1037     		adds	r7, r7, #16
+ 1090              		.cfi_def_cfa_offset 8
+ 1091 0058 BD46     		mov	sp, r7
+ 1092              		.cfi_def_cfa_register 13
+ 1093              		@ sp needed
+ 1094 005a 80BD     		pop	{r7, pc}
+ 1095              	.L33:
+ 1096              		.align	2
+ 1097              	.L32:
+ 1098 005c 00000000 		.word	BME
+ 1099 0060 00000000 		.word	I2C_
+ 1100 0064 00000000 		.word	bme_params
+ 1101 0068 00000000 		.word	bme_started_flag
+ 1102 006c 00000000 		.word	is_BME_ok
+ 1103              		.cfi_endproc
+ 1104              	.LFE245:
+ 1106              		.global	__aeabi_ldivmod
+ 1107              		.global	__aeabi_l2f
+ 1108              		.section	.text.bme280_update,"ax",%progbits
+ 1109              		.align	1
+ 1110              		.global	bme280_update
+ 1111              		.syntax unified
+ 1112              		.thumb
+ 1113              		.thumb_func
+ 1115              	bme280_update:
+ 1116              	.LFB246:
+ 185:Core/Src/bme280.c **** 
+ 186:Core/Src/bme280.c **** void bme280_update() {
+ 1117              		.loc 1 186 22
+ 1118              		.cfi_startproc
+ 1119              		@ args = 0, pretend = 0, frame = 328
+ 1120              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1121 0000 2DE9B04F 		push	{r4, r5, r7, r8, r9, r10, fp, lr}
+ 1122              		.cfi_def_cfa_offset 32
+ 1123              		.cfi_offset 4, -32
+ 1124              		.cfi_offset 5, -28
+ 1125              		.cfi_offset 7, -24
+ 1126              		.cfi_offset 8, -20
+ 1127              		.cfi_offset 9, -16
+ 1128              		.cfi_offset 10, -12
+ 1129              		.cfi_offset 11, -8
+ 1130              		.cfi_offset 14, -4
+ 1131 0004 D2B0     		sub	sp, sp, #328
+ 1132              		.cfi_def_cfa_offset 360
+ 1133 0006 00AF     		add	r7, sp, #0
+ 1134              		.cfi_def_cfa_register 7
+ 187:Core/Src/bme280.c ****     int32_t var1_t, var2_t, T, adc_T;
+ 188:Core/Src/bme280.c ****     bme280_getVals();
+ 1135              		.loc 1 188 5
+ 1136 0008 FFF7FEFF 		bl	bme280_getVals
+ 189:Core/Src/bme280.c **** 
+ 190:Core/Src/bme280.c ****     if(BME->isUpdated == 1){
+ 1137              		.loc 1 190 11
+ 1138 000c 1E4B     		ldr	r3, .L46
+ 1139 000e 1B68     		ldr	r3, [r3]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 24
+
+
+ 1140 0010 93F83C30 		ldrb	r3, [r3, #60]	@ zero_extendqisi2
+ 1141              		.loc 1 190 7
+ 1142 0014 012B     		cmp	r3, #1
+ 1143 0016 40F00D84 		bne	.L45
+ 1144              	.LBB5:
+ 191:Core/Src/bme280.c **** 
+ 192:Core/Src/bme280.c ****     	if (!bme_started_flag) {
+ 1145              		.loc 1 192 10
+ 1146 001a 1C4B     		ldr	r3, .L46+4
+ 1147 001c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1148              		.loc 1 192 9
+ 1149 001e 002B     		cmp	r3, #0
+ 1150 0020 12D1     		bne	.L36
+ 193:Core/Src/bme280.c ****     	    bme_started_flag = 1;
+ 1151              		.loc 1 193 27
+ 1152 0022 1A4A     		ldr	r2, .L46+4
+ 1153 0024 0123     		movs	r3, #1
+ 1154 0026 1370     		strb	r3, [r2]
+ 194:Core/Src/bme280.c ****     	    BME->lastTime = HAL_GetTick();
+ 1155              		.loc 1 194 26
+ 1156 0028 FFF7FEFF 		bl	HAL_GetTick
+ 1157 002c 07EE900A 		vmov	s15, r0	@ int
+ 1158              		.loc 1 194 13
+ 1159 0030 154B     		ldr	r3, .L46
+ 1160 0032 1B68     		ldr	r3, [r3]
+ 1161              		.loc 1 194 24
+ 1162 0034 F8EE677A 		vcvt.f32.u32	s15, s15
+ 1163 0038 C3ED0B7A 		vstr.32	s15, [r3, #44]
+ 195:Core/Src/bme280.c ****     	    BME->deltaTime1 = 0.0f;
+ 1164              		.loc 1 195 13
+ 1165 003c 124B     		ldr	r3, .L46
+ 1166 003e 1A68     		ldr	r2, [r3]
+ 1167              		.loc 1 195 26
+ 1168 0040 4FF00003 		mov	r3, #0
+ 1169 0044 1363     		str	r3, [r2, #48]	@ float
+ 1170 0046 41E0     		b	.L37
+ 1171              	.L36:
+ 1172              	.LBB6:
+ 196:Core/Src/bme280.c ****     	} else {
+ 197:Core/Src/bme280.c ****     	    uint32_t now = HAL_GetTick();
+ 1173              		.loc 1 197 25
+ 1174 0048 FFF7FEFF 		bl	HAL_GetTick
+ 1175 004c C7F83C01 		str	r0, [r7, #316]
+ 198:Core/Src/bme280.c ****     	    BME->deltaTime1 = (now > BME->lastTime) ? (now - BME->lastTime) : 0.0f;
+ 1176              		.loc 1 198 33
+ 1177 0050 D7F83C31 		ldr	r3, [r7, #316]
+ 1178 0054 07EE903A 		vmov	s15, r3	@ int
+ 1179 0058 B8EE677A 		vcvt.f32.u32	s14, s15
+ 1180              		.loc 1 198 38
+ 1181 005c 0A4B     		ldr	r3, .L46
+ 1182 005e 1B68     		ldr	r3, [r3]
+ 1183 0060 D3ED0B7A 		vldr.32	s15, [r3, #44]
+ 1184              		.loc 1 198 74
+ 1185 0064 B4EEE77A 		vcmpe.f32	s14, s15
+ 1186 0068 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 1187 006c 12DD     		ble	.L44
+ 1188              		.loc 1 198 57 discriminator 1
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 25
+
+
+ 1189 006e D7F83C31 		ldr	r3, [r7, #316]
+ 1190 0072 07EE903A 		vmov	s15, r3	@ int
+ 1191 0076 B8EE677A 		vcvt.f32.u32	s14, s15
+ 1192              		.loc 1 198 62 discriminator 1
+ 1193 007a 034B     		ldr	r3, .L46
+ 1194 007c 1B68     		ldr	r3, [r3]
+ 1195 007e D3ED0B7A 		vldr.32	s15, [r3, #44]
+ 1196              		.loc 1 198 74 discriminator 1
+ 1197 0082 77EE677A 		vsub.f32	s15, s14, s15
+ 1198 0086 07E0     		b	.L40
+ 1199              	.L47:
+ 1200              		.align	2
+ 1201              	.L46:
+ 1202 0088 00000000 		.word	BME
+ 1203 008c 00000000 		.word	bme_started_flag
+ 1204 0090 00000000 		.word	0
+ 1205              	.L44:
+ 1206              		.loc 1 198 74 is_stmt 0 discriminator 2
+ 1207 0094 5FED027A 		vldr.32	s15, .L46+8
+ 1208              	.L40:
+ 1209              		.loc 1 198 13 is_stmt 1 discriminator 4
+ 1210 0098 DA4B     		ldr	r3, .L48
+ 1211 009a 1B68     		ldr	r3, [r3]
+ 1212              		.loc 1 198 26 discriminator 4
+ 1213 009c C3ED0C7A 		vstr.32	s15, [r3, #48]
+ 199:Core/Src/bme280.c ****     	    BME->deltaTime1 = BME->deltaTime1 / 1000.0f;
+ 1214              		.loc 1 199 31 discriminator 4
+ 1215 00a0 D84B     		ldr	r3, .L48
+ 1216 00a2 1B68     		ldr	r3, [r3]
+ 1217 00a4 93ED0C7A 		vldr.32	s14, [r3, #48]
+ 1218              		.loc 1 199 13 discriminator 4
+ 1219 00a8 D64B     		ldr	r3, .L48
+ 1220 00aa 1B68     		ldr	r3, [r3]
+ 1221              		.loc 1 199 44 discriminator 4
+ 1222 00ac DFEDD66A 		vldr.32	s13, .L48+4
+ 1223 00b0 C7EE267A 		vdiv.f32	s15, s14, s13
+ 1224              		.loc 1 199 26 discriminator 4
+ 1225 00b4 C3ED0C7A 		vstr.32	s15, [r3, #48]
+ 200:Core/Src/bme280.c ****     	    BME->lastTime = now;
+ 1226              		.loc 1 200 13 discriminator 4
+ 1227 00b8 D24B     		ldr	r3, .L48
+ 1228 00ba 1B68     		ldr	r3, [r3]
+ 1229              		.loc 1 200 24 discriminator 4
+ 1230 00bc D7F83C21 		ldr	r2, [r7, #316]
+ 1231 00c0 07EE902A 		vmov	s15, r2	@ int
+ 1232 00c4 F8EE677A 		vcvt.f32.u32	s15, s15
+ 1233 00c8 C3ED0B7A 		vstr.32	s15, [r3, #44]
+ 1234              	.L37:
+ 1235              	.LBE6:
+ 201:Core/Src/bme280.c ****     	}
+ 202:Core/Src/bme280.c **** 
+ 203:Core/Src/bme280.c ****         //For temperature
+ 204:Core/Src/bme280.c ****         adc_T = BME->adcVals.ut;
+ 1236              		.loc 1 204 20
+ 1237 00cc CD4B     		ldr	r3, .L48
+ 1238 00ce 1B68     		ldr	r3, [r3]
+ 1239              		.loc 1 204 15
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 26
+
+
+ 1240 00d0 9B68     		ldr	r3, [r3, #8]
+ 1241 00d2 C7F83831 		str	r3, [r7, #312]
+ 205:Core/Src/bme280.c ****         var1_t = ((((adc_T >> 3 ) - ((int32_t)BME->parameters->dig_T1 << 1))) * ((int32_t)BME->para
+ 1242              		.loc 1 205 28
+ 1243 00d6 D7F83831 		ldr	r3, [r7, #312]
+ 1244 00da DA10     		asrs	r2, r3, #3
+ 1245              		.loc 1 205 50
+ 1246 00dc C94B     		ldr	r3, .L48
+ 1247 00de 1B68     		ldr	r3, [r3]
+ 1248 00e0 1B68     		ldr	r3, [r3]
+ 1249              		.loc 1 205 62
+ 1250 00e2 1B88     		ldrh	r3, [r3]
+ 1251              		.loc 1 205 71
+ 1252 00e4 5B00     		lsls	r3, r3, #1
+ 1253              		.loc 1 205 35
+ 1254 00e6 D21A     		subs	r2, r2, r3
+ 1255              		.loc 1 205 94
+ 1256 00e8 C64B     		ldr	r3, .L48
+ 1257 00ea 1B68     		ldr	r3, [r3]
+ 1258 00ec 1B68     		ldr	r3, [r3]
+ 1259              		.loc 1 205 106
+ 1260 00ee B3F90230 		ldrsh	r3, [r3, #2]
+ 1261              		.loc 1 205 79
+ 1262 00f2 02FB03F3 		mul	r3, r2, r3
+ 1263              		.loc 1 205 16
+ 1264 00f6 DB12     		asrs	r3, r3, #11
+ 1265 00f8 C7F83431 		str	r3, [r7, #308]
+ 206:Core/Src/bme280.c ****         var2_t = (((((adc_T >> 4) - ((int32_t)BME->parameters->dig_T1)) * ((adc_T >> 4) - ((int32_t
+ 1266              		.loc 1 206 29
+ 1267 00fc D7F83831 		ldr	r3, [r7, #312]
+ 1268 0100 1A11     		asrs	r2, r3, #4
+ 1269              		.loc 1 206 50
+ 1270 0102 C04B     		ldr	r3, .L48
+ 1271 0104 1B68     		ldr	r3, [r3]
+ 1272 0106 1B68     		ldr	r3, [r3]
+ 1273              		.loc 1 206 62
+ 1274 0108 1B88     		ldrh	r3, [r3]
+ 1275              		.loc 1 206 35
+ 1276 010a D11A     		subs	r1, r2, r3
+ 1277              		.loc 1 206 83
+ 1278 010c D7F83831 		ldr	r3, [r7, #312]
+ 1279 0110 1A11     		asrs	r2, r3, #4
+ 1280              		.loc 1 206 104
+ 1281 0112 BC4B     		ldr	r3, .L48
+ 1282 0114 1B68     		ldr	r3, [r3]
+ 1283 0116 1B68     		ldr	r3, [r3]
+ 1284              		.loc 1 206 116
+ 1285 0118 1B88     		ldrh	r3, [r3]
+ 1286              		.loc 1 206 89
+ 1287 011a D31A     		subs	r3, r2, r3
+ 1288              		.loc 1 206 73
+ 1289 011c 01FB03F3 		mul	r3, r1, r3
+ 1290              		.loc 1 206 128
+ 1291 0120 1A13     		asrs	r2, r3, #12
+ 1292              		.loc 1 206 150
+ 1293 0122 B84B     		ldr	r3, .L48
+ 1294 0124 1B68     		ldr	r3, [r3]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 27
+
+
+ 1295 0126 1B68     		ldr	r3, [r3]
+ 1296              		.loc 1 206 162
+ 1297 0128 B3F90430 		ldrsh	r3, [r3, #4]
+ 1298              		.loc 1 206 135
+ 1299 012c 02FB03F3 		mul	r3, r2, r3
+ 1300              		.loc 1 206 16
+ 1301 0130 9B13     		asrs	r3, r3, #14
+ 1302 0132 C7F83031 		str	r3, [r7, #304]
+ 207:Core/Src/bme280.c ****         int32_t t_fine = var1_t + var2_t;
+ 1303              		.loc 1 207 17
+ 1304 0136 D7F83421 		ldr	r2, [r7, #308]
+ 1305 013a D7F83031 		ldr	r3, [r7, #304]
+ 1306 013e 1344     		add	r3, r3, r2
+ 1307 0140 C7F82C31 		str	r3, [r7, #300]
+ 208:Core/Src/bme280.c ****         T = (t_fine * 5 + 128) >> 8;
+ 1308              		.loc 1 208 21
+ 1309 0144 D7F82C21 		ldr	r2, [r7, #300]
+ 1310 0148 1346     		mov	r3, r2
+ 1311 014a 9B00     		lsls	r3, r3, #2
+ 1312 014c 1344     		add	r3, r3, r2
+ 1313              		.loc 1 208 25
+ 1314 014e 8033     		adds	r3, r3, #128
+ 1315              		.loc 1 208 11
+ 1316 0150 1B12     		asrs	r3, r3, #8
+ 1317 0152 C7F82831 		str	r3, [r7, #296]
+ 209:Core/Src/bme280.c ****         BME->temperature = (float)T / 100.0;
+ 1318              		.loc 1 209 28
+ 1319 0156 D7F82831 		ldr	r3, [r7, #296]
+ 1320 015a 07EE903A 		vmov	s15, r3	@ int
+ 1321 015e B8EEE77A 		vcvt.f32.s32	s14, s15
+ 1322              		.loc 1 209 12
+ 1323 0162 A84B     		ldr	r3, .L48
+ 1324 0164 1B68     		ldr	r3, [r3]
+ 1325              		.loc 1 209 37
+ 1326 0166 DFEDA96A 		vldr.32	s13, .L48+8
+ 1327 016a C7EE267A 		vdiv.f32	s15, s14, s13
+ 1328              		.loc 1 209 26
+ 1329 016e C3ED057A 		vstr.32	s15, [r3, #20]
+ 210:Core/Src/bme280.c **** 
+ 211:Core/Src/bme280.c ****         //For pressure
+ 212:Core/Src/bme280.c ****         int64_t var1_p, var2_p, P, adc_P;
+ 213:Core/Src/bme280.c ****         adc_P = (int64_t)BME->adcVals.up;
+ 1330              		.loc 1 213 29
+ 1331 0172 A44B     		ldr	r3, .L48
+ 1332 0174 1B68     		ldr	r3, [r3]
+ 1333              		.loc 1 213 38
+ 1334 0176 DB68     		ldr	r3, [r3, #12]
+ 1335              		.loc 1 213 15
+ 1336 0178 DA17     		asrs	r2, r3, #31
+ 1337 017a 3B65     		str	r3, [r7, #80]
+ 1338 017c 7A65     		str	r2, [r7, #84]
+ 1339 017e D7E91423 		ldrd	r2, [r7, #80]
+ 1340 0182 C7E94823 		strd	r2, [r7, #288]
+ 214:Core/Src/bme280.c ****         var1_p = ((int64_t)t_fine) - 128000;
+ 1341              		.loc 1 214 19
+ 1342 0186 D7F82C31 		ldr	r3, [r7, #300]
+ 1343 018a DA17     		asrs	r2, r3, #31
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 28
+
+
+ 1344 018c C7F8C830 		str	r3, [r7, #200]
+ 1345 0190 C7F8CC20 		str	r2, [r7, #204]
+ 1346              		.loc 1 214 16
+ 1347 0194 D7E93212 		ldrd	r1, [r7, #200]
+ 1348 0198 0B46     		mov	r3, r1
+ 1349 019a B3F5FA33 		subs	r3, r3, #128000
+ 1350 019e BB64     		str	r3, [r7, #72]
+ 1351 01a0 1346     		mov	r3, r2
+ 1352 01a2 43F1FF33 		adc	r3, r3, #-1
+ 1353 01a6 FB64     		str	r3, [r7, #76]
+ 1354 01a8 D7E91223 		ldrd	r2, [r7, #72]
+ 1355 01ac C7E94623 		strd	r2, [r7, #280]
+ 215:Core/Src/bme280.c ****         var2_p = var1_p * var1_p * (int64_t)BME->parameters->dig_P6;
+ 1356              		.loc 1 215 25
+ 1357 01b0 D7F81C21 		ldr	r2, [r7, #284]
+ 1358 01b4 D7F81831 		ldr	r3, [r7, #280]
+ 1359 01b8 03FB02F1 		mul	r1, r3, r2
+ 1360 01bc D7F81C21 		ldr	r2, [r7, #284]
+ 1361 01c0 D7F81831 		ldr	r3, [r7, #280]
+ 1362 01c4 02FB03F3 		mul	r3, r2, r3
+ 1363 01c8 CA18     		adds	r2, r1, r3
+ 1364 01ca D7F81831 		ldr	r3, [r7, #280]
+ 1365 01ce A3FB0345 		umull	r4, r5, r3, r3
+ 1366 01d2 5319     		adds	r3, r2, r5
+ 1367 01d4 1D46     		mov	r5, r3
+ 1368              		.loc 1 215 48
+ 1369 01d6 8B4B     		ldr	r3, .L48
+ 1370 01d8 1B68     		ldr	r3, [r3]
+ 1371 01da 1B68     		ldr	r3, [r3]
+ 1372              		.loc 1 215 60
+ 1373 01dc B3F91030 		ldrsh	r3, [r3, #16]
+ 1374              		.loc 1 215 36
+ 1375 01e0 1BB2     		sxth	r3, r3
+ 1376 01e2 DA17     		asrs	r2, r3, #31
+ 1377 01e4 C7F8C030 		str	r3, [r7, #192]
+ 1378 01e8 C7F8C420 		str	r2, [r7, #196]
+ 1379              		.loc 1 215 16
+ 1380 01ec D7E93001 		ldrd	r0, [r7, #192]
+ 1381 01f0 0346     		mov	r3, r0
+ 1382 01f2 03FB05F2 		mul	r2, r3, r5
+ 1383 01f6 0B46     		mov	r3, r1
+ 1384 01f8 04FB03F3 		mul	r3, r4, r3
+ 1385 01fc 1344     		add	r3, r3, r2
+ 1386 01fe 0246     		mov	r2, r0
+ 1387 0200 A4FB0212 		umull	r1, r2, r4, r2
+ 1388 0204 C7F8D420 		str	r2, [r7, #212]
+ 1389 0208 0A46     		mov	r2, r1
+ 1390 020a C7F8D020 		str	r2, [r7, #208]
+ 1391 020e D7F8D420 		ldr	r2, [r7, #212]
+ 1392 0212 1344     		add	r3, r3, r2
+ 1393 0214 C7F8D430 		str	r3, [r7, #212]
+ 1394 0218 D7E93434 		ldrd	r3, [r7, #208]
+ 1395 021c C7E94434 		strd	r3, [r7, #272]
+ 1396 0220 C7E94434 		strd	r3, [r7, #272]
+ 216:Core/Src/bme280.c ****         var2_p = var2_p + ((var1_p *(int64_t)BME->parameters->dig_P5) <<17);
+ 1397              		.loc 1 216 49
+ 1398 0224 774B     		ldr	r3, .L48
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 29
+
+
+ 1399 0226 1B68     		ldr	r3, [r3]
+ 1400 0228 1B68     		ldr	r3, [r3]
+ 1401              		.loc 1 216 61
+ 1402 022a B3F90E30 		ldrsh	r3, [r3, #14]
+ 1403              		.loc 1 216 37
+ 1404 022e 1BB2     		sxth	r3, r3
+ 1405 0230 DA17     		asrs	r2, r3, #31
+ 1406 0232 C7F8B830 		str	r3, [r7, #184]
+ 1407 0236 C7F8BC20 		str	r2, [r7, #188]
+ 1408              		.loc 1 216 36
+ 1409 023a D7F81831 		ldr	r3, [r7, #280]
+ 1410 023e D7E92E45 		ldrd	r4, [r7, #184]
+ 1411 0242 2A46     		mov	r2, r5
+ 1412 0244 02FB03F2 		mul	r2, r2, r3
+ 1413 0248 D7F81C31 		ldr	r3, [r7, #284]
+ 1414 024c 2146     		mov	r1, r4
+ 1415 024e 01FB03F3 		mul	r3, r1, r3
+ 1416 0252 1A44     		add	r2, r2, r3
+ 1417 0254 D7F81831 		ldr	r3, [r7, #280]
+ 1418 0258 2146     		mov	r1, r4
+ 1419 025a A3FB01AB 		umull	r10, fp, r3, r1
+ 1420 025e 02EB0B03 		add	r3, r2, fp
+ 1421 0262 9B46     		mov	fp, r3
+ 1422              		.loc 1 216 71
+ 1423 0264 4FF00000 		mov	r0, #0
+ 1424 0268 4FF00001 		mov	r1, #0
+ 1425 026c 4FEA4B41 		lsl	r1, fp, #17
+ 1426 0270 41EADA31 		orr	r1, r1, r10, lsr #15
+ 1427 0274 4FEA4A40 		lsl	r0, r10, #17
+ 1428              		.loc 1 216 16
+ 1429 0278 D7E94423 		ldrd	r2, [r7, #272]
+ 1430 027c 1418     		adds	r4, r2, r0
+ 1431 027e 3C64     		str	r4, [r7, #64]
+ 1432 0280 4B41     		adcs	r3, r3, r1
+ 1433 0282 7B64     		str	r3, [r7, #68]
+ 1434 0284 D7E91034 		ldrd	r3, [r7, #64]
+ 1435 0288 C7E94434 		strd	r3, [r7, #272]
+ 217:Core/Src/bme280.c ****         var2_p = var2_p + (((int64_t)BME->parameters->dig_P4) << 35);
+ 1436              		.loc 1 217 41
+ 1437 028c 5D4B     		ldr	r3, .L48
+ 1438 028e 1B68     		ldr	r3, [r3]
+ 1439 0290 1B68     		ldr	r3, [r3]
+ 1440              		.loc 1 217 53
+ 1441 0292 B3F90C30 		ldrsh	r3, [r3, #12]
+ 1442              		.loc 1 217 29
+ 1443 0296 1BB2     		sxth	r3, r3
+ 1444 0298 DA17     		asrs	r2, r3, #31
+ 1445 029a C7F8B030 		str	r3, [r7, #176]
+ 1446 029e C7F8B420 		str	r2, [r7, #180]
+ 1447              		.loc 1 217 63
+ 1448 02a2 4FF00000 		mov	r0, #0
+ 1449 02a6 4FF00001 		mov	r1, #0
+ 1450 02aa D7F8B030 		ldr	r3, [r7, #176]
+ 1451 02ae D900     		lsls	r1, r3, #3
+ 1452 02b0 0020     		movs	r0, #0
+ 1453              		.loc 1 217 16
+ 1454 02b2 D7E94423 		ldrd	r2, [r7, #272]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 30
+
+
+ 1455 02b6 1418     		adds	r4, r2, r0
+ 1456 02b8 BC63     		str	r4, [r7, #56]
+ 1457 02ba 4B41     		adcs	r3, r3, r1
+ 1458 02bc FB63     		str	r3, [r7, #60]
+ 1459 02be D7E90E34 		ldrd	r3, [r7, #56]
+ 1460 02c2 C7E94434 		strd	r3, [r7, #272]
+ 218:Core/Src/bme280.c ****         var1_p = ((var1_p * var1_p * (int64_t)BME->parameters->dig_P3) >> 8) + ((var1_p * (int64_t)
+ 1461              		.loc 1 218 27
+ 1462 02c6 D7F81C21 		ldr	r2, [r7, #284]
+ 1463 02ca D7F81831 		ldr	r3, [r7, #280]
+ 1464 02ce 03FB02F1 		mul	r1, r3, r2
+ 1465 02d2 D7F81C21 		ldr	r2, [r7, #284]
+ 1466 02d6 D7F81831 		ldr	r3, [r7, #280]
+ 1467 02da 02FB03F3 		mul	r3, r2, r3
+ 1468 02de CA18     		adds	r2, r1, r3
+ 1469 02e0 D7F81831 		ldr	r3, [r7, #280]
+ 1470 02e4 A3FB0389 		umull	r8, r9, r3, r3
+ 1471 02e8 02EB0903 		add	r3, r2, r9
+ 1472 02ec 9946     		mov	r9, r3
+ 1473              		.loc 1 218 50
+ 1474 02ee 454B     		ldr	r3, .L48
+ 1475 02f0 1B68     		ldr	r3, [r3]
+ 1476 02f2 1B68     		ldr	r3, [r3]
+ 1477              		.loc 1 218 62
+ 1478 02f4 B3F90A30 		ldrsh	r3, [r3, #10]
+ 1479              		.loc 1 218 38
+ 1480 02f8 1BB2     		sxth	r3, r3
+ 1481 02fa DA17     		asrs	r2, r3, #31
+ 1482 02fc C7F8A830 		str	r3, [r7, #168]
+ 1483 0300 C7F8AC20 		str	r2, [r7, #172]
+ 1484              		.loc 1 218 36
+ 1485 0304 D7E92A01 		ldrd	r0, [r7, #168]
+ 1486 0308 0346     		mov	r3, r0
+ 1487 030a 03FB09F2 		mul	r2, r3, r9
+ 1488 030e 0B46     		mov	r3, r1
+ 1489 0310 08FB03F3 		mul	r3, r8, r3
+ 1490 0314 1344     		add	r3, r3, r2
+ 1491 0316 0246     		mov	r2, r0
+ 1492 0318 A8FB0212 		umull	r1, r2, r8, r2
+ 1493 031c C7F80421 		str	r2, [r7, #260]
+ 1494 0320 0A46     		mov	r2, r1
+ 1495 0322 C7F80021 		str	r2, [r7, #256]
+ 1496 0326 D7F80421 		ldr	r2, [r7, #260]
+ 1497 032a 1344     		add	r3, r3, r2
+ 1498 032c C7F80431 		str	r3, [r7, #260]
+ 1499              		.loc 1 218 72
+ 1500 0330 4FF00000 		mov	r0, #0
+ 1501 0334 4FF00001 		mov	r1, #0
+ 1502 0338 D7E94045 		ldrd	r4, [r7, #256]
+ 1503 033c 2346     		mov	r3, r4
+ 1504 033e 180A     		lsrs	r0, r3, #8
+ 1505 0340 2B46     		mov	r3, r5
+ 1506 0342 40EA0360 		orr	r0, r0, r3, lsl #24
+ 1507 0346 2B46     		mov	r3, r5
+ 1508 0348 1912     		asrs	r1, r3, #8
+ 1509              		.loc 1 218 103
+ 1510 034a 2E4B     		ldr	r3, .L48
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 31
+
+
+ 1511 034c 1B68     		ldr	r3, [r3]
+ 1512 034e 1B68     		ldr	r3, [r3]
+ 1513              		.loc 1 218 115
+ 1514 0350 B3F90830 		ldrsh	r3, [r3, #8]
+ 1515              		.loc 1 218 91
+ 1516 0354 1BB2     		sxth	r3, r3
+ 1517 0356 DA17     		asrs	r2, r3, #31
+ 1518 0358 C7F8A030 		str	r3, [r7, #160]
+ 1519 035c C7F8A420 		str	r2, [r7, #164]
+ 1520              		.loc 1 218 89
+ 1521 0360 D7F81831 		ldr	r3, [r7, #280]
+ 1522 0364 D7E92889 		ldrd	r8, [r7, #160]
+ 1523 0368 4A46     		mov	r2, r9
+ 1524 036a 02FB03F2 		mul	r2, r2, r3
+ 1525 036e D7F81C31 		ldr	r3, [r7, #284]
+ 1526 0372 4446     		mov	r4, r8
+ 1527 0374 04FB03F3 		mul	r3, r4, r3
+ 1528 0378 1A44     		add	r2, r2, r3
+ 1529 037a D7F81831 		ldr	r3, [r7, #280]
+ 1530 037e 4446     		mov	r4, r8
+ 1531 0380 A3FB0443 		umull	r4, r3, r3, r4
+ 1532 0384 C7F8FC30 		str	r3, [r7, #252]
+ 1533 0388 2346     		mov	r3, r4
+ 1534 038a C7F8F830 		str	r3, [r7, #248]
+ 1535 038e D7F8FC30 		ldr	r3, [r7, #252]
+ 1536 0392 D318     		adds	r3, r2, r3
+ 1537 0394 C7F8FC30 		str	r3, [r7, #252]
+ 1538              		.loc 1 218 125
+ 1539 0398 4FF00002 		mov	r2, #0
+ 1540 039c 4FF00003 		mov	r3, #0
+ 1541 03a0 D7E93E89 		ldrd	r8, [r7, #248]
+ 1542 03a4 4C46     		mov	r4, r9
+ 1543 03a6 2303     		lsls	r3, r4, #12
+ 1544 03a8 4446     		mov	r4, r8
+ 1545 03aa 43EA1453 		orr	r3, r3, r4, lsr #20
+ 1546 03ae 4446     		mov	r4, r8
+ 1547 03b0 2203     		lsls	r2, r4, #12
+ 1548              		.loc 1 218 16
+ 1549 03b2 8418     		adds	r4, r0, r2
+ 1550 03b4 3C63     		str	r4, [r7, #48]
+ 1551 03b6 41EB0303 		adc	r3, r1, r3
+ 1552 03ba 7B63     		str	r3, [r7, #52]
+ 1553 03bc D7E90C34 		ldrd	r3, [r7, #48]
+ 1554 03c0 C7E94634 		strd	r3, [r7, #280]
+ 219:Core/Src/bme280.c ****         var1_p = (((((int64_t)1) <<47 ) + var1_p)) * ((int64_t) BME->parameters->dig_P1) >> 33;
+ 1555              		.loc 1 219 41
+ 1556 03c4 D7E94623 		ldrd	r2, [r7, #280]
+ 1557 03c8 03F50041 		add	r1, r3, #32768
+ 1558 03cc C7F89C10 		str	r1, [r7, #156]
+ 1559 03d0 C7F89820 		str	r2, [r7, #152]
+ 1560              		.loc 1 219 68
+ 1561 03d4 0B4B     		ldr	r3, .L48
+ 1562 03d6 1B68     		ldr	r3, [r3]
+ 1563 03d8 1B68     		ldr	r3, [r3]
+ 1564              		.loc 1 219 80
+ 1565 03da DB88     		ldrh	r3, [r3, #6]
+ 1566              		.loc 1 219 55
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 32
+
+
+ 1567 03dc 9BB2     		uxth	r3, r3
+ 1568 03de 0022     		movs	r2, #0
+ 1569 03e0 C7F89030 		str	r3, [r7, #144]
+ 1570 03e4 C7F89420 		str	r2, [r7, #148]
+ 1571              		.loc 1 219 52
+ 1572 03e8 D7E92645 		ldrd	r4, [r7, #152]
+ 1573 03ec 2B46     		mov	r3, r5
+ 1574 03ee D7E92489 		ldrd	r8, [r7, #144]
+ 1575 03f2 4246     		mov	r2, r8
+ 1576 03f4 02FB03F2 		mul	r2, r2, r3
+ 1577 03f8 4B46     		mov	r3, r9
+ 1578 03fa 2146     		mov	r1, r4
+ 1579 03fc 01FB03F3 		mul	r3, r1, r3
+ 1580 0400 1344     		add	r3, r3, r2
+ 1581 0402 05E0     		b	.L49
+ 1582              	.L50:
+ 1583              		.align	2
+ 1584              	.L48:
+ 1585 0404 00000000 		.word	BME
+ 1586 0408 00007A44 		.word	1148846080
+ 1587 040c 0000C842 		.word	1120403456
+ 1588              	.L49:
+ 1589 0410 2246     		mov	r2, r4
+ 1590 0412 4146     		mov	r1, r8
+ 1591 0414 A2FB0112 		umull	r1, r2, r2, r1
+ 1592 0418 C7F8F420 		str	r2, [r7, #244]
+ 1593 041c 0A46     		mov	r2, r1
+ 1594 041e C7F8F020 		str	r2, [r7, #240]
+ 1595 0422 D7F8F420 		ldr	r2, [r7, #244]
+ 1596 0426 1344     		add	r3, r3, r2
+ 1597 0428 C7F8F430 		str	r3, [r7, #244]
+ 1598              		.loc 1 219 16
+ 1599 042c 4FF00002 		mov	r2, #0
+ 1600 0430 4FF00003 		mov	r3, #0
+ 1601 0434 D7E93C45 		ldrd	r4, [r7, #240]
+ 1602 0438 2946     		mov	r1, r5
+ 1603 043a 4A10     		asrs	r2, r1, #1
+ 1604 043c 2946     		mov	r1, r5
+ 1605 043e CB17     		asrs	r3, r1, #31
+ 1606 0440 C7E94623 		strd	r2, [r7, #280]
+ 220:Core/Src/bme280.c ****         if(var1_p == 0)
+ 1607              		.loc 1 220 11
+ 1608 0444 D7E94623 		ldrd	r2, [r7, #280]
+ 1609 0448 1343     		orrs	r3, r3, r2
+ 1610 044a 06D1     		bne	.L41
+ 221:Core/Src/bme280.c ****         {
+ 222:Core/Src/bme280.c ****             P = 0;
+ 1611              		.loc 1 222 15
+ 1612 044c 4FF00002 		mov	r2, #0
+ 1613 0450 4FF00003 		mov	r3, #0
+ 1614 0454 C7E95023 		strd	r2, [r7, #320]
+ 1615 0458 4BE1     		b	.L42
+ 1616              	.L41:
+ 223:Core/Src/bme280.c ****         }
+ 224:Core/Src/bme280.c ****         else
+ 225:Core/Src/bme280.c ****         {
+ 226:Core/Src/bme280.c ****             P = 1048576 - adc_P;
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 33
+
+
+ 1617              		.loc 1 226 15
+ 1618 045a D7E94823 		ldrd	r2, [r7, #288]
+ 1619 045e 0021     		movs	r1, #0
+ 1620 0460 D2F58010 		rsbs	r0, r2, #1048576
+ 1621 0464 B862     		str	r0, [r7, #40]
+ 1622 0466 61EB0303 		sbc	r3, r1, r3
+ 1623 046a FB62     		str	r3, [r7, #44]
+ 1624 046c D7E90A34 		ldrd	r3, [r7, #40]
+ 1625 0470 C7E95034 		strd	r3, [r7, #320]
+ 227:Core/Src/bme280.c ****             P = (((P << 31) - var2_p) * 3125) / var1_p;
+ 1626              		.loc 1 227 22
+ 1627 0474 D7E95023 		ldrd	r2, [r7, #320]
+ 1628 0478 4FF00000 		mov	r0, #0
+ 1629 047c 4FF00001 		mov	r1, #0
+ 1630 0480 D907     		lsls	r1, r3, #31
+ 1631 0482 41EA5201 		orr	r1, r1, r2, lsr #1
+ 1632 0486 D007     		lsls	r0, r2, #31
+ 1633              		.loc 1 227 29
+ 1634 0488 D7E94423 		ldrd	r2, [r7, #272]
+ 1635 048c 841A     		subs	r4, r0, r2
+ 1636 048e C7F88840 		str	r4, [r7, #136]
+ 1637 0492 61EB0303 		sbc	r3, r1, r3
+ 1638 0496 C7F88C30 		str	r3, [r7, #140]
+ 1639              		.loc 1 227 39
+ 1640 049a D7E92245 		ldrd	r4, [r7, #136]
+ 1641 049e 2246     		mov	r2, r4
+ 1642 04a0 2B46     		mov	r3, r5
+ 1643 04a2 9118     		adds	r1, r2, r2
+ 1644 04a4 3962     		str	r1, [r7, #32]
+ 1645 04a6 5B41     		adcs	r3, r3, r3
+ 1646 04a8 7B62     		str	r3, [r7, #36]
+ 1647 04aa D7E90823 		ldrd	r2, [r7, #32]
+ 1648 04ae 2146     		mov	r1, r4
+ 1649 04b0 5118     		adds	r1, r2, r1
+ 1650 04b2 B961     		str	r1, [r7, #24]
+ 1651 04b4 2946     		mov	r1, r5
+ 1652 04b6 4B41     		adcs	r3, r3, r1
+ 1653 04b8 FB61     		str	r3, [r7, #28]
+ 1654 04ba 4FF00002 		mov	r2, #0
+ 1655 04be 4FF00003 		mov	r3, #0
+ 1656 04c2 D7E90689 		ldrd	r8, [r7, #24]
+ 1657 04c6 4946     		mov	r1, r9
+ 1658 04c8 8B01     		lsls	r3, r1, #6
+ 1659 04ca 4146     		mov	r1, r8
+ 1660 04cc 43EA9163 		orr	r3, r3, r1, lsr #26
+ 1661 04d0 4146     		mov	r1, r8
+ 1662 04d2 8A01     		lsls	r2, r1, #6
+ 1663 04d4 4146     		mov	r1, r8
+ 1664 04d6 8918     		adds	r1, r1, r2
+ 1665 04d8 3961     		str	r1, [r7, #16]
+ 1666 04da 4946     		mov	r1, r9
+ 1667 04dc 43EB0101 		adc	r1, r3, r1
+ 1668 04e0 7961     		str	r1, [r7, #20]
+ 1669 04e2 4FF00002 		mov	r2, #0
+ 1670 04e6 4FF00003 		mov	r3, #0
+ 1671 04ea D7E90489 		ldrd	r8, [r7, #16]
+ 1672 04ee 4946     		mov	r1, r9
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 34
+
+
+ 1673 04f0 8B00     		lsls	r3, r1, #2
+ 1674 04f2 4146     		mov	r1, r8
+ 1675 04f4 43EA9173 		orr	r3, r3, r1, lsr #30
+ 1676 04f8 4146     		mov	r1, r8
+ 1677 04fa 8A00     		lsls	r2, r1, #2
+ 1678 04fc 1046     		mov	r0, r2
+ 1679 04fe 1946     		mov	r1, r3
+ 1680 0500 0346     		mov	r3, r0
+ 1681 0502 2246     		mov	r2, r4
+ 1682 0504 9B18     		adds	r3, r3, r2
+ 1683 0506 BB60     		str	r3, [r7, #8]
+ 1684 0508 0B46     		mov	r3, r1
+ 1685 050a 2A46     		mov	r2, r5
+ 1686 050c 42EB0303 		adc	r3, r2, r3
+ 1687 0510 FB60     		str	r3, [r7, #12]
+ 1688 0512 4FF00002 		mov	r2, #0
+ 1689 0516 4FF00003 		mov	r3, #0
+ 1690 051a D7E90289 		ldrd	r8, [r7, #8]
+ 1691 051e 4946     		mov	r1, r9
+ 1692 0520 8B00     		lsls	r3, r1, #2
+ 1693 0522 4146     		mov	r1, r8
+ 1694 0524 43EA9173 		orr	r3, r3, r1, lsr #30
+ 1695 0528 4146     		mov	r1, r8
+ 1696 052a 8A00     		lsls	r2, r1, #2
+ 1697 052c 1046     		mov	r0, r2
+ 1698 052e 1946     		mov	r1, r3
+ 1699 0530 0346     		mov	r3, r0
+ 1700 0532 2246     		mov	r2, r4
+ 1701 0534 9B18     		adds	r3, r3, r2
+ 1702 0536 C7F88030 		str	r3, [r7, #128]
+ 1703 053a 2B46     		mov	r3, r5
+ 1704 053c 0A46     		mov	r2, r1
+ 1705 053e 42EB0303 		adc	r3, r2, r3
+ 1706 0542 C7F88430 		str	r3, [r7, #132]
+ 1707              		.loc 1 227 15
+ 1708 0546 D7E94623 		ldrd	r2, [r7, #280]
+ 1709 054a D7E92001 		ldrd	r0, [r7, #128]
+ 1710 054e FFF7FEFF 		bl	__aeabi_ldivmod
+ 1711 0552 0246     		mov	r2, r0
+ 1712 0554 0B46     		mov	r3, r1
+ 1713 0556 C7E95023 		strd	r2, [r7, #320]
+ 228:Core/Src/bme280.c ****             var1_p = (((int64_t) BME->parameters->dig_P9) * (P >> 13) * (P >> 13)) >> 25;
+ 1714              		.loc 1 228 37
+ 1715 055a B94B     		ldr	r3, .L51
+ 1716 055c 1B68     		ldr	r3, [r3]
+ 1717 055e 1B68     		ldr	r3, [r3]
+ 1718              		.loc 1 228 49
+ 1719 0560 B3F91630 		ldrsh	r3, [r3, #22]
+ 1720              		.loc 1 228 24
+ 1721 0564 1BB2     		sxth	r3, r3
+ 1722 0566 DA17     		asrs	r2, r3, #31
+ 1723 0568 BB67     		str	r3, [r7, #120]
+ 1724 056a FA67     		str	r2, [r7, #124]
+ 1725              		.loc 1 228 64
+ 1726 056c D7E95023 		ldrd	r2, [r7, #320]
+ 1727 0570 4FF00000 		mov	r0, #0
+ 1728 0574 4FF00001 		mov	r1, #0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 35
+
+
+ 1729 0578 500B     		lsrs	r0, r2, #13
+ 1730 057a 40EAC340 		orr	r0, r0, r3, lsl #19
+ 1731 057e 5913     		asrs	r1, r3, #13
+ 1732              		.loc 1 228 59
+ 1733 0580 D7E91E45 		ldrd	r4, [r7, #120]
+ 1734 0584 2B46     		mov	r3, r5
+ 1735 0586 00FB03F2 		mul	r2, r0, r3
+ 1736 058a 2346     		mov	r3, r4
+ 1737 058c 03FB01F3 		mul	r3, r3, r1
+ 1738 0590 1344     		add	r3, r3, r2
+ 1739 0592 2246     		mov	r2, r4
+ 1740 0594 A2FB0012 		umull	r1, r2, r2, r0
+ 1741 0598 C7F8EC20 		str	r2, [r7, #236]
+ 1742 059c 0A46     		mov	r2, r1
+ 1743 059e C7F8E820 		str	r2, [r7, #232]
+ 1744 05a2 D7F8EC20 		ldr	r2, [r7, #236]
+ 1745 05a6 1344     		add	r3, r3, r2
+ 1746 05a8 C7F8EC30 		str	r3, [r7, #236]
+ 1747              		.loc 1 228 76
+ 1748 05ac D7E95023 		ldrd	r2, [r7, #320]
+ 1749 05b0 4FF00000 		mov	r0, #0
+ 1750 05b4 4FF00001 		mov	r1, #0
+ 1751 05b8 500B     		lsrs	r0, r2, #13
+ 1752 05ba 40EAC340 		orr	r0, r0, r3, lsl #19
+ 1753 05be 5913     		asrs	r1, r3, #13
+ 1754              		.loc 1 228 71
+ 1755 05c0 D7E93A45 		ldrd	r4, [r7, #232]
+ 1756 05c4 2B46     		mov	r3, r5
+ 1757 05c6 00FB03F2 		mul	r2, r0, r3
+ 1758 05ca 2346     		mov	r3, r4
+ 1759 05cc 03FB01F3 		mul	r3, r3, r1
+ 1760 05d0 1344     		add	r3, r3, r2
+ 1761 05d2 2246     		mov	r2, r4
+ 1762 05d4 A2FB0012 		umull	r1, r2, r2, r0
+ 1763 05d8 C7F8E420 		str	r2, [r7, #228]
+ 1764 05dc 0A46     		mov	r2, r1
+ 1765 05de C7F8E020 		str	r2, [r7, #224]
+ 1766 05e2 D7F8E420 		ldr	r2, [r7, #228]
+ 1767 05e6 1344     		add	r3, r3, r2
+ 1768 05e8 C7F8E430 		str	r3, [r7, #228]
+ 1769              		.loc 1 228 20
+ 1770 05ec 4FF00002 		mov	r2, #0
+ 1771 05f0 4FF00003 		mov	r3, #0
+ 1772 05f4 D7E93845 		ldrd	r4, [r7, #224]
+ 1773 05f8 2146     		mov	r1, r4
+ 1774 05fa 4A0E     		lsrs	r2, r1, #25
+ 1775 05fc 2946     		mov	r1, r5
+ 1776 05fe 42EAC112 		orr	r2, r2, r1, lsl #7
+ 1777 0602 2946     		mov	r1, r5
+ 1778 0604 4B16     		asrs	r3, r1, #25
+ 1779 0606 C7E94623 		strd	r2, [r7, #280]
+ 229:Core/Src/bme280.c ****             var2_p = (((int64_t) BME->parameters->dig_P8) * P) >> 19;
+ 1780              		.loc 1 229 37
+ 1781 060a 8D4B     		ldr	r3, .L51
+ 1782 060c 1B68     		ldr	r3, [r3]
+ 1783 060e 1B68     		ldr	r3, [r3]
+ 1784              		.loc 1 229 49
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 36
+
+
+ 1785 0610 B3F91430 		ldrsh	r3, [r3, #20]
+ 1786              		.loc 1 229 24
+ 1787 0614 1BB2     		sxth	r3, r3
+ 1788 0616 DA17     		asrs	r2, r3, #31
+ 1789 0618 3B67     		str	r3, [r7, #112]
+ 1790 061a 7A67     		str	r2, [r7, #116]
+ 1791              		.loc 1 229 59
+ 1792 061c D7F84031 		ldr	r3, [r7, #320]
+ 1793 0620 D7E91C45 		ldrd	r4, [r7, #112]
+ 1794 0624 2A46     		mov	r2, r5
+ 1795 0626 02FB03F2 		mul	r2, r2, r3
+ 1796 062a D7F84431 		ldr	r3, [r7, #324]
+ 1797 062e 2146     		mov	r1, r4
+ 1798 0630 01FB03F3 		mul	r3, r1, r3
+ 1799 0634 1344     		add	r3, r3, r2
+ 1800 0636 D7F84021 		ldr	r2, [r7, #320]
+ 1801 063a 2146     		mov	r1, r4
+ 1802 063c A2FB0112 		umull	r1, r2, r2, r1
+ 1803 0640 C7F8DC20 		str	r2, [r7, #220]
+ 1804 0644 0A46     		mov	r2, r1
+ 1805 0646 C7F8D820 		str	r2, [r7, #216]
+ 1806 064a D7F8DC20 		ldr	r2, [r7, #220]
+ 1807 064e 1344     		add	r3, r3, r2
+ 1808 0650 C7F8DC30 		str	r3, [r7, #220]
+ 1809              		.loc 1 229 20
+ 1810 0654 4FF00002 		mov	r2, #0
+ 1811 0658 4FF00003 		mov	r3, #0
+ 1812 065c D7E93645 		ldrd	r4, [r7, #216]
+ 1813 0660 2146     		mov	r1, r4
+ 1814 0662 CA0C     		lsrs	r2, r1, #19
+ 1815 0664 2946     		mov	r1, r5
+ 1816 0666 42EA4132 		orr	r2, r2, r1, lsl #13
+ 1817 066a 2946     		mov	r1, r5
+ 1818 066c CB14     		asrs	r3, r1, #19
+ 1819 066e C7E94423 		strd	r2, [r7, #272]
+ 230:Core/Src/bme280.c ****             P = (( P + var1_p + var2_p) >> 8) + (((int64_t)BME->parameters->dig_P7) << 4);
+ 1820              		.loc 1 230 22
+ 1821 0672 D7E95001 		ldrd	r0, [r7, #320]
+ 1822 0676 D7E94623 		ldrd	r2, [r7, #280]
+ 1823 067a 8418     		adds	r4, r0, r2
+ 1824 067c BC66     		str	r4, [r7, #104]
+ 1825 067e 41EB0303 		adc	r3, r1, r3
+ 1826 0682 FB66     		str	r3, [r7, #108]
+ 1827              		.loc 1 230 31
+ 1828 0684 D7E94423 		ldrd	r2, [r7, #272]
+ 1829 0688 D7E91A45 		ldrd	r4, [r7, #104]
+ 1830 068c 2146     		mov	r1, r4
+ 1831 068e 8918     		adds	r1, r1, r2
+ 1832 0690 3966     		str	r1, [r7, #96]
+ 1833 0692 2946     		mov	r1, r5
+ 1834 0694 43EB0101 		adc	r1, r3, r1
+ 1835 0698 7966     		str	r1, [r7, #100]
+ 1836              		.loc 1 230 41
+ 1837 069a 4FF00000 		mov	r0, #0
+ 1838 069e 4FF00001 		mov	r1, #0
+ 1839 06a2 D7E91845 		ldrd	r4, [r7, #96]
+ 1840 06a6 2346     		mov	r3, r4
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 37
+
+
+ 1841 06a8 180A     		lsrs	r0, r3, #8
+ 1842 06aa 2B46     		mov	r3, r5
+ 1843 06ac 40EA0360 		orr	r0, r0, r3, lsl #24
+ 1844 06b0 2B46     		mov	r3, r5
+ 1845 06b2 1912     		asrs	r1, r3, #8
+ 1846              		.loc 1 230 63
+ 1847 06b4 624B     		ldr	r3, .L51
+ 1848 06b6 1B68     		ldr	r3, [r3]
+ 1849 06b8 1B68     		ldr	r3, [r3]
+ 1850              		.loc 1 230 75
+ 1851 06ba B3F91230 		ldrsh	r3, [r3, #18]
+ 1852              		.loc 1 230 51
+ 1853 06be 1BB2     		sxth	r3, r3
+ 1854 06c0 DA17     		asrs	r2, r3, #31
+ 1855 06c2 BB65     		str	r3, [r7, #88]
+ 1856 06c4 FA65     		str	r2, [r7, #92]
+ 1857              		.loc 1 230 85
+ 1858 06c6 4FF00002 		mov	r2, #0
+ 1859 06ca 4FF00003 		mov	r3, #0
+ 1860 06ce D7E91689 		ldrd	r8, [r7, #88]
+ 1861 06d2 4C46     		mov	r4, r9
+ 1862 06d4 2301     		lsls	r3, r4, #4
+ 1863 06d6 4446     		mov	r4, r8
+ 1864 06d8 43EA1473 		orr	r3, r3, r4, lsr #28
+ 1865 06dc 4446     		mov	r4, r8
+ 1866 06de 2201     		lsls	r2, r4, #4
+ 1867              		.loc 1 230 15
+ 1868 06e0 8418     		adds	r4, r0, r2
+ 1869 06e2 3C60     		str	r4, [r7]
+ 1870 06e4 41EB0303 		adc	r3, r1, r3
+ 1871 06e8 7B60     		str	r3, [r7, #4]
+ 1872 06ea D7E90034 		ldrd	r3, [r7]
+ 1873 06ee C7E95034 		strd	r3, [r7, #320]
+ 1874              	.L42:
+ 231:Core/Src/bme280.c ****         }
+ 232:Core/Src/bme280.c **** 
+ 233:Core/Src/bme280.c ****         BME->pressure = ((float)P / 256.0 / 100.0);
+ 1875              		.loc 1 233 26
+ 1876 06f2 D7E95001 		ldrd	r0, [r7, #320]
+ 1877 06f6 FFF7FEFF 		bl	__aeabi_l2f
+ 1878 06fa 0346     		mov	r3, r0	@ float
+ 1879 06fc 1846     		mov	r0, r3	@ float
+ 1880 06fe FFF7FEFF 		bl	__aeabi_f2d
+ 1881              		.loc 1 233 35
+ 1882 0702 4FF00002 		mov	r2, #0
+ 1883 0706 4F4B     		ldr	r3, .L51+4
+ 1884 0708 FFF7FEFF 		bl	__aeabi_ddiv
+ 1885 070c 0246     		mov	r2, r0
+ 1886 070e 0B46     		mov	r3, r1
+ 1887 0710 1046     		mov	r0, r2
+ 1888 0712 1946     		mov	r1, r3
+ 1889              		.loc 1 233 43
+ 1890 0714 4FF00002 		mov	r2, #0
+ 1891 0718 4B4B     		ldr	r3, .L51+8
+ 1892 071a FFF7FEFF 		bl	__aeabi_ddiv
+ 1893 071e 0246     		mov	r2, r0
+ 1894 0720 0B46     		mov	r3, r1
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 38
+
+
+ 1895              		.loc 1 233 12
+ 1896 0722 4749     		ldr	r1, .L51
+ 1897 0724 0C68     		ldr	r4, [r1]
+ 1898              		.loc 1 233 43
+ 1899 0726 1046     		mov	r0, r2
+ 1900 0728 1946     		mov	r1, r3
+ 1901 072a FFF7FEFF 		bl	__aeabi_d2f
+ 1902 072e 0346     		mov	r3, r0	@ float
+ 1903              		.loc 1 233 23
+ 1904 0730 A361     		str	r3, [r4, #24]	@ float
+ 234:Core/Src/bme280.c **** 
+ 235:Core/Src/bme280.c ****         //for humidity
+ 236:Core/Src/bme280.c ****         uint32_t var_h, adc_H;
+ 237:Core/Src/bme280.c ****         adc_H = BME->adcVals.uh;
+ 1905              		.loc 1 237 20
+ 1906 0732 434B     		ldr	r3, .L51
+ 1907 0734 1B68     		ldr	r3, [r3]
+ 1908              		.loc 1 237 29
+ 1909 0736 1B69     		ldr	r3, [r3, #16]
+ 1910              		.loc 1 237 15
+ 1911 0738 C7F80C31 		str	r3, [r7, #268]
+ 238:Core/Src/bme280.c **** 
+ 239:Core/Src/bme280.c ****         var_h = (t_fine - ((int32_t)76800));
+ 1912              		.loc 1 239 25
+ 1913 073c D7F82C31 		ldr	r3, [r7, #300]
+ 1914 0740 A3F59633 		sub	r3, r3, #76800
+ 1915              		.loc 1 239 15
+ 1916 0744 C7F80831 		str	r3, [r7, #264]
+ 240:Core/Src/bme280.c ****         var_h = (((((adc_H << 14) - (((int32_t)BME->parameters->dig_H4) << 20) - (((int32_t)BME->pa
+ 1917              		.loc 1 240 28
+ 1918 0748 D7F80C31 		ldr	r3, [r7, #268]
+ 1919 074c 9A03     		lsls	r2, r3, #14
+ 1920              		.loc 1 240 51
+ 1921 074e 3C4B     		ldr	r3, .L51
+ 1922 0750 1B68     		ldr	r3, [r3]
+ 1923 0752 1B68     		ldr	r3, [r3]
+ 1924              		.loc 1 240 63
+ 1925 0754 B3F91E30 		ldrsh	r3, [r3, #30]
+ 1926              		.loc 1 240 73
+ 1927 0758 1B05     		lsls	r3, r3, #20
+ 1928              		.loc 1 240 35
+ 1929 075a D21A     		subs	r2, r2, r3
+ 1930              		.loc 1 240 96
+ 1931 075c 384B     		ldr	r3, .L51
+ 1932 075e 1B68     		ldr	r3, [r3]
+ 1933 0760 1B68     		ldr	r3, [r3]
+ 1934              		.loc 1 240 108
+ 1935 0762 B3F92030 		ldrsh	r3, [r3, #32]
+ 1936              		.loc 1 240 84
+ 1937 0766 1946     		mov	r1, r3
+ 1938              		.loc 1 240 118
+ 1939 0768 D7F80831 		ldr	r3, [r7, #264]
+ 1940 076c 01FB03F3 		mul	r3, r1, r3
+ 1941              		.loc 1 240 80
+ 1942 0770 D31A     		subs	r3, r2, r3
+ 1943              		.loc 1 240 128
+ 1944 0772 03F58043 		add	r3, r3, #16384
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 39
+
+
+ 1945              		.loc 1 240 148
+ 1946 0776 DB0B     		lsrs	r3, r3, #15
+ 1947              		.loc 1 240 184
+ 1948 0778 314A     		ldr	r2, .L51
+ 1949 077a 1268     		ldr	r2, [r2]
+ 1950 077c 1268     		ldr	r2, [r2]
+ 1951              		.loc 1 240 196
+ 1952 077e 92F92220 		ldrsb	r2, [r2, #34]
+ 1953              		.loc 1 240 172
+ 1954 0782 1146     		mov	r1, r2
+ 1955              		.loc 1 240 170
+ 1956 0784 D7F80821 		ldr	r2, [r7, #264]
+ 1957 0788 01FB02F2 		mul	r2, r1, r2
+ 1958              		.loc 1 240 207
+ 1959 078c 920A     		lsrs	r2, r2, #10
+ 1960              		.loc 1 240 240
+ 1961 078e 2C49     		ldr	r1, .L51
+ 1962 0790 0968     		ldr	r1, [r1]
+ 1963 0792 0968     		ldr	r1, [r1]
+ 1964              		.loc 1 240 252
+ 1965 0794 097F     		ldrb	r1, [r1, #28]	@ zero_extendqisi2
+ 1966              		.loc 1 240 228
+ 1967 0796 0846     		mov	r0, r1
+ 1968              		.loc 1 240 225
+ 1969 0798 D7F80811 		ldr	r1, [r7, #264]
+ 1970 079c 00FB01F1 		mul	r1, r0, r1
+ 1971              		.loc 1 240 263
+ 1972 07a0 C90A     		lsrs	r1, r1, #11
+ 1973              		.loc 1 240 270
+ 1974 07a2 01F50041 		add	r1, r1, #32768
+ 1975              		.loc 1 240 214
+ 1976 07a6 01FB02F2 		mul	r2, r1, r2
+ 1977              		.loc 1 240 291
+ 1978 07aa 920A     		lsrs	r2, r2, #10
+ 1979              		.loc 1 240 298
+ 1980 07ac 02F50012 		add	r2, r2, #2097152
+ 1981              		.loc 1 240 335
+ 1982 07b0 2349     		ldr	r1, .L51
+ 1983 07b2 0968     		ldr	r1, [r1]
+ 1984 07b4 0968     		ldr	r1, [r1]
+ 1985              		.loc 1 240 347
+ 1986 07b6 B1F91A10 		ldrsh	r1, [r1, #26]
+ 1987              		.loc 1 240 320
+ 1988 07ba 01FB02F2 		mul	r2, r1, r2
+ 1989              		.loc 1 240 357
+ 1990 07be 02F50052 		add	r2, r2, #8192
+ 1991              		.loc 1 240 365
+ 1992 07c2 920B     		lsrs	r2, r2, #14
+ 1993              		.loc 1 240 15
+ 1994 07c4 02FB03F3 		mul	r3, r2, r3
+ 1995 07c8 C7F80831 		str	r3, [r7, #264]
+ 241:Core/Src/bme280.c ****         var_h = (var_h - (((((var_h >> 15) * (var_h >> 15)) >> 7) * ((int32_t)BME->parameters->dig_
+ 1996              		.loc 1 241 37
+ 1997 07cc D7F80831 		ldr	r3, [r7, #264]
+ 1998 07d0 DB0B     		lsrs	r3, r3, #15
+ 1999              		.loc 1 241 53
+ 2000 07d2 D7F80821 		ldr	r2, [r7, #264]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 40
+
+
+ 2001 07d6 D20B     		lsrs	r2, r2, #15
+ 2002              		.loc 1 241 44
+ 2003 07d8 02FB03F3 		mul	r3, r2, r3
+ 2004              		.loc 1 241 61
+ 2005 07dc DB09     		lsrs	r3, r3, #7
+ 2006              		.loc 1 241 82
+ 2007 07de 184A     		ldr	r2, .L51
+ 2008 07e0 1268     		ldr	r2, [r2]
+ 2009 07e2 1268     		ldr	r2, [r2]
+ 2010              		.loc 1 241 94
+ 2011 07e4 127E     		ldrb	r2, [r2, #24]	@ zero_extendqisi2
+ 2012              		.loc 1 241 67
+ 2013 07e6 02FB03F3 		mul	r3, r2, r3
+ 2014              		.loc 1 241 105
+ 2015 07ea 1B09     		lsrs	r3, r3, #4
+ 2016              		.loc 1 241 15
+ 2017 07ec D7F80821 		ldr	r2, [r7, #264]
+ 2018 07f0 D31A     		subs	r3, r2, r3
+ 2019 07f2 C7F80831 		str	r3, [r7, #264]
+ 242:Core/Src/bme280.c ****         var_h = (var_h < 0 ? 0 : var_h);
+ 243:Core/Src/bme280.c ****         var_h = (var_h > 419430400 ? 419430400 : var_h);
+ 2020              		.loc 1 243 15
+ 2021 07f6 D7F80831 		ldr	r3, [r7, #264]
+ 2022 07fa B3F1C85F 		cmp	r3, #419430400
+ 2023 07fe 28BF     		it	cs
+ 2024 0800 4FF0C853 		movcs	r3, #419430400
+ 2025 0804 C7F80831 		str	r3, [r7, #264]
+ 244:Core/Src/bme280.c ****         BME->humidity = ((float)(var_h >> 12)) / 1024.0;
+ 2026              		.loc 1 244 40
+ 2027 0808 D7F80831 		ldr	r3, [r7, #264]
+ 2028 080c 1B0B     		lsrs	r3, r3, #12
+ 2029              		.loc 1 244 26
+ 2030 080e 07EE903A 		vmov	s15, r3	@ int
+ 2031 0812 B8EE677A 		vcvt.f32.u32	s14, s15
+ 2032              		.loc 1 244 12
+ 2033 0816 0A4B     		ldr	r3, .L51
+ 2034 0818 1B68     		ldr	r3, [r3]
+ 2035              		.loc 1 244 48
+ 2036 081a DFED0C6A 		vldr.32	s13, .L51+12
+ 2037 081e C7EE267A 		vdiv.f32	s15, s14, s13
+ 2038              		.loc 1 244 23
+ 2039 0822 C3ED077A 		vstr.32	s15, [r3, #28]
+ 245:Core/Src/bme280.c **** 
+ 246:Core/Src/bme280.c ****         // Calculate raw altitude (no filtering)
+ 247:Core/Src/bme280.c ****         bme280_calculate_altitude();
+ 2040              		.loc 1 247 9
+ 2041 0826 FFF7FEFF 		bl	bme280_calculate_altitude
+ 248:Core/Src/bme280.c ****         BME->isUpdated = 0;
+ 2042              		.loc 1 248 12
+ 2043 082a 054B     		ldr	r3, .L51
+ 2044 082c 1B68     		ldr	r3, [r3]
+ 2045              		.loc 1 248 24
+ 2046 082e 0022     		movs	r2, #0
+ 2047 0830 83F83C20 		strb	r2, [r3, #60]
+ 2048              	.L45:
+ 2049              	.LBE5:
+ 249:Core/Src/bme280.c ****     }
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 41
+
+
+ 250:Core/Src/bme280.c **** }
+ 2050              		.loc 1 250 1
+ 2051 0834 00BF     		nop
+ 2052 0836 07F5A477 		add	r7, r7, #328
+ 2053              		.cfi_def_cfa_offset 32
+ 2054 083a BD46     		mov	sp, r7
+ 2055              		.cfi_def_cfa_register 13
+ 2056              		@ sp needed
+ 2057 083c BDE8B08F 		pop	{r4, r5, r7, r8, r9, r10, fp, pc}
+ 2058              	.L52:
+ 2059              		.align	2
+ 2060              	.L51:
+ 2061 0840 00000000 		.word	BME
+ 2062 0844 00007040 		.word	1081081856
+ 2063 0848 00005940 		.word	1079574528
+ 2064 084c 00008044 		.word	1149239296
+ 2065              		.cfi_endproc
+ 2066              	.LFE246:
+ 2068              		.section	.text.bme280_get_altitude,"ax",%progbits
+ 2069              		.align	1
+ 2070              		.global	bme280_get_altitude
+ 2071              		.syntax unified
+ 2072              		.thumb
+ 2073              		.thumb_func
+ 2075              	bme280_get_altitude:
+ 2076              	.LFB247:
+ 251:Core/Src/bme280.c **** 
+ 252:Core/Src/bme280.c **** // Simple interface functions for external modules to access data
+ 253:Core/Src/bme280.c **** float bme280_get_altitude() {
+ 2077              		.loc 1 253 29
+ 2078              		.cfi_startproc
+ 2079              		@ args = 0, pretend = 0, frame = 0
+ 2080              		@ frame_needed = 1, uses_anonymous_args = 0
+ 2081              		@ link register save eliminated.
+ 2082 0000 80B4     		push	{r7}
+ 2083              		.cfi_def_cfa_offset 4
+ 2084              		.cfi_offset 7, -4
+ 2085 0002 00AF     		add	r7, sp, #0
+ 2086              		.cfi_def_cfa_register 7
+ 254:Core/Src/bme280.c ****     return BME->altitude;
+ 2087              		.loc 1 254 15
+ 2088 0004 054B     		ldr	r3, .L55
+ 2089 0006 1B68     		ldr	r3, [r3]
+ 2090 0008 1B6A     		ldr	r3, [r3, #32]	@ float
+ 2091 000a 07EE903A 		vmov	s15, r3
+ 255:Core/Src/bme280.c **** }
+ 2092              		.loc 1 255 1
+ 2093 000e B0EE670A 		vmov.f32	s0, s15
+ 2094 0012 BD46     		mov	sp, r7
+ 2095              		.cfi_def_cfa_register 13
+ 2096              		@ sp needed
+ 2097 0014 5DF8047B 		ldr	r7, [sp], #4
+ 2098              		.cfi_restore 7
+ 2099              		.cfi_def_cfa_offset 0
+ 2100 0018 7047     		bx	lr
+ 2101              	.L56:
+ 2102 001a 00BF     		.align	2
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 42
+
+
+ 2103              	.L55:
+ 2104 001c 00000000 		.word	BME
+ 2105              		.cfi_endproc
+ 2106              	.LFE247:
+ 2108              		.section	.text.bme280_get_pressure,"ax",%progbits
+ 2109              		.align	1
+ 2110              		.global	bme280_get_pressure
+ 2111              		.syntax unified
+ 2112              		.thumb
+ 2113              		.thumb_func
+ 2115              	bme280_get_pressure:
+ 2116              	.LFB248:
+ 256:Core/Src/bme280.c **** 
+ 257:Core/Src/bme280.c **** float bme280_get_pressure() {
+ 2117              		.loc 1 257 29
+ 2118              		.cfi_startproc
+ 2119              		@ args = 0, pretend = 0, frame = 0
+ 2120              		@ frame_needed = 1, uses_anonymous_args = 0
+ 2121              		@ link register save eliminated.
+ 2122 0000 80B4     		push	{r7}
+ 2123              		.cfi_def_cfa_offset 4
+ 2124              		.cfi_offset 7, -4
+ 2125 0002 00AF     		add	r7, sp, #0
+ 2126              		.cfi_def_cfa_register 7
+ 258:Core/Src/bme280.c ****     return BME->pressure;
+ 2127              		.loc 1 258 15
+ 2128 0004 054B     		ldr	r3, .L59
+ 2129 0006 1B68     		ldr	r3, [r3]
+ 2130 0008 9B69     		ldr	r3, [r3, #24]	@ float
+ 2131 000a 07EE903A 		vmov	s15, r3
+ 259:Core/Src/bme280.c **** }
+ 2132              		.loc 1 259 1
+ 2133 000e B0EE670A 		vmov.f32	s0, s15
+ 2134 0012 BD46     		mov	sp, r7
+ 2135              		.cfi_def_cfa_register 13
+ 2136              		@ sp needed
+ 2137 0014 5DF8047B 		ldr	r7, [sp], #4
+ 2138              		.cfi_restore 7
+ 2139              		.cfi_def_cfa_offset 0
+ 2140 0018 7047     		bx	lr
+ 2141              	.L60:
+ 2142 001a 00BF     		.align	2
+ 2143              	.L59:
+ 2144 001c 00000000 		.word	BME
+ 2145              		.cfi_endproc
+ 2146              	.LFE248:
+ 2148              		.section	.text.bme280_get_temperature,"ax",%progbits
+ 2149              		.align	1
+ 2150              		.global	bme280_get_temperature
+ 2151              		.syntax unified
+ 2152              		.thumb
+ 2153              		.thumb_func
+ 2155              	bme280_get_temperature:
+ 2156              	.LFB249:
+ 260:Core/Src/bme280.c **** 
+ 261:Core/Src/bme280.c **** float bme280_get_temperature() {
+ 2157              		.loc 1 261 32
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 43
+
+
+ 2158              		.cfi_startproc
+ 2159              		@ args = 0, pretend = 0, frame = 0
+ 2160              		@ frame_needed = 1, uses_anonymous_args = 0
+ 2161              		@ link register save eliminated.
+ 2162 0000 80B4     		push	{r7}
+ 2163              		.cfi_def_cfa_offset 4
+ 2164              		.cfi_offset 7, -4
+ 2165 0002 00AF     		add	r7, sp, #0
+ 2166              		.cfi_def_cfa_register 7
+ 262:Core/Src/bme280.c ****     return BME->temperature;
+ 2167              		.loc 1 262 15
+ 2168 0004 054B     		ldr	r3, .L63
+ 2169 0006 1B68     		ldr	r3, [r3]
+ 2170 0008 5B69     		ldr	r3, [r3, #20]	@ float
+ 2171 000a 07EE903A 		vmov	s15, r3
+ 263:Core/Src/bme280.c **** }
+ 2172              		.loc 1 263 1
+ 2173 000e B0EE670A 		vmov.f32	s0, s15
+ 2174 0012 BD46     		mov	sp, r7
+ 2175              		.cfi_def_cfa_register 13
+ 2176              		@ sp needed
+ 2177 0014 5DF8047B 		ldr	r7, [sp], #4
+ 2178              		.cfi_restore 7
+ 2179              		.cfi_def_cfa_offset 0
+ 2180 0018 7047     		bx	lr
+ 2181              	.L64:
+ 2182 001a 00BF     		.align	2
+ 2183              	.L63:
+ 2184 001c 00000000 		.word	BME
+ 2185              		.cfi_endproc
+ 2186              	.LFE249:
+ 2188              		.section	.text.bme280_get_humidity,"ax",%progbits
+ 2189              		.align	1
+ 2190              		.global	bme280_get_humidity
+ 2191              		.syntax unified
+ 2192              		.thumb
+ 2193              		.thumb_func
+ 2195              	bme280_get_humidity:
+ 2196              	.LFB250:
+ 264:Core/Src/bme280.c **** 
+ 265:Core/Src/bme280.c **** float bme280_get_humidity() {
+ 2197              		.loc 1 265 29
+ 2198              		.cfi_startproc
+ 2199              		@ args = 0, pretend = 0, frame = 0
+ 2200              		@ frame_needed = 1, uses_anonymous_args = 0
+ 2201              		@ link register save eliminated.
+ 2202 0000 80B4     		push	{r7}
+ 2203              		.cfi_def_cfa_offset 4
+ 2204              		.cfi_offset 7, -4
+ 2205 0002 00AF     		add	r7, sp, #0
+ 2206              		.cfi_def_cfa_register 7
+ 266:Core/Src/bme280.c ****     return BME->humidity;
+ 2207              		.loc 1 266 15
+ 2208 0004 054B     		ldr	r3, .L67
+ 2209 0006 1B68     		ldr	r3, [r3]
+ 2210 0008 DB69     		ldr	r3, [r3, #28]	@ float
+ 2211 000a 07EE903A 		vmov	s15, r3
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 44
+
+
+ 267:Core/Src/bme280.c **** }
+ 2212              		.loc 1 267 1
+ 2213 000e B0EE670A 		vmov.f32	s0, s15
+ 2214 0012 BD46     		mov	sp, r7
+ 2215              		.cfi_def_cfa_register 13
+ 2216              		@ sp needed
+ 2217 0014 5DF8047B 		ldr	r7, [sp], #4
+ 2218              		.cfi_restore 7
+ 2219              		.cfi_def_cfa_offset 0
+ 2220 0018 7047     		bx	lr
+ 2221              	.L68:
+ 2222 001a 00BF     		.align	2
+ 2223              	.L67:
+ 2224 001c 00000000 		.word	BME
+ 2225              		.cfi_endproc
+ 2226              	.LFE250:
+ 2228              		.section	.text.bme280_get_execution_frequency,"ax",%progbits
+ 2229              		.align	1
+ 2230              		.global	bme280_get_execution_frequency
+ 2231              		.syntax unified
+ 2232              		.thumb
+ 2233              		.thumb_func
+ 2235              	bme280_get_execution_frequency:
+ 2236              	.LFB251:
+ 268:Core/Src/bme280.c **** 
+ 269:Core/Src/bme280.c **** // Function to get the current execution frequency
+ 270:Core/Src/bme280.c **** float bme280_get_execution_frequency() {
+ 2237              		.loc 1 270 40
+ 2238              		.cfi_startproc
+ 2239              		@ args = 0, pretend = 0, frame = 0
+ 2240              		@ frame_needed = 1, uses_anonymous_args = 0
+ 2241              		@ link register save eliminated.
+ 2242 0000 80B4     		push	{r7}
+ 2243              		.cfi_def_cfa_offset 4
+ 2244              		.cfi_offset 7, -4
+ 2245 0002 00AF     		add	r7, sp, #0
+ 2246              		.cfi_def_cfa_register 7
+ 271:Core/Src/bme280.c ****     return execution_frequency;
+ 2247              		.loc 1 271 12
+ 2248 0004 044B     		ldr	r3, .L71
+ 2249 0006 1B68     		ldr	r3, [r3]	@ float
+ 2250 0008 07EE903A 		vmov	s15, r3
+ 272:Core/Src/bme280.c **** }
+ 2251              		.loc 1 272 1
+ 2252 000c B0EE670A 		vmov.f32	s0, s15
+ 2253 0010 BD46     		mov	sp, r7
+ 2254              		.cfi_def_cfa_register 13
+ 2255              		@ sp needed
+ 2256 0012 5DF8047B 		ldr	r7, [sp], #4
+ 2257              		.cfi_restore 7
+ 2258              		.cfi_def_cfa_offset 0
+ 2259 0016 7047     		bx	lr
+ 2260              	.L72:
+ 2261              		.align	2
+ 2262              	.L71:
+ 2263 0018 00000000 		.word	execution_frequency
+ 2264              		.cfi_endproc
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 45
+
+
+ 2265              	.LFE251:
+ 2267              		.text
+ 2268              	.Letext0:
+ 2269              		.file 2 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 2270              		.file 3 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 2271              		.file 4 "Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f446xx.h"
+ 2272              		.file 5 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 2273              		.file 6 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h"
+ 2274              		.file 7 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma.h"
+ 2275              		.file 8 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_i2c.h"
+ 2276              		.file 9 "Core/Inc/bme280.h"
+ 2277              		.file 10 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltoo
+ 2278              		.file 11 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h"
+ 2279              		.file 12 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltoo
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 46
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 bme280.c
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:21     .bss.I2C_:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:24     .bss.I2C_:00000000 I2C_
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:27     .bss.BME:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:30     .bss.BME:00000000 BME
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:35     .bss.bme_started_flag:00000000 bme_started_flag
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:36     .bss.bme_started_flag:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:40     .data.last_measuring:00000000 last_measuring
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:43     .bss.execution_count:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:46     .bss.execution_count:00000000 execution_count
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:49     .bss.last_freq_check_time:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:52     .bss.last_freq_check_time:00000000 last_freq_check_time
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:55     .bss.execution_frequency:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:58     .bss.execution_frequency:00000000 execution_frequency
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:61     .text.bme280_getVals:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:67     .text.bme280_getVals:00000000 bme280_getVals
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:250    .text.bme280_getVals:000000f8 $d
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:261    .text.bme280_calculate_altitude:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:267    .text.bme280_calculate_altitude:00000000 bme280_calculate_altitude
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:343    .text.bme280_calculate_altitude:00000088 $d
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:355    .text.bme280_config:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:361    .text.bme280_config:00000000 bme280_config
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:815    .text.bme280_config:00000274 $d
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:819    .text.bme280_config:0000027c $t
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:1115   .text.bme280_update:00000000 bme280_update
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:1000   .text.bme280_config:000003e0 $d
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:1017   .text.bme280_init:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:1023   .text.bme280_init:00000000 bme280_init
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:1098   .text.bme280_init:0000005c $d
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:1109   .text.bme280_update:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:1202   .text.bme280_update:00000088 $d
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:1207   .text.bme280_update:00000094 $t
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:1585   .text.bme280_update:00000404 $d
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:1589   .text.bme280_update:00000410 $t
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:2061   .text.bme280_update:00000840 $d
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:2069   .text.bme280_get_altitude:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:2075   .text.bme280_get_altitude:00000000 bme280_get_altitude
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:2104   .text.bme280_get_altitude:0000001c $d
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:2109   .text.bme280_get_pressure:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:2115   .text.bme280_get_pressure:00000000 bme280_get_pressure
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:2144   .text.bme280_get_pressure:0000001c $d
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:2149   .text.bme280_get_temperature:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:2155   .text.bme280_get_temperature:00000000 bme280_get_temperature
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:2184   .text.bme280_get_temperature:0000001c $d
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:2189   .text.bme280_get_humidity:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:2195   .text.bme280_get_humidity:00000000 bme280_get_humidity
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:2224   .text.bme280_get_humidity:0000001c $d
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:2229   .text.bme280_get_execution_frequency:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:2235   .text.bme280_get_execution_frequency:00000000 bme280_get_execution_frequency
+C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s:2263   .text.bme280_get_execution_frequency:00000018 $d
+                           .group:00000000 wm4.0.fbeba72283fbbed79c5ed62adcf8946b
+                           .group:00000000 wm4.stm32f4xx_hal_conf.h.25.834fd89df99f7f3fe75169badeed02aa
+                           .group:00000000 wm4.stm32f4xx.h.38.63e3ea23bd63a94457417730025259b6
+                           .group:00000000 wm4.stm32f446xx.h.34.dd43cebd7192f96bce7a5ff975201274
+                           .group:00000000 wm4._newlib_version.h.4.6d111ab2e95434b664b53815e5c8ccba
+                           .group:00000000 wm4.features.h.33.3e67abe6fb64142d4f6fa9496796153c
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 47
+
+
+                           .group:00000000 wm4._default_types.h.15.247e5cd201eca3442cbf5404108c4935
+                           .group:00000000 wm4._intsup.h.10.48bafbb683905c4daa4565a85aeeb264
+                           .group:00000000 wm4._stdint.h.10.c24fa3af3bc1706662bb5593a907e841
+                           .group:00000000 wm4.stdint.h.23.d53047a68f4a85177f80b422d52785ed
+                           .group:00000000 wm4.cmsis_version.h.32.0ac195c83bb4537824e6ad1c47474b79
+                           .group:00000000 wm4.core_cm4.h.66.e4ff136c4a17abc46741866f64f8e729
+                           .group:00000000 wm4.cmsis_gcc.h.26.498d0ad17a45fc9ef20fdc01caf02259
+                           .group:00000000 wm4.core_cm4.h.174.62be9b4588d49bed18171771001331df
+                           .group:00000000 wm4.mpu_armv7.h.32.83326921a797fa9d6f70449916b4b839
+                           .group:00000000 wm4.stm32f446xx.h.917.13927c85cbbf4787955bc4173c54fa12
+                           .group:00000000 wm4.stm32f4xx.h.195.a4b8bf80f37cc96981498656ffe5f588
+                           .group:00000000 wm4.stm32_hal_legacy.h.22.8b7d303dc46a0b7ac6d3edf19ce2608d
+                           .group:00000000 wm4.stddef.h.39.3e0425629195acf083c9561151306b4d
+                           .group:00000000 wm4.stm32f4xx_hal_def.h.58.3cb484e92e5ccf2e55312a4714e27917
+                           .group:00000000 wm4.stm32f4xx_hal_rcc_ex.h.20.9b6e314009d4800dd71c0ec1c264a1ea
+                           .group:00000000 wm4.stm32f4xx_hal_rcc.h.106.0887cf5d985ae88e345b0aed0ceb4729
+                           .group:00000000 wm4.stm32f4xx_hal_gpio.h.21.22da6a14b6049d6ac156577be74df1d7
+                           .group:00000000 wm4.stm32f4xx_hal_gpio_ex.h.21.33ea7ea24fd170b1d3dce3d23330c9d3
+                           .group:00000000 wm4.stm32f4xx_hal_gpio.h.254.d7e07832f748fe8bcb575db0b8373592
+                           .group:00000000 wm4.stm32f4xx_hal_exti.h.21.4fc7f37c3cc97fb821b368ede79414b6
+                           .group:00000000 wm4.stm32f4xx_hal_dma.h.21.8e4b1421c914345c23be719e5e528779
+                           .group:00000000 wm4.stm32f4xx_hal_dma.h.720.ac2d7eef74792e4026acc4d2923c5da4
+                           .group:00000000 wm4.stm32f4xx_hal_cortex.h.20.03673e4f79386680bf73ba399c19306b
+                           .group:00000000 wm4.stm32f4xx_ll_adc.h.21.8ab9bf4d55f678506dbbe8102cb12bbc
+                           .group:00000000 wm4.stm32f4xx_hal_adc.h.159.62530d9b3382796f19493a9679ef426c
+                           .group:00000000 wm4.stm32f4xx_hal_adc_ex.h.21.94e87945640619cdd4cff40627e1380a
+                           .group:00000000 wm4.stm32f4xx_hal_adc.h.639.c30c49256117cbda0ada83149c65b3d8
+                           .group:00000000 wm4.stm32f4xx_hal_flash.h.20.2f1e0d1b7010b3a81a7980aaf712e7e5
+                           .group:00000000 wm4.stm32f4xx_hal_flash_ex.h.20.77cb3e5c0f1e426426a4cbc884a1eed8
+                           .group:00000000 wm4.stm32f4xx_hal_flash.h.361.23bc19b9eac79b0956d913651841ede8
+                           .group:00000000 wm4.stm32f4xx_hal_i2c.h.21.147e96a27b1f7b1f2f8ee22132703ee3
+                           .group:00000000 wm4.stm32f4xx_hal_i2c_ex.h.21.951ef5bfa13cf131d2015c338e82e461
+                           .group:00000000 wm4.stm32f4xx_hal_i2c.h.647.ade9c3447780b1cc0ece02f0ce83aedc
+                           .group:00000000 wm4.stm32f4xx_hal_pwr.h.20.1905a0783a9c83adefd7df0c4b501e40
+                           .group:00000000 wm4.stm32f4xx_hal_pwr_ex.h.20.9786dbd699c850465fa7b77273740267
+                           .group:00000000 wm4.stm32f4xx_hal_pwr.h.338.debc0a4a62ba54688e63ab53dd99c4ea
+                           .group:00000000 wm4.stm32f4xx_hal_spi.h.21.8b27a8d792c565f72ddd4cfad797986f
+                           .group:00000000 wm4.stm32f4xx_hal_tim.h.21.c31cbc03c25f07a932427770396c59d2
+                           .group:00000000 wm4.stm32f4xx_hal_tim_ex.h.21.3ff8ebb44e16ac9d5b95e2b3533221b9
+                           .group:00000000 wm4.stm32f4xx_hal_uart.h.21.ba8e24dd05c77faac3f3d48472e636ba
+                           .group:00000000 wm4.stm32f4xx_hal.h.71.02372bc31d47d29d3f67fbfe1429649e
+                           .group:00000000 wm4.main.h.61.69da45f81907557a0774729345d5d811
+                           .group:00000000 wm4.bme280.h.15.88e478fc5eeab150f523397b78536efe
+                           .group:00000000 wm4.newlib.h.7.f9f25f80f86429f653675286e7973cb9
+                           .group:00000000 wm4.ieeefp.h.77.9dc6728f2d488a554e7c0cabef1b6c33
+                           .group:00000000 wm4.config.h.224.10ee1ad185d877c6e334e6581faab44d
+                           .group:00000000 wm4._ansi.h.31.de524f58584151836e90d8620a16f8e8
+                           .group:00000000 wm4._types.h.20.dd0d04dca3800a0d2a6129b87f3adbb2
+                           .group:00000000 wm4.stddef.h.158.5f30652bb2ea05b142c1bbee9108c999
+                           .group:00000000 wm4._types.h.127.3bdfe3ff8ea2d0985b03d9cbe93480e3
+                           .group:00000000 wm4.reent.h.17.e292bf8b0bec6c96e131a54347145a30
+                           .group:00000000 wm4.lock.h.2.1461d1fff82dffe8bfddc23307f6484f
+                           .group:00000000 wm4.reent.h.77.89f7dde66c62b1f1dee32bdb6ab2d544
+                           .group:00000000 wm4.cdefs.h.49.f93868eb904b9ca05b5c0257d31128ca
+                           .group:00000000 wm4.math.h.13.35ad80917fddb38312d53499dad31194
+                           .group:00000000 wm4.string.h.8.c4b8571ce60dff2817f43fec8b86aecd
+                           .group:00000000 wm4.stddef.h.158.bfed30416c9480cd13bc4a25427d538f
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\cchTVxw9.s 			page 48
+
+
+                           .group:00000000 wm4.string.h.177.59a005921fa78485abc80a0267de5752
+                           .group:00000000 wm4.stdio.h.27.3fc80220048df77954e38daec3bb9670
+                           .group:00000000 wm4.stdarg.h.34.3a23a216c0c293b3d2ea2e89281481e6
+                           .group:00000000 wm4.stdio.h.47.dc31ec4674d7bcb103c9f08809549f45
+                           .group:00000000 wm4.stdio.h.2.4aa87247282eca6c8f36f9de33d8df1a
+                           .group:00000000 wm4.stdio.h.87.a1e20d2651f9bfb66e51bfbe849db00a
+
+UNDEFINED SYMBOLS
+HAL_I2C_Mem_Read
+memcmp
+__aeabi_f2d
+__aeabi_dsub
+__aeabi_dmul
+__aeabi_d2f
+pow
+__aeabi_ddiv
+HAL_I2C_DeInit
+HAL_Delay
+HAL_I2C_Init
+HAL_I2C_Mem_Write
+bme_params
+is_BME_ok
+__aeabi_ldivmod
+__aeabi_l2f
+HAL_GetTick

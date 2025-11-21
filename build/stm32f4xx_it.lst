@@ -1,0 +1,1038 @@
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 6
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"stm32f4xx_it.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Core/Src/stm32f4xx_it.c"
+  20              		.section	.text.NMI_Handler,"ax",%progbits
+  21              		.align	1
+  22              		.global	NMI_Handler
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	NMI_Handler:
+  28              	.LFB239:
+   1:Core/Src/stm32f4xx_it.c **** /* USER CODE BEGIN Header */
+   2:Core/Src/stm32f4xx_it.c **** /**
+   3:Core/Src/stm32f4xx_it.c ****   ******************************************************************************
+   4:Core/Src/stm32f4xx_it.c ****   * @file    stm32f4xx_it.c
+   5:Core/Src/stm32f4xx_it.c ****   * @brief   Interrupt Service Routines.
+   6:Core/Src/stm32f4xx_it.c ****   ******************************************************************************
+   7:Core/Src/stm32f4xx_it.c ****   * @attention
+   8:Core/Src/stm32f4xx_it.c ****   *
+   9:Core/Src/stm32f4xx_it.c ****   * Copyright (c) 2025 STMicroelectronics.
+  10:Core/Src/stm32f4xx_it.c ****   * All rights reserved.
+  11:Core/Src/stm32f4xx_it.c ****   *
+  12:Core/Src/stm32f4xx_it.c ****   * This software is licensed under terms that can be found in the LICENSE file
+  13:Core/Src/stm32f4xx_it.c ****   * in the root directory of this software component.
+  14:Core/Src/stm32f4xx_it.c ****   * If no LICENSE file comes with this software, it is provided AS-IS.
+  15:Core/Src/stm32f4xx_it.c ****   *
+  16:Core/Src/stm32f4xx_it.c ****   ******************************************************************************
+  17:Core/Src/stm32f4xx_it.c ****   */
+  18:Core/Src/stm32f4xx_it.c **** /* USER CODE END Header */
+  19:Core/Src/stm32f4xx_it.c **** 
+  20:Core/Src/stm32f4xx_it.c **** /* Includes ------------------------------------------------------------------*/
+  21:Core/Src/stm32f4xx_it.c **** #include "main.h"
+  22:Core/Src/stm32f4xx_it.c **** #include "stm32f4xx_it.h"
+  23:Core/Src/stm32f4xx_it.c **** /* Private includes ----------------------------------------------------------*/
+  24:Core/Src/stm32f4xx_it.c **** /* USER CODE BEGIN Includes */
+  25:Core/Src/stm32f4xx_it.c **** // External declarations for BMI088 interrupt flags
+  26:Core/Src/stm32f4xx_it.c **** extern volatile uint8_t bmi088_accel_data_ready;
+  27:Core/Src/stm32f4xx_it.c **** extern volatile uint8_t bmi088_gyro_data_ready;
+  28:Core/Src/stm32f4xx_it.c **** /* USER CODE END Includes */
+  29:Core/Src/stm32f4xx_it.c **** 
+  30:Core/Src/stm32f4xx_it.c **** /* Private typedef -----------------------------------------------------------*/
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s 			page 2
+
+
+  31:Core/Src/stm32f4xx_it.c **** /* USER CODE BEGIN TD */
+  32:Core/Src/stm32f4xx_it.c **** 
+  33:Core/Src/stm32f4xx_it.c **** /* USER CODE END TD */
+  34:Core/Src/stm32f4xx_it.c **** 
+  35:Core/Src/stm32f4xx_it.c **** /* Private define ------------------------------------------------------------*/
+  36:Core/Src/stm32f4xx_it.c **** /* USER CODE BEGIN PD */
+  37:Core/Src/stm32f4xx_it.c **** 
+  38:Core/Src/stm32f4xx_it.c **** /* USER CODE END PD */
+  39:Core/Src/stm32f4xx_it.c **** 
+  40:Core/Src/stm32f4xx_it.c **** /* Private macro -------------------------------------------------------------*/
+  41:Core/Src/stm32f4xx_it.c **** /* USER CODE BEGIN PM */
+  42:Core/Src/stm32f4xx_it.c **** 
+  43:Core/Src/stm32f4xx_it.c **** /* USER CODE END PM */
+  44:Core/Src/stm32f4xx_it.c **** 
+  45:Core/Src/stm32f4xx_it.c **** /* Private variables ---------------------------------------------------------*/
+  46:Core/Src/stm32f4xx_it.c **** /* USER CODE BEGIN PV */
+  47:Core/Src/stm32f4xx_it.c **** 
+  48:Core/Src/stm32f4xx_it.c **** /* USER CODE END PV */
+  49:Core/Src/stm32f4xx_it.c **** 
+  50:Core/Src/stm32f4xx_it.c **** /* Private function prototypes -----------------------------------------------*/
+  51:Core/Src/stm32f4xx_it.c **** /* USER CODE BEGIN PFP */
+  52:Core/Src/stm32f4xx_it.c **** 
+  53:Core/Src/stm32f4xx_it.c **** /* USER CODE END PFP */
+  54:Core/Src/stm32f4xx_it.c **** 
+  55:Core/Src/stm32f4xx_it.c **** /* Private user code ---------------------------------------------------------*/
+  56:Core/Src/stm32f4xx_it.c **** /* USER CODE BEGIN 0 */
+  57:Core/Src/stm32f4xx_it.c **** 
+  58:Core/Src/stm32f4xx_it.c **** /* USER CODE END 0 */
+  59:Core/Src/stm32f4xx_it.c **** 
+  60:Core/Src/stm32f4xx_it.c **** /* External variables --------------------------------------------------------*/
+  61:Core/Src/stm32f4xx_it.c **** extern DMA_HandleTypeDef hdma_i2c1_rx;
+  62:Core/Src/stm32f4xx_it.c **** extern I2C_HandleTypeDef hi2c1;
+  63:Core/Src/stm32f4xx_it.c **** extern TIM_HandleTypeDef htim2;
+  64:Core/Src/stm32f4xx_it.c **** extern DMA_HandleTypeDef hdma_uart4_tx;
+  65:Core/Src/stm32f4xx_it.c **** extern DMA_HandleTypeDef hdma_usart2_tx;
+  66:Core/Src/stm32f4xx_it.c **** extern DMA_HandleTypeDef hdma_usart6_rx;
+  67:Core/Src/stm32f4xx_it.c **** extern UART_HandleTypeDef huart4;
+  68:Core/Src/stm32f4xx_it.c **** extern UART_HandleTypeDef huart2;
+  69:Core/Src/stm32f4xx_it.c **** extern UART_HandleTypeDef huart6;
+  70:Core/Src/stm32f4xx_it.c **** extern TIM_HandleTypeDef htim6;
+  71:Core/Src/stm32f4xx_it.c **** 
+  72:Core/Src/stm32f4xx_it.c **** /* USER CODE BEGIN EV */
+  73:Core/Src/stm32f4xx_it.c **** 
+  74:Core/Src/stm32f4xx_it.c **** /* USER CODE END EV */
+  75:Core/Src/stm32f4xx_it.c **** 
+  76:Core/Src/stm32f4xx_it.c **** /******************************************************************************/
+  77:Core/Src/stm32f4xx_it.c **** /*           Cortex-M4 Processor Interruption and Exception Handlers          */
+  78:Core/Src/stm32f4xx_it.c **** /******************************************************************************/
+  79:Core/Src/stm32f4xx_it.c **** /**
+  80:Core/Src/stm32f4xx_it.c ****   * @brief This function handles Non maskable interrupt.
+  81:Core/Src/stm32f4xx_it.c ****   */
+  82:Core/Src/stm32f4xx_it.c **** void NMI_Handler(void)
+  83:Core/Src/stm32f4xx_it.c **** {
+  29              		.loc 1 83 1
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 1, uses_anonymous_args = 0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s 			page 3
+
+
+  33              		@ link register save eliminated.
+  34 0000 80B4     		push	{r7}
+  35              		.cfi_def_cfa_offset 4
+  36              		.cfi_offset 7, -4
+  37 0002 00AF     		add	r7, sp, #0
+  38              		.cfi_def_cfa_register 7
+  39              	.L2:
+  84:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
+  85:Core/Src/stm32f4xx_it.c **** 
+  86:Core/Src/stm32f4xx_it.c ****   /* USER CODE END NonMaskableInt_IRQn 0 */
+  87:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
+  88:Core/Src/stm32f4xx_it.c ****    while (1)
+  40              		.loc 1 88 10 discriminator 1
+  41 0004 00BF     		nop
+  42 0006 FDE7     		b	.L2
+  43              		.cfi_endproc
+  44              	.LFE239:
+  46              		.section	.text.HardFault_Handler,"ax",%progbits
+  47              		.align	1
+  48              		.global	HardFault_Handler
+  49              		.syntax unified
+  50              		.thumb
+  51              		.thumb_func
+  53              	HardFault_Handler:
+  54              	.LFB240:
+  89:Core/Src/stm32f4xx_it.c ****   {
+  90:Core/Src/stm32f4xx_it.c ****   }
+  91:Core/Src/stm32f4xx_it.c ****   /* USER CODE END NonMaskableInt_IRQn 1 */
+  92:Core/Src/stm32f4xx_it.c **** }
+  93:Core/Src/stm32f4xx_it.c **** 
+  94:Core/Src/stm32f4xx_it.c **** /**
+  95:Core/Src/stm32f4xx_it.c ****   * @brief This function handles Hard fault interrupt.
+  96:Core/Src/stm32f4xx_it.c ****   */
+  97:Core/Src/stm32f4xx_it.c **** void HardFault_Handler(void)
+  98:Core/Src/stm32f4xx_it.c **** {
+  55              		.loc 1 98 1
+  56              		.cfi_startproc
+  57              		@ args = 0, pretend = 0, frame = 0
+  58              		@ frame_needed = 1, uses_anonymous_args = 0
+  59              		@ link register save eliminated.
+  60 0000 80B4     		push	{r7}
+  61              		.cfi_def_cfa_offset 4
+  62              		.cfi_offset 7, -4
+  63 0002 00AF     		add	r7, sp, #0
+  64              		.cfi_def_cfa_register 7
+  65              	.L4:
+  99:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN HardFault_IRQn 0 */
+ 100:Core/Src/stm32f4xx_it.c **** 
+ 101:Core/Src/stm32f4xx_it.c ****   /* USER CODE END HardFault_IRQn 0 */
+ 102:Core/Src/stm32f4xx_it.c ****   while (1)
+  66              		.loc 1 102 9 discriminator 1
+  67 0004 00BF     		nop
+  68 0006 FDE7     		b	.L4
+  69              		.cfi_endproc
+  70              	.LFE240:
+  72              		.section	.text.MemManage_Handler,"ax",%progbits
+  73              		.align	1
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s 			page 4
+
+
+  74              		.global	MemManage_Handler
+  75              		.syntax unified
+  76              		.thumb
+  77              		.thumb_func
+  79              	MemManage_Handler:
+  80              	.LFB241:
+ 103:Core/Src/stm32f4xx_it.c ****   {
+ 104:Core/Src/stm32f4xx_it.c ****     /* USER CODE BEGIN W1_HardFault_IRQn 0 */
+ 105:Core/Src/stm32f4xx_it.c ****     /* USER CODE END W1_HardFault_IRQn 0 */
+ 106:Core/Src/stm32f4xx_it.c ****   }
+ 107:Core/Src/stm32f4xx_it.c **** }
+ 108:Core/Src/stm32f4xx_it.c **** 
+ 109:Core/Src/stm32f4xx_it.c **** /**
+ 110:Core/Src/stm32f4xx_it.c ****   * @brief This function handles Memory management fault.
+ 111:Core/Src/stm32f4xx_it.c ****   */
+ 112:Core/Src/stm32f4xx_it.c **** void MemManage_Handler(void)
+ 113:Core/Src/stm32f4xx_it.c **** {
+  81              		.loc 1 113 1
+  82              		.cfi_startproc
+  83              		@ args = 0, pretend = 0, frame = 0
+  84              		@ frame_needed = 1, uses_anonymous_args = 0
+  85              		@ link register save eliminated.
+  86 0000 80B4     		push	{r7}
+  87              		.cfi_def_cfa_offset 4
+  88              		.cfi_offset 7, -4
+  89 0002 00AF     		add	r7, sp, #0
+  90              		.cfi_def_cfa_register 7
+  91              	.L6:
+ 114:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN MemoryManagement_IRQn 0 */
+ 115:Core/Src/stm32f4xx_it.c **** 
+ 116:Core/Src/stm32f4xx_it.c ****   /* USER CODE END MemoryManagement_IRQn 0 */
+ 117:Core/Src/stm32f4xx_it.c ****   while (1)
+  92              		.loc 1 117 9 discriminator 1
+  93 0004 00BF     		nop
+  94 0006 FDE7     		b	.L6
+  95              		.cfi_endproc
+  96              	.LFE241:
+  98              		.section	.text.BusFault_Handler,"ax",%progbits
+  99              		.align	1
+ 100              		.global	BusFault_Handler
+ 101              		.syntax unified
+ 102              		.thumb
+ 103              		.thumb_func
+ 105              	BusFault_Handler:
+ 106              	.LFB242:
+ 118:Core/Src/stm32f4xx_it.c ****   {
+ 119:Core/Src/stm32f4xx_it.c ****     /* USER CODE BEGIN W1_MemoryManagement_IRQn 0 */
+ 120:Core/Src/stm32f4xx_it.c ****     /* USER CODE END W1_MemoryManagement_IRQn 0 */
+ 121:Core/Src/stm32f4xx_it.c ****   }
+ 122:Core/Src/stm32f4xx_it.c **** }
+ 123:Core/Src/stm32f4xx_it.c **** 
+ 124:Core/Src/stm32f4xx_it.c **** /**
+ 125:Core/Src/stm32f4xx_it.c ****   * @brief This function handles Pre-fetch fault, memory access fault.
+ 126:Core/Src/stm32f4xx_it.c ****   */
+ 127:Core/Src/stm32f4xx_it.c **** void BusFault_Handler(void)
+ 128:Core/Src/stm32f4xx_it.c **** {
+ 107              		.loc 1 128 1
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s 			page 5
+
+
+ 108              		.cfi_startproc
+ 109              		@ args = 0, pretend = 0, frame = 0
+ 110              		@ frame_needed = 1, uses_anonymous_args = 0
+ 111              		@ link register save eliminated.
+ 112 0000 80B4     		push	{r7}
+ 113              		.cfi_def_cfa_offset 4
+ 114              		.cfi_offset 7, -4
+ 115 0002 00AF     		add	r7, sp, #0
+ 116              		.cfi_def_cfa_register 7
+ 117              	.L8:
+ 129:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN BusFault_IRQn 0 */
+ 130:Core/Src/stm32f4xx_it.c **** 
+ 131:Core/Src/stm32f4xx_it.c ****   /* USER CODE END BusFault_IRQn 0 */
+ 132:Core/Src/stm32f4xx_it.c ****   while (1)
+ 118              		.loc 1 132 9 discriminator 1
+ 119 0004 00BF     		nop
+ 120 0006 FDE7     		b	.L8
+ 121              		.cfi_endproc
+ 122              	.LFE242:
+ 124              		.section	.text.UsageFault_Handler,"ax",%progbits
+ 125              		.align	1
+ 126              		.global	UsageFault_Handler
+ 127              		.syntax unified
+ 128              		.thumb
+ 129              		.thumb_func
+ 131              	UsageFault_Handler:
+ 132              	.LFB243:
+ 133:Core/Src/stm32f4xx_it.c ****   {
+ 134:Core/Src/stm32f4xx_it.c ****     /* USER CODE BEGIN W1_BusFault_IRQn 0 */
+ 135:Core/Src/stm32f4xx_it.c ****     /* USER CODE END W1_BusFault_IRQn 0 */
+ 136:Core/Src/stm32f4xx_it.c ****   }
+ 137:Core/Src/stm32f4xx_it.c **** }
+ 138:Core/Src/stm32f4xx_it.c **** 
+ 139:Core/Src/stm32f4xx_it.c **** /**
+ 140:Core/Src/stm32f4xx_it.c ****   * @brief This function handles Undefined instruction or illegal state.
+ 141:Core/Src/stm32f4xx_it.c ****   */
+ 142:Core/Src/stm32f4xx_it.c **** void UsageFault_Handler(void)
+ 143:Core/Src/stm32f4xx_it.c **** {
+ 133              		.loc 1 143 1
+ 134              		.cfi_startproc
+ 135              		@ args = 0, pretend = 0, frame = 0
+ 136              		@ frame_needed = 1, uses_anonymous_args = 0
+ 137              		@ link register save eliminated.
+ 138 0000 80B4     		push	{r7}
+ 139              		.cfi_def_cfa_offset 4
+ 140              		.cfi_offset 7, -4
+ 141 0002 00AF     		add	r7, sp, #0
+ 142              		.cfi_def_cfa_register 7
+ 143              	.L10:
+ 144:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN UsageFault_IRQn 0 */
+ 145:Core/Src/stm32f4xx_it.c **** 
+ 146:Core/Src/stm32f4xx_it.c ****   /* USER CODE END UsageFault_IRQn 0 */
+ 147:Core/Src/stm32f4xx_it.c ****   while (1)
+ 144              		.loc 1 147 9 discriminator 1
+ 145 0004 00BF     		nop
+ 146 0006 FDE7     		b	.L10
+ 147              		.cfi_endproc
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s 			page 6
+
+
+ 148              	.LFE243:
+ 150              		.section	.text.DebugMon_Handler,"ax",%progbits
+ 151              		.align	1
+ 152              		.global	DebugMon_Handler
+ 153              		.syntax unified
+ 154              		.thumb
+ 155              		.thumb_func
+ 157              	DebugMon_Handler:
+ 158              	.LFB244:
+ 148:Core/Src/stm32f4xx_it.c ****   {
+ 149:Core/Src/stm32f4xx_it.c ****     /* USER CODE BEGIN W1_UsageFault_IRQn 0 */
+ 150:Core/Src/stm32f4xx_it.c ****     /* USER CODE END W1_UsageFault_IRQn 0 */
+ 151:Core/Src/stm32f4xx_it.c ****   }
+ 152:Core/Src/stm32f4xx_it.c **** }
+ 153:Core/Src/stm32f4xx_it.c **** 
+ 154:Core/Src/stm32f4xx_it.c **** /**
+ 155:Core/Src/stm32f4xx_it.c ****   * @brief This function handles Debug monitor.
+ 156:Core/Src/stm32f4xx_it.c ****   */
+ 157:Core/Src/stm32f4xx_it.c **** void DebugMon_Handler(void)
+ 158:Core/Src/stm32f4xx_it.c **** {
+ 159              		.loc 1 158 1
+ 160              		.cfi_startproc
+ 161              		@ args = 0, pretend = 0, frame = 0
+ 162              		@ frame_needed = 1, uses_anonymous_args = 0
+ 163              		@ link register save eliminated.
+ 164 0000 80B4     		push	{r7}
+ 165              		.cfi_def_cfa_offset 4
+ 166              		.cfi_offset 7, -4
+ 167 0002 00AF     		add	r7, sp, #0
+ 168              		.cfi_def_cfa_register 7
+ 159:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN DebugMonitor_IRQn 0 */
+ 160:Core/Src/stm32f4xx_it.c **** 
+ 161:Core/Src/stm32f4xx_it.c ****   /* USER CODE END DebugMonitor_IRQn 0 */
+ 162:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN DebugMonitor_IRQn 1 */
+ 163:Core/Src/stm32f4xx_it.c **** 
+ 164:Core/Src/stm32f4xx_it.c ****   /* USER CODE END DebugMonitor_IRQn 1 */
+ 165:Core/Src/stm32f4xx_it.c **** }
+ 169              		.loc 1 165 1
+ 170 0004 00BF     		nop
+ 171 0006 BD46     		mov	sp, r7
+ 172              		.cfi_def_cfa_register 13
+ 173              		@ sp needed
+ 174 0008 5DF8047B 		ldr	r7, [sp], #4
+ 175              		.cfi_restore 7
+ 176              		.cfi_def_cfa_offset 0
+ 177 000c 7047     		bx	lr
+ 178              		.cfi_endproc
+ 179              	.LFE244:
+ 181              		.section	.text.EXTI3_IRQHandler,"ax",%progbits
+ 182              		.align	1
+ 183              		.global	EXTI3_IRQHandler
+ 184              		.syntax unified
+ 185              		.thumb
+ 186              		.thumb_func
+ 188              	EXTI3_IRQHandler:
+ 189              	.LFB245:
+ 166:Core/Src/stm32f4xx_it.c **** 
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s 			page 7
+
+
+ 167:Core/Src/stm32f4xx_it.c **** /******************************************************************************/
+ 168:Core/Src/stm32f4xx_it.c **** /* STM32F4xx Peripheral Interrupt Handlers                                    */
+ 169:Core/Src/stm32f4xx_it.c **** /* Add here the Interrupt Handlers for the used peripherals.                  */
+ 170:Core/Src/stm32f4xx_it.c **** /* For the available peripheral interrupt handler names,                      */
+ 171:Core/Src/stm32f4xx_it.c **** /* please refer to the startup file (startup_stm32f4xx.s).                    */
+ 172:Core/Src/stm32f4xx_it.c **** /******************************************************************************/
+ 173:Core/Src/stm32f4xx_it.c **** 
+ 174:Core/Src/stm32f4xx_it.c **** /**
+ 175:Core/Src/stm32f4xx_it.c ****   * @brief This function handles EXTI line 3 interrupt.
+ 176:Core/Src/stm32f4xx_it.c ****   */
+ 177:Core/Src/stm32f4xx_it.c **** void EXTI3_IRQHandler(void)
+ 178:Core/Src/stm32f4xx_it.c **** {
+ 190              		.loc 1 178 1
+ 191              		.cfi_startproc
+ 192              		@ args = 0, pretend = 0, frame = 0
+ 193              		@ frame_needed = 1, uses_anonymous_args = 0
+ 194 0000 80B5     		push	{r7, lr}
+ 195              		.cfi_def_cfa_offset 8
+ 196              		.cfi_offset 7, -8
+ 197              		.cfi_offset 14, -4
+ 198 0002 00AF     		add	r7, sp, #0
+ 199              		.cfi_def_cfa_register 7
+ 179:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN EXTI3_IRQn 0 */
+ 180:Core/Src/stm32f4xx_it.c **** 
+ 181:Core/Src/stm32f4xx_it.c ****   /* USER CODE END EXTI3_IRQn 0 */
+ 182:Core/Src/stm32f4xx_it.c ****   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_3);
+ 200              		.loc 1 182 3
+ 201 0004 0820     		movs	r0, #8
+ 202 0006 FFF7FEFF 		bl	HAL_GPIO_EXTI_IRQHandler
+ 183:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN EXTI3_IRQn 1 */
+ 184:Core/Src/stm32f4xx_it.c **** 
+ 185:Core/Src/stm32f4xx_it.c ****   /* USER CODE END EXTI3_IRQn 1 */
+ 186:Core/Src/stm32f4xx_it.c **** }
+ 203              		.loc 1 186 1
+ 204 000a 00BF     		nop
+ 205 000c 80BD     		pop	{r7, pc}
+ 206              		.cfi_endproc
+ 207              	.LFE245:
+ 209              		.section	.text.EXTI4_IRQHandler,"ax",%progbits
+ 210              		.align	1
+ 211              		.global	EXTI4_IRQHandler
+ 212              		.syntax unified
+ 213              		.thumb
+ 214              		.thumb_func
+ 216              	EXTI4_IRQHandler:
+ 217              	.LFB246:
+ 187:Core/Src/stm32f4xx_it.c **** 
+ 188:Core/Src/stm32f4xx_it.c **** /**
+ 189:Core/Src/stm32f4xx_it.c ****   * @brief This function handles EXTI line 4 interrupt.
+ 190:Core/Src/stm32f4xx_it.c ****   */
+ 191:Core/Src/stm32f4xx_it.c **** void EXTI4_IRQHandler(void)
+ 192:Core/Src/stm32f4xx_it.c **** {
+ 218              		.loc 1 192 1
+ 219              		.cfi_startproc
+ 220              		@ args = 0, pretend = 0, frame = 0
+ 221              		@ frame_needed = 1, uses_anonymous_args = 0
+ 222 0000 80B5     		push	{r7, lr}
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s 			page 8
+
+
+ 223              		.cfi_def_cfa_offset 8
+ 224              		.cfi_offset 7, -8
+ 225              		.cfi_offset 14, -4
+ 226 0002 00AF     		add	r7, sp, #0
+ 227              		.cfi_def_cfa_register 7
+ 193:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN EXTI4_IRQn 0 */
+ 194:Core/Src/stm32f4xx_it.c **** 
+ 195:Core/Src/stm32f4xx_it.c ****   /* USER CODE END EXTI4_IRQn 0 */
+ 196:Core/Src/stm32f4xx_it.c ****   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4);
+ 228              		.loc 1 196 3
+ 229 0004 1020     		movs	r0, #16
+ 230 0006 FFF7FEFF 		bl	HAL_GPIO_EXTI_IRQHandler
+ 197:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN EXTI4_IRQn 1 */
+ 198:Core/Src/stm32f4xx_it.c **** 
+ 199:Core/Src/stm32f4xx_it.c ****   /* USER CODE END EXTI4_IRQn 1 */
+ 200:Core/Src/stm32f4xx_it.c **** }
+ 231              		.loc 1 200 1
+ 232 000a 00BF     		nop
+ 233 000c 80BD     		pop	{r7, pc}
+ 234              		.cfi_endproc
+ 235              	.LFE246:
+ 237              		.section	.text.DMA1_Stream0_IRQHandler,"ax",%progbits
+ 238              		.align	1
+ 239              		.global	DMA1_Stream0_IRQHandler
+ 240              		.syntax unified
+ 241              		.thumb
+ 242              		.thumb_func
+ 244              	DMA1_Stream0_IRQHandler:
+ 245              	.LFB247:
+ 201:Core/Src/stm32f4xx_it.c **** 
+ 202:Core/Src/stm32f4xx_it.c **** /**
+ 203:Core/Src/stm32f4xx_it.c ****   * @brief This function handles DMA1 stream0 global interrupt.
+ 204:Core/Src/stm32f4xx_it.c ****   */
+ 205:Core/Src/stm32f4xx_it.c **** void DMA1_Stream0_IRQHandler(void)
+ 206:Core/Src/stm32f4xx_it.c **** {
+ 246              		.loc 1 206 1
+ 247              		.cfi_startproc
+ 248              		@ args = 0, pretend = 0, frame = 0
+ 249              		@ frame_needed = 1, uses_anonymous_args = 0
+ 250 0000 80B5     		push	{r7, lr}
+ 251              		.cfi_def_cfa_offset 8
+ 252              		.cfi_offset 7, -8
+ 253              		.cfi_offset 14, -4
+ 254 0002 00AF     		add	r7, sp, #0
+ 255              		.cfi_def_cfa_register 7
+ 207:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN DMA1_Stream0_IRQn 0 */
+ 208:Core/Src/stm32f4xx_it.c **** 
+ 209:Core/Src/stm32f4xx_it.c ****   /* USER CODE END DMA1_Stream0_IRQn 0 */
+ 210:Core/Src/stm32f4xx_it.c ****   HAL_DMA_IRQHandler(&hdma_i2c1_rx);
+ 256              		.loc 1 210 3
+ 257 0004 0248     		ldr	r0, .L15
+ 258 0006 FFF7FEFF 		bl	HAL_DMA_IRQHandler
+ 211:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN DMA1_Stream0_IRQn 1 */
+ 212:Core/Src/stm32f4xx_it.c **** 
+ 213:Core/Src/stm32f4xx_it.c ****   /* USER CODE END DMA1_Stream0_IRQn 1 */
+ 214:Core/Src/stm32f4xx_it.c **** }
+ 259              		.loc 1 214 1
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s 			page 9
+
+
+ 260 000a 00BF     		nop
+ 261 000c 80BD     		pop	{r7, pc}
+ 262              	.L16:
+ 263 000e 00BF     		.align	2
+ 264              	.L15:
+ 265 0010 00000000 		.word	hdma_i2c1_rx
+ 266              		.cfi_endproc
+ 267              	.LFE247:
+ 269              		.section	.text.DMA1_Stream4_IRQHandler,"ax",%progbits
+ 270              		.align	1
+ 271              		.global	DMA1_Stream4_IRQHandler
+ 272              		.syntax unified
+ 273              		.thumb
+ 274              		.thumb_func
+ 276              	DMA1_Stream4_IRQHandler:
+ 277              	.LFB248:
+ 215:Core/Src/stm32f4xx_it.c **** 
+ 216:Core/Src/stm32f4xx_it.c **** /**
+ 217:Core/Src/stm32f4xx_it.c ****   * @brief This function handles DMA1 stream4 global interrupt.
+ 218:Core/Src/stm32f4xx_it.c ****   */
+ 219:Core/Src/stm32f4xx_it.c **** void DMA1_Stream4_IRQHandler(void)
+ 220:Core/Src/stm32f4xx_it.c **** {
+ 278              		.loc 1 220 1
+ 279              		.cfi_startproc
+ 280              		@ args = 0, pretend = 0, frame = 0
+ 281              		@ frame_needed = 1, uses_anonymous_args = 0
+ 282 0000 80B5     		push	{r7, lr}
+ 283              		.cfi_def_cfa_offset 8
+ 284              		.cfi_offset 7, -8
+ 285              		.cfi_offset 14, -4
+ 286 0002 00AF     		add	r7, sp, #0
+ 287              		.cfi_def_cfa_register 7
+ 221:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN DMA1_Stream4_IRQn 0 */
+ 222:Core/Src/stm32f4xx_it.c **** 
+ 223:Core/Src/stm32f4xx_it.c ****   /* USER CODE END DMA1_Stream4_IRQn 0 */
+ 224:Core/Src/stm32f4xx_it.c ****   HAL_DMA_IRQHandler(&hdma_uart4_tx);
+ 288              		.loc 1 224 3
+ 289 0004 0248     		ldr	r0, .L18
+ 290 0006 FFF7FEFF 		bl	HAL_DMA_IRQHandler
+ 225:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN DMA1_Stream4_IRQn 1 */
+ 226:Core/Src/stm32f4xx_it.c **** 
+ 227:Core/Src/stm32f4xx_it.c ****   /* USER CODE END DMA1_Stream4_IRQn 1 */
+ 228:Core/Src/stm32f4xx_it.c **** }
+ 291              		.loc 1 228 1
+ 292 000a 00BF     		nop
+ 293 000c 80BD     		pop	{r7, pc}
+ 294              	.L19:
+ 295 000e 00BF     		.align	2
+ 296              	.L18:
+ 297 0010 00000000 		.word	hdma_uart4_tx
+ 298              		.cfi_endproc
+ 299              	.LFE248:
+ 301              		.section	.text.DMA1_Stream6_IRQHandler,"ax",%progbits
+ 302              		.align	1
+ 303              		.global	DMA1_Stream6_IRQHandler
+ 304              		.syntax unified
+ 305              		.thumb
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s 			page 10
+
+
+ 306              		.thumb_func
+ 308              	DMA1_Stream6_IRQHandler:
+ 309              	.LFB249:
+ 229:Core/Src/stm32f4xx_it.c **** 
+ 230:Core/Src/stm32f4xx_it.c **** /**
+ 231:Core/Src/stm32f4xx_it.c ****   * @brief This function handles DMA1 stream6 global interrupt.
+ 232:Core/Src/stm32f4xx_it.c ****   */
+ 233:Core/Src/stm32f4xx_it.c **** void DMA1_Stream6_IRQHandler(void)
+ 234:Core/Src/stm32f4xx_it.c **** {
+ 310              		.loc 1 234 1
+ 311              		.cfi_startproc
+ 312              		@ args = 0, pretend = 0, frame = 0
+ 313              		@ frame_needed = 1, uses_anonymous_args = 0
+ 314 0000 80B5     		push	{r7, lr}
+ 315              		.cfi_def_cfa_offset 8
+ 316              		.cfi_offset 7, -8
+ 317              		.cfi_offset 14, -4
+ 318 0002 00AF     		add	r7, sp, #0
+ 319              		.cfi_def_cfa_register 7
+ 235:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN DMA1_Stream6_IRQn 0 */
+ 236:Core/Src/stm32f4xx_it.c **** 
+ 237:Core/Src/stm32f4xx_it.c ****   /* USER CODE END DMA1_Stream6_IRQn 0 */
+ 238:Core/Src/stm32f4xx_it.c ****   HAL_DMA_IRQHandler(&hdma_usart2_tx);
+ 320              		.loc 1 238 3
+ 321 0004 0248     		ldr	r0, .L21
+ 322 0006 FFF7FEFF 		bl	HAL_DMA_IRQHandler
+ 239:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN DMA1_Stream6_IRQn 1 */
+ 240:Core/Src/stm32f4xx_it.c **** 
+ 241:Core/Src/stm32f4xx_it.c ****   /* USER CODE END DMA1_Stream6_IRQn 1 */
+ 242:Core/Src/stm32f4xx_it.c **** }
+ 323              		.loc 1 242 1
+ 324 000a 00BF     		nop
+ 325 000c 80BD     		pop	{r7, pc}
+ 326              	.L22:
+ 327 000e 00BF     		.align	2
+ 328              	.L21:
+ 329 0010 00000000 		.word	hdma_usart2_tx
+ 330              		.cfi_endproc
+ 331              	.LFE249:
+ 333              		.section	.text.TIM2_IRQHandler,"ax",%progbits
+ 334              		.align	1
+ 335              		.global	TIM2_IRQHandler
+ 336              		.syntax unified
+ 337              		.thumb
+ 338              		.thumb_func
+ 340              	TIM2_IRQHandler:
+ 341              	.LFB250:
+ 243:Core/Src/stm32f4xx_it.c **** 
+ 244:Core/Src/stm32f4xx_it.c **** /**
+ 245:Core/Src/stm32f4xx_it.c ****   * @brief This function handles TIM2 global interrupt.
+ 246:Core/Src/stm32f4xx_it.c ****   */
+ 247:Core/Src/stm32f4xx_it.c **** void TIM2_IRQHandler(void)
+ 248:Core/Src/stm32f4xx_it.c **** {
+ 342              		.loc 1 248 1
+ 343              		.cfi_startproc
+ 344              		@ args = 0, pretend = 0, frame = 0
+ 345              		@ frame_needed = 1, uses_anonymous_args = 0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s 			page 11
+
+
+ 346 0000 80B5     		push	{r7, lr}
+ 347              		.cfi_def_cfa_offset 8
+ 348              		.cfi_offset 7, -8
+ 349              		.cfi_offset 14, -4
+ 350 0002 00AF     		add	r7, sp, #0
+ 351              		.cfi_def_cfa_register 7
+ 249:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN TIM2_IRQn 0 */
+ 250:Core/Src/stm32f4xx_it.c **** 
+ 251:Core/Src/stm32f4xx_it.c ****   /* USER CODE END TIM2_IRQn 0 */
+ 252:Core/Src/stm32f4xx_it.c ****   HAL_TIM_IRQHandler(&htim2);
+ 352              		.loc 1 252 3
+ 353 0004 0248     		ldr	r0, .L24
+ 354 0006 FFF7FEFF 		bl	HAL_TIM_IRQHandler
+ 253:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN TIM2_IRQn 1 */
+ 254:Core/Src/stm32f4xx_it.c **** 
+ 255:Core/Src/stm32f4xx_it.c ****   /* USER CODE END TIM2_IRQn 1 */
+ 256:Core/Src/stm32f4xx_it.c **** }
+ 355              		.loc 1 256 1
+ 356 000a 00BF     		nop
+ 357 000c 80BD     		pop	{r7, pc}
+ 358              	.L25:
+ 359 000e 00BF     		.align	2
+ 360              	.L24:
+ 361 0010 00000000 		.word	htim2
+ 362              		.cfi_endproc
+ 363              	.LFE250:
+ 365              		.section	.text.I2C1_EV_IRQHandler,"ax",%progbits
+ 366              		.align	1
+ 367              		.global	I2C1_EV_IRQHandler
+ 368              		.syntax unified
+ 369              		.thumb
+ 370              		.thumb_func
+ 372              	I2C1_EV_IRQHandler:
+ 373              	.LFB251:
+ 257:Core/Src/stm32f4xx_it.c **** 
+ 258:Core/Src/stm32f4xx_it.c **** /**
+ 259:Core/Src/stm32f4xx_it.c ****   * @brief This function handles I2C1 event interrupt.
+ 260:Core/Src/stm32f4xx_it.c ****   */
+ 261:Core/Src/stm32f4xx_it.c **** void I2C1_EV_IRQHandler(void)
+ 262:Core/Src/stm32f4xx_it.c **** {
+ 374              		.loc 1 262 1
+ 375              		.cfi_startproc
+ 376              		@ args = 0, pretend = 0, frame = 0
+ 377              		@ frame_needed = 1, uses_anonymous_args = 0
+ 378 0000 80B5     		push	{r7, lr}
+ 379              		.cfi_def_cfa_offset 8
+ 380              		.cfi_offset 7, -8
+ 381              		.cfi_offset 14, -4
+ 382 0002 00AF     		add	r7, sp, #0
+ 383              		.cfi_def_cfa_register 7
+ 263:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN I2C1_EV_IRQn 0 */
+ 264:Core/Src/stm32f4xx_it.c **** 
+ 265:Core/Src/stm32f4xx_it.c ****   /* USER CODE END I2C1_EV_IRQn 0 */
+ 266:Core/Src/stm32f4xx_it.c ****   HAL_I2C_EV_IRQHandler(&hi2c1);
+ 384              		.loc 1 266 3
+ 385 0004 0248     		ldr	r0, .L27
+ 386 0006 FFF7FEFF 		bl	HAL_I2C_EV_IRQHandler
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s 			page 12
+
+
+ 267:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN I2C1_EV_IRQn 1 */
+ 268:Core/Src/stm32f4xx_it.c **** 
+ 269:Core/Src/stm32f4xx_it.c ****   /* USER CODE END I2C1_EV_IRQn 1 */
+ 270:Core/Src/stm32f4xx_it.c **** }
+ 387              		.loc 1 270 1
+ 388 000a 00BF     		nop
+ 389 000c 80BD     		pop	{r7, pc}
+ 390              	.L28:
+ 391 000e 00BF     		.align	2
+ 392              	.L27:
+ 393 0010 00000000 		.word	hi2c1
+ 394              		.cfi_endproc
+ 395              	.LFE251:
+ 397              		.section	.text.USART2_IRQHandler,"ax",%progbits
+ 398              		.align	1
+ 399              		.global	USART2_IRQHandler
+ 400              		.syntax unified
+ 401              		.thumb
+ 402              		.thumb_func
+ 404              	USART2_IRQHandler:
+ 405              	.LFB252:
+ 271:Core/Src/stm32f4xx_it.c **** 
+ 272:Core/Src/stm32f4xx_it.c **** /**
+ 273:Core/Src/stm32f4xx_it.c ****   * @brief This function handles USART2 global interrupt.
+ 274:Core/Src/stm32f4xx_it.c ****   */
+ 275:Core/Src/stm32f4xx_it.c **** void USART2_IRQHandler(void)
+ 276:Core/Src/stm32f4xx_it.c **** {
+ 406              		.loc 1 276 1
+ 407              		.cfi_startproc
+ 408              		@ args = 0, pretend = 0, frame = 0
+ 409              		@ frame_needed = 1, uses_anonymous_args = 0
+ 410 0000 80B5     		push	{r7, lr}
+ 411              		.cfi_def_cfa_offset 8
+ 412              		.cfi_offset 7, -8
+ 413              		.cfi_offset 14, -4
+ 414 0002 00AF     		add	r7, sp, #0
+ 415              		.cfi_def_cfa_register 7
+ 277:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN USART2_IRQn 0 */
+ 278:Core/Src/stm32f4xx_it.c **** 
+ 279:Core/Src/stm32f4xx_it.c ****   /* USER CODE END USART2_IRQn 0 */
+ 280:Core/Src/stm32f4xx_it.c ****   HAL_UART_IRQHandler(&huart2);
+ 416              		.loc 1 280 3
+ 417 0004 0248     		ldr	r0, .L30
+ 418 0006 FFF7FEFF 		bl	HAL_UART_IRQHandler
+ 281:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN USART2_IRQn 1 */
+ 282:Core/Src/stm32f4xx_it.c **** 
+ 283:Core/Src/stm32f4xx_it.c ****   /* USER CODE END USART2_IRQn 1 */
+ 284:Core/Src/stm32f4xx_it.c **** }
+ 419              		.loc 1 284 1
+ 420 000a 00BF     		nop
+ 421 000c 80BD     		pop	{r7, pc}
+ 422              	.L31:
+ 423 000e 00BF     		.align	2
+ 424              	.L30:
+ 425 0010 00000000 		.word	huart2
+ 426              		.cfi_endproc
+ 427              	.LFE252:
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s 			page 13
+
+
+ 429              		.section	.text.UART4_IRQHandler,"ax",%progbits
+ 430              		.align	1
+ 431              		.global	UART4_IRQHandler
+ 432              		.syntax unified
+ 433              		.thumb
+ 434              		.thumb_func
+ 436              	UART4_IRQHandler:
+ 437              	.LFB253:
+ 285:Core/Src/stm32f4xx_it.c **** 
+ 286:Core/Src/stm32f4xx_it.c **** /**
+ 287:Core/Src/stm32f4xx_it.c ****   * @brief This function handles UART4 global interrupt.
+ 288:Core/Src/stm32f4xx_it.c ****   */
+ 289:Core/Src/stm32f4xx_it.c **** void UART4_IRQHandler(void)
+ 290:Core/Src/stm32f4xx_it.c **** {
+ 438              		.loc 1 290 1
+ 439              		.cfi_startproc
+ 440              		@ args = 0, pretend = 0, frame = 0
+ 441              		@ frame_needed = 1, uses_anonymous_args = 0
+ 442 0000 80B5     		push	{r7, lr}
+ 443              		.cfi_def_cfa_offset 8
+ 444              		.cfi_offset 7, -8
+ 445              		.cfi_offset 14, -4
+ 446 0002 00AF     		add	r7, sp, #0
+ 447              		.cfi_def_cfa_register 7
+ 291:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN UART4_IRQn 0 */
+ 292:Core/Src/stm32f4xx_it.c **** 
+ 293:Core/Src/stm32f4xx_it.c ****   /* USER CODE END UART4_IRQn 0 */
+ 294:Core/Src/stm32f4xx_it.c ****   HAL_UART_IRQHandler(&huart4);
+ 448              		.loc 1 294 3
+ 449 0004 0248     		ldr	r0, .L33
+ 450 0006 FFF7FEFF 		bl	HAL_UART_IRQHandler
+ 295:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN UART4_IRQn 1 */
+ 296:Core/Src/stm32f4xx_it.c **** 
+ 297:Core/Src/stm32f4xx_it.c ****   /* USER CODE END UART4_IRQn 1 */
+ 298:Core/Src/stm32f4xx_it.c **** }
+ 451              		.loc 1 298 1
+ 452 000a 00BF     		nop
+ 453 000c 80BD     		pop	{r7, pc}
+ 454              	.L34:
+ 455 000e 00BF     		.align	2
+ 456              	.L33:
+ 457 0010 00000000 		.word	huart4
+ 458              		.cfi_endproc
+ 459              	.LFE253:
+ 461              		.section	.text.TIM6_DAC_IRQHandler,"ax",%progbits
+ 462              		.align	1
+ 463              		.global	TIM6_DAC_IRQHandler
+ 464              		.syntax unified
+ 465              		.thumb
+ 466              		.thumb_func
+ 468              	TIM6_DAC_IRQHandler:
+ 469              	.LFB254:
+ 299:Core/Src/stm32f4xx_it.c **** 
+ 300:Core/Src/stm32f4xx_it.c **** /**
+ 301:Core/Src/stm32f4xx_it.c ****   * @brief This function handles TIM6 global interrupt and DAC1, DAC2 underrun error interrupts.
+ 302:Core/Src/stm32f4xx_it.c ****   */
+ 303:Core/Src/stm32f4xx_it.c **** void TIM6_DAC_IRQHandler(void)
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s 			page 14
+
+
+ 304:Core/Src/stm32f4xx_it.c **** {
+ 470              		.loc 1 304 1
+ 471              		.cfi_startproc
+ 472              		@ args = 0, pretend = 0, frame = 0
+ 473              		@ frame_needed = 1, uses_anonymous_args = 0
+ 474 0000 80B5     		push	{r7, lr}
+ 475              		.cfi_def_cfa_offset 8
+ 476              		.cfi_offset 7, -8
+ 477              		.cfi_offset 14, -4
+ 478 0002 00AF     		add	r7, sp, #0
+ 479              		.cfi_def_cfa_register 7
+ 305:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN TIM6_DAC_IRQn 0 */
+ 306:Core/Src/stm32f4xx_it.c **** 
+ 307:Core/Src/stm32f4xx_it.c ****   /* USER CODE END TIM6_DAC_IRQn 0 */
+ 308:Core/Src/stm32f4xx_it.c ****   HAL_TIM_IRQHandler(&htim6);
+ 480              		.loc 1 308 3
+ 481 0004 0248     		ldr	r0, .L36
+ 482 0006 FFF7FEFF 		bl	HAL_TIM_IRQHandler
+ 309:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
+ 310:Core/Src/stm32f4xx_it.c **** 
+ 311:Core/Src/stm32f4xx_it.c ****   /* USER CODE END TIM6_DAC_IRQn 1 */
+ 312:Core/Src/stm32f4xx_it.c **** }
+ 483              		.loc 1 312 1
+ 484 000a 00BF     		nop
+ 485 000c 80BD     		pop	{r7, pc}
+ 486              	.L37:
+ 487 000e 00BF     		.align	2
+ 488              	.L36:
+ 489 0010 00000000 		.word	htim6
+ 490              		.cfi_endproc
+ 491              	.LFE254:
+ 493              		.section	.text.DMA2_Stream2_IRQHandler,"ax",%progbits
+ 494              		.align	1
+ 495              		.global	DMA2_Stream2_IRQHandler
+ 496              		.syntax unified
+ 497              		.thumb
+ 498              		.thumb_func
+ 500              	DMA2_Stream2_IRQHandler:
+ 501              	.LFB255:
+ 313:Core/Src/stm32f4xx_it.c **** 
+ 314:Core/Src/stm32f4xx_it.c **** /**
+ 315:Core/Src/stm32f4xx_it.c ****   * @brief This function handles DMA2 stream2 global interrupt.
+ 316:Core/Src/stm32f4xx_it.c ****   */
+ 317:Core/Src/stm32f4xx_it.c **** void DMA2_Stream2_IRQHandler(void)
+ 318:Core/Src/stm32f4xx_it.c **** {
+ 502              		.loc 1 318 1
+ 503              		.cfi_startproc
+ 504              		@ args = 0, pretend = 0, frame = 0
+ 505              		@ frame_needed = 1, uses_anonymous_args = 0
+ 506 0000 80B5     		push	{r7, lr}
+ 507              		.cfi_def_cfa_offset 8
+ 508              		.cfi_offset 7, -8
+ 509              		.cfi_offset 14, -4
+ 510 0002 00AF     		add	r7, sp, #0
+ 511              		.cfi_def_cfa_register 7
+ 319:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN DMA2_Stream2_IRQn 0 */
+ 320:Core/Src/stm32f4xx_it.c **** 
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s 			page 15
+
+
+ 321:Core/Src/stm32f4xx_it.c ****   /* USER CODE END DMA2_Stream2_IRQn 0 */
+ 322:Core/Src/stm32f4xx_it.c ****   HAL_DMA_IRQHandler(&hdma_usart6_rx);
+ 512              		.loc 1 322 3
+ 513 0004 0248     		ldr	r0, .L39
+ 514 0006 FFF7FEFF 		bl	HAL_DMA_IRQHandler
+ 323:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN DMA2_Stream2_IRQn 1 */
+ 324:Core/Src/stm32f4xx_it.c **** 
+ 325:Core/Src/stm32f4xx_it.c ****   /* USER CODE END DMA2_Stream2_IRQn 1 */
+ 326:Core/Src/stm32f4xx_it.c **** }
+ 515              		.loc 1 326 1
+ 516 000a 00BF     		nop
+ 517 000c 80BD     		pop	{r7, pc}
+ 518              	.L40:
+ 519 000e 00BF     		.align	2
+ 520              	.L39:
+ 521 0010 00000000 		.word	hdma_usart6_rx
+ 522              		.cfi_endproc
+ 523              	.LFE255:
+ 525              		.section	.text.USART6_IRQHandler,"ax",%progbits
+ 526              		.align	1
+ 527              		.global	USART6_IRQHandler
+ 528              		.syntax unified
+ 529              		.thumb
+ 530              		.thumb_func
+ 532              	USART6_IRQHandler:
+ 533              	.LFB256:
+ 327:Core/Src/stm32f4xx_it.c **** 
+ 328:Core/Src/stm32f4xx_it.c **** /**
+ 329:Core/Src/stm32f4xx_it.c ****   * @brief This function handles USART6 global interrupt.
+ 330:Core/Src/stm32f4xx_it.c ****   */
+ 331:Core/Src/stm32f4xx_it.c **** void USART6_IRQHandler(void)
+ 332:Core/Src/stm32f4xx_it.c **** {
+ 534              		.loc 1 332 1
+ 535              		.cfi_startproc
+ 536              		@ args = 0, pretend = 0, frame = 0
+ 537              		@ frame_needed = 1, uses_anonymous_args = 0
+ 538 0000 80B5     		push	{r7, lr}
+ 539              		.cfi_def_cfa_offset 8
+ 540              		.cfi_offset 7, -8
+ 541              		.cfi_offset 14, -4
+ 542 0002 00AF     		add	r7, sp, #0
+ 543              		.cfi_def_cfa_register 7
+ 333:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN USART6_IRQn 0 */
+ 334:Core/Src/stm32f4xx_it.c **** 
+ 335:Core/Src/stm32f4xx_it.c ****   /* USER CODE END USART6_IRQn 0 */
+ 336:Core/Src/stm32f4xx_it.c ****   HAL_UART_IRQHandler(&huart6);
+ 544              		.loc 1 336 3
+ 545 0004 0248     		ldr	r0, .L42
+ 546 0006 FFF7FEFF 		bl	HAL_UART_IRQHandler
+ 337:Core/Src/stm32f4xx_it.c ****   /* USER CODE BEGIN USART6_IRQn 1 */
+ 338:Core/Src/stm32f4xx_it.c **** 
+ 339:Core/Src/stm32f4xx_it.c ****   /* USER CODE END USART6_IRQn 1 */
+ 340:Core/Src/stm32f4xx_it.c **** }
+ 547              		.loc 1 340 1
+ 548 000a 00BF     		nop
+ 549 000c 80BD     		pop	{r7, pc}
+ 550              	.L43:
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s 			page 16
+
+
+ 551 000e 00BF     		.align	2
+ 552              	.L42:
+ 553 0010 00000000 		.word	huart6
+ 554              		.cfi_endproc
+ 555              	.LFE256:
+ 557              		.text
+ 558              	.Letext0:
+ 559              		.file 2 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 560              		.file 3 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 561              		.file 4 "Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f446xx.h"
+ 562              		.file 5 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h"
+ 563              		.file 6 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma.h"
+ 564              		.file 7 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_i2c.h"
+ 565              		.file 8 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h"
+ 566              		.file 9 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h"
+ 567              		.file 10 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_gpio.h"
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s 			page 17
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 stm32f4xx_it.c
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:21     .text.NMI_Handler:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:27     .text.NMI_Handler:00000000 NMI_Handler
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:47     .text.HardFault_Handler:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:53     .text.HardFault_Handler:00000000 HardFault_Handler
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:73     .text.MemManage_Handler:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:79     .text.MemManage_Handler:00000000 MemManage_Handler
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:99     .text.BusFault_Handler:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:105    .text.BusFault_Handler:00000000 BusFault_Handler
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:125    .text.UsageFault_Handler:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:131    .text.UsageFault_Handler:00000000 UsageFault_Handler
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:151    .text.DebugMon_Handler:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:157    .text.DebugMon_Handler:00000000 DebugMon_Handler
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:182    .text.EXTI3_IRQHandler:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:188    .text.EXTI3_IRQHandler:00000000 EXTI3_IRQHandler
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:210    .text.EXTI4_IRQHandler:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:216    .text.EXTI4_IRQHandler:00000000 EXTI4_IRQHandler
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:238    .text.DMA1_Stream0_IRQHandler:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:244    .text.DMA1_Stream0_IRQHandler:00000000 DMA1_Stream0_IRQHandler
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:265    .text.DMA1_Stream0_IRQHandler:00000010 $d
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:270    .text.DMA1_Stream4_IRQHandler:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:276    .text.DMA1_Stream4_IRQHandler:00000000 DMA1_Stream4_IRQHandler
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:297    .text.DMA1_Stream4_IRQHandler:00000010 $d
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:302    .text.DMA1_Stream6_IRQHandler:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:308    .text.DMA1_Stream6_IRQHandler:00000000 DMA1_Stream6_IRQHandler
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:329    .text.DMA1_Stream6_IRQHandler:00000010 $d
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:334    .text.TIM2_IRQHandler:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:340    .text.TIM2_IRQHandler:00000000 TIM2_IRQHandler
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:361    .text.TIM2_IRQHandler:00000010 $d
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:366    .text.I2C1_EV_IRQHandler:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:372    .text.I2C1_EV_IRQHandler:00000000 I2C1_EV_IRQHandler
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:393    .text.I2C1_EV_IRQHandler:00000010 $d
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:398    .text.USART2_IRQHandler:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:404    .text.USART2_IRQHandler:00000000 USART2_IRQHandler
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:425    .text.USART2_IRQHandler:00000010 $d
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:430    .text.UART4_IRQHandler:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:436    .text.UART4_IRQHandler:00000000 UART4_IRQHandler
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:457    .text.UART4_IRQHandler:00000010 $d
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:462    .text.TIM6_DAC_IRQHandler:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:468    .text.TIM6_DAC_IRQHandler:00000000 TIM6_DAC_IRQHandler
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:489    .text.TIM6_DAC_IRQHandler:00000010 $d
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:494    .text.DMA2_Stream2_IRQHandler:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:500    .text.DMA2_Stream2_IRQHandler:00000000 DMA2_Stream2_IRQHandler
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:521    .text.DMA2_Stream2_IRQHandler:00000010 $d
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:526    .text.USART6_IRQHandler:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:532    .text.USART6_IRQHandler:00000000 USART6_IRQHandler
+C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s:553    .text.USART6_IRQHandler:00000010 $d
+                           .group:00000000 wm4.0.fbeba72283fbbed79c5ed62adcf8946b
+                           .group:00000000 wm4.stm32f4xx_hal_conf.h.25.834fd89df99f7f3fe75169badeed02aa
+                           .group:00000000 wm4.stm32f4xx.h.38.63e3ea23bd63a94457417730025259b6
+                           .group:00000000 wm4.stm32f446xx.h.34.dd43cebd7192f96bce7a5ff975201274
+                           .group:00000000 wm4._newlib_version.h.4.6d111ab2e95434b664b53815e5c8ccba
+                           .group:00000000 wm4.features.h.33.3e67abe6fb64142d4f6fa9496796153c
+                           .group:00000000 wm4._default_types.h.15.247e5cd201eca3442cbf5404108c4935
+                           .group:00000000 wm4._intsup.h.10.48bafbb683905c4daa4565a85aeeb264
+                           .group:00000000 wm4._stdint.h.10.c24fa3af3bc1706662bb5593a907e841
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccSVoYLk.s 			page 18
+
+
+                           .group:00000000 wm4.stdint.h.23.d53047a68f4a85177f80b422d52785ed
+                           .group:00000000 wm4.cmsis_version.h.32.0ac195c83bb4537824e6ad1c47474b79
+                           .group:00000000 wm4.core_cm4.h.66.e4ff136c4a17abc46741866f64f8e729
+                           .group:00000000 wm4.cmsis_gcc.h.26.498d0ad17a45fc9ef20fdc01caf02259
+                           .group:00000000 wm4.core_cm4.h.174.62be9b4588d49bed18171771001331df
+                           .group:00000000 wm4.mpu_armv7.h.32.83326921a797fa9d6f70449916b4b839
+                           .group:00000000 wm4.stm32f446xx.h.917.13927c85cbbf4787955bc4173c54fa12
+                           .group:00000000 wm4.stm32f4xx.h.195.a4b8bf80f37cc96981498656ffe5f588
+                           .group:00000000 wm4.stm32_hal_legacy.h.22.8b7d303dc46a0b7ac6d3edf19ce2608d
+                           .group:00000000 wm4.stddef.h.39.3e0425629195acf083c9561151306b4d
+                           .group:00000000 wm4.stm32f4xx_hal_def.h.58.3cb484e92e5ccf2e55312a4714e27917
+                           .group:00000000 wm4.stm32f4xx_hal_rcc_ex.h.20.9b6e314009d4800dd71c0ec1c264a1ea
+                           .group:00000000 wm4.stm32f4xx_hal_rcc.h.106.0887cf5d985ae88e345b0aed0ceb4729
+                           .group:00000000 wm4.stm32f4xx_hal_gpio.h.21.22da6a14b6049d6ac156577be74df1d7
+                           .group:00000000 wm4.stm32f4xx_hal_gpio_ex.h.21.33ea7ea24fd170b1d3dce3d23330c9d3
+                           .group:00000000 wm4.stm32f4xx_hal_gpio.h.254.d7e07832f748fe8bcb575db0b8373592
+                           .group:00000000 wm4.stm32f4xx_hal_exti.h.21.4fc7f37c3cc97fb821b368ede79414b6
+                           .group:00000000 wm4.stm32f4xx_hal_dma.h.21.8e4b1421c914345c23be719e5e528779
+                           .group:00000000 wm4.stm32f4xx_hal_dma.h.720.ac2d7eef74792e4026acc4d2923c5da4
+                           .group:00000000 wm4.stm32f4xx_hal_cortex.h.20.03673e4f79386680bf73ba399c19306b
+                           .group:00000000 wm4.stm32f4xx_ll_adc.h.21.8ab9bf4d55f678506dbbe8102cb12bbc
+                           .group:00000000 wm4.stm32f4xx_hal_adc.h.159.62530d9b3382796f19493a9679ef426c
+                           .group:00000000 wm4.stm32f4xx_hal_adc_ex.h.21.94e87945640619cdd4cff40627e1380a
+                           .group:00000000 wm4.stm32f4xx_hal_adc.h.639.c30c49256117cbda0ada83149c65b3d8
+                           .group:00000000 wm4.stm32f4xx_hal_flash.h.20.2f1e0d1b7010b3a81a7980aaf712e7e5
+                           .group:00000000 wm4.stm32f4xx_hal_flash_ex.h.20.77cb3e5c0f1e426426a4cbc884a1eed8
+                           .group:00000000 wm4.stm32f4xx_hal_flash.h.361.23bc19b9eac79b0956d913651841ede8
+                           .group:00000000 wm4.stm32f4xx_hal_i2c.h.21.147e96a27b1f7b1f2f8ee22132703ee3
+                           .group:00000000 wm4.stm32f4xx_hal_i2c_ex.h.21.951ef5bfa13cf131d2015c338e82e461
+                           .group:00000000 wm4.stm32f4xx_hal_i2c.h.647.ade9c3447780b1cc0ece02f0ce83aedc
+                           .group:00000000 wm4.stm32f4xx_hal_pwr.h.20.1905a0783a9c83adefd7df0c4b501e40
+                           .group:00000000 wm4.stm32f4xx_hal_pwr_ex.h.20.9786dbd699c850465fa7b77273740267
+                           .group:00000000 wm4.stm32f4xx_hal_pwr.h.338.debc0a4a62ba54688e63ab53dd99c4ea
+                           .group:00000000 wm4.stm32f4xx_hal_spi.h.21.8b27a8d792c565f72ddd4cfad797986f
+                           .group:00000000 wm4.stm32f4xx_hal_tim.h.21.c31cbc03c25f07a932427770396c59d2
+                           .group:00000000 wm4.stm32f4xx_hal_tim_ex.h.21.3ff8ebb44e16ac9d5b95e2b3533221b9
+                           .group:00000000 wm4.stm32f4xx_hal_uart.h.21.ba8e24dd05c77faac3f3d48472e636ba
+                           .group:00000000 wm4.stm32f4xx_hal.h.71.02372bc31d47d29d3f67fbfe1429649e
+                           .group:00000000 wm4.main.h.61.69da45f81907557a0774729345d5d811
+
+UNDEFINED SYMBOLS
+HAL_GPIO_EXTI_IRQHandler
+HAL_DMA_IRQHandler
+hdma_i2c1_rx
+hdma_uart4_tx
+hdma_usart2_tx
+HAL_TIM_IRQHandler
+htim2
+HAL_I2C_EV_IRQHandler
+hi2c1
+HAL_UART_IRQHandler
+huart2
+huart4
+htim6
+hdma_usart6_rx
+huart6

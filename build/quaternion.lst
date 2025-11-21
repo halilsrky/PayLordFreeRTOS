@@ -1,0 +1,2705 @@
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 6
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"quaternion.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Core/Src/quaternion.c"
+  20              		.section	.data.q,"aw"
+  21              		.align	2
+  24              	q:
+  25 0000 0000803F 		.word	1065353216
+  26 0004 00000000 		.word	0
+  27 0008 00000000 		.word	0
+  28 000c 00000000 		.word	0
+  29              		.section	.bss.P,"aw",%nobits
+  30              		.align	2
+  33              	P:
+  34 0000 00000000 		.space	64
+  34      00000000 
+  34      00000000 
+  34      00000000 
+  34      00000000 
+  35              		.section	.rodata.Q_val,"a"
+  36              		.align	2
+  39              	Q_val:
+  40 0000 ACC52737 		.word	925353388
+  41              		.section	.rodata.R_val,"a"
+  42              		.align	2
+  45              	R_val:
+  46 0000 0AD7233C 		.word	1008981770
+  47              		.section	.text.ekf_init,"ax",%progbits
+  48              		.align	1
+  49              		.global	ekf_init
+  50              		.syntax unified
+  51              		.thumb
+  52              		.thumb_func
+  54              	ekf_init:
+  55              	.LFB0:
+   1:Core/Src/quaternion.c **** #include "quaternion.h"
+   2:Core/Src/quaternion.c **** #include <math.h>
+   3:Core/Src/quaternion.c **** 
+   4:Core/Src/quaternion.c **** // Kalman parametreleri
+   5:Core/Src/quaternion.c **** static float q[4] = {1.0f, 0, 0, 0}; // kuaternion
+   6:Core/Src/quaternion.c **** static float P[4][4]; // hata kovaryans matrisi
+   7:Core/Src/quaternion.c **** 
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 2
+
+
+   8:Core/Src/quaternion.c **** static const float Q_val = 1e-5f;  // sistem gürültüsü
+   9:Core/Src/quaternion.c **** static const float R_val = 1e-2f;  // ölçüm gürültüsü
+  10:Core/Src/quaternion.c **** 
+  11:Core/Src/quaternion.c **** void ekf_init(void) {
+  56              		.loc 1 11 21
+  57              		.cfi_startproc
+  58              		@ args = 0, pretend = 0, frame = 8
+  59              		@ frame_needed = 1, uses_anonymous_args = 0
+  60              		@ link register save eliminated.
+  61 0000 80B4     		push	{r7}
+  62              		.cfi_def_cfa_offset 4
+  63              		.cfi_offset 7, -4
+  64 0002 83B0     		sub	sp, sp, #12
+  65              		.cfi_def_cfa_offset 16
+  66 0004 00AF     		add	r7, sp, #0
+  67              		.cfi_def_cfa_register 7
+  68              	.LBB2:
+  12:Core/Src/quaternion.c ****     for (int i = 0; i < 4; i++)
+  69              		.loc 1 12 14
+  70 0006 0023     		movs	r3, #0
+  71 0008 7B60     		str	r3, [r7, #4]
+  72              		.loc 1 12 5
+  73 000a 1BE0     		b	.L2
+  74              	.L7:
+  75              	.LBB3:
+  13:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+  76              		.loc 1 13 18
+  77 000c 0023     		movs	r3, #0
+  78 000e 3B60     		str	r3, [r7]
+  79              		.loc 1 13 9
+  80 0010 12E0     		b	.L3
+  81              	.L6:
+  14:Core/Src/quaternion.c ****             P[i][j] = (i == j) ? 1e-3f : 0.0f;
+  82              		.loc 1 14 40
+  83 0012 7A68     		ldr	r2, [r7, #4]
+  84 0014 3B68     		ldr	r3, [r7]
+  85 0016 9A42     		cmp	r2, r3
+  86 0018 01D1     		bne	.L4
+  87              		.loc 1 14 40 is_stmt 0 discriminator 1
+  88 001a 0F4A     		ldr	r2, .L8
+  89 001c 01E0     		b	.L5
+  90              	.L4:
+  91              		.loc 1 14 40 discriminator 2
+  92 001e 4FF00002 		mov	r2, #0
+  93              	.L5:
+  94              		.loc 1 14 21 is_stmt 1 discriminator 4
+  95 0022 0E48     		ldr	r0, .L8+4
+  96 0024 7B68     		ldr	r3, [r7, #4]
+  97 0026 9900     		lsls	r1, r3, #2
+  98 0028 3B68     		ldr	r3, [r7]
+  99 002a 0B44     		add	r3, r3, r1
+ 100 002c 9B00     		lsls	r3, r3, #2
+ 101 002e 0344     		add	r3, r3, r0
+ 102 0030 1A60     		str	r2, [r3]	@ float
+  13:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 103              		.loc 1 13 33 discriminator 4
+ 104 0032 3B68     		ldr	r3, [r7]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 3
+
+
+ 105 0034 0133     		adds	r3, r3, #1
+ 106 0036 3B60     		str	r3, [r7]
+ 107              	.L3:
+  13:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 108              		.loc 1 13 27 discriminator 2
+ 109 0038 3B68     		ldr	r3, [r7]
+ 110 003a 032B     		cmp	r3, #3
+ 111 003c E9DD     		ble	.L6
+ 112              	.LBE3:
+  12:Core/Src/quaternion.c ****     for (int i = 0; i < 4; i++)
+ 113              		.loc 1 12 29 discriminator 2
+ 114 003e 7B68     		ldr	r3, [r7, #4]
+ 115 0040 0133     		adds	r3, r3, #1
+ 116 0042 7B60     		str	r3, [r7, #4]
+ 117              	.L2:
+  12:Core/Src/quaternion.c ****     for (int i = 0; i < 4; i++)
+ 118              		.loc 1 12 23 discriminator 1
+ 119 0044 7B68     		ldr	r3, [r7, #4]
+ 120 0046 032B     		cmp	r3, #3
+ 121 0048 E0DD     		ble	.L7
+ 122              	.LBE2:
+  15:Core/Src/quaternion.c **** }
+ 123              		.loc 1 15 1
+ 124 004a 00BF     		nop
+ 125 004c 00BF     		nop
+ 126 004e 0C37     		adds	r7, r7, #12
+ 127              		.cfi_def_cfa_offset 4
+ 128 0050 BD46     		mov	sp, r7
+ 129              		.cfi_def_cfa_register 13
+ 130              		@ sp needed
+ 131 0052 5DF8047B 		ldr	r7, [sp], #4
+ 132              		.cfi_restore 7
+ 133              		.cfi_def_cfa_offset 0
+ 134 0056 7047     		bx	lr
+ 135              	.L9:
+ 136              		.align	2
+ 137              	.L8:
+ 138 0058 6F12833A 		.word	981668463
+ 139 005c 00000000 		.word	P
+ 140              		.cfi_endproc
+ 141              	.LFE0:
+ 143              		.section	.text.ekf_predict,"ax",%progbits
+ 144              		.align	1
+ 145              		.global	ekf_predict
+ 146              		.syntax unified
+ 147              		.thumb
+ 148              		.thumb_func
+ 150              	ekf_predict:
+ 151              	.LFB1:
+  16:Core/Src/quaternion.c **** 
+  17:Core/Src/quaternion.c **** void ekf_predict(float gx, float gy, float gz, float dt) {
+ 152              		.loc 1 17 58
+ 153              		.cfi_startproc
+ 154              		@ args = 0, pretend = 0, frame = 120
+ 155              		@ frame_needed = 1, uses_anonymous_args = 0
+ 156 0000 80B5     		push	{r7, lr}
+ 157              		.cfi_def_cfa_offset 8
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 4
+
+
+ 158              		.cfi_offset 7, -8
+ 159              		.cfi_offset 14, -4
+ 160 0002 9EB0     		sub	sp, sp, #120
+ 161              		.cfi_def_cfa_offset 128
+ 162 0004 00AF     		add	r7, sp, #0
+ 163              		.cfi_def_cfa_register 7
+ 164 0006 87ED030A 		vstr.32	s0, [r7, #12]
+ 165 000a C7ED020A 		vstr.32	s1, [r7, #8]
+ 166 000e 87ED011A 		vstr.32	s2, [r7, #4]
+ 167 0012 C7ED001A 		vstr.32	s3, [r7]
+  18:Core/Src/quaternion.c **** 
+  19:Core/Src/quaternion.c ****     // Gyro'dan omega matrisi
+  20:Core/Src/quaternion.c ****     float Omega[4][4] = {
+ 168              		.loc 1 20 11
+ 169 0016 4FF00003 		mov	r3, #0
+ 170 001a 3B62     		str	r3, [r7, #32]	@ float
+  21:Core/Src/quaternion.c ****         {0, -gx, -gy, -gz},
+ 171              		.loc 1 21 13
+ 172 001c D7ED037A 		vldr.32	s15, [r7, #12]
+ 173 0020 F1EE677A 		vneg.f32	s15, s15
+  20:Core/Src/quaternion.c ****         {0, -gx, -gy, -gz},
+ 174              		.loc 1 20 11
+ 175 0024 C7ED097A 		vstr.32	s15, [r7, #36]
+ 176              		.loc 1 21 18
+ 177 0028 D7ED027A 		vldr.32	s15, [r7, #8]
+ 178 002c F1EE677A 		vneg.f32	s15, s15
+  20:Core/Src/quaternion.c ****         {0, -gx, -gy, -gz},
+ 179              		.loc 1 20 11
+ 180 0030 C7ED0A7A 		vstr.32	s15, [r7, #40]
+ 181              		.loc 1 21 23
+ 182 0034 D7ED017A 		vldr.32	s15, [r7, #4]
+ 183 0038 F1EE677A 		vneg.f32	s15, s15
+  20:Core/Src/quaternion.c ****         {0, -gx, -gy, -gz},
+ 184              		.loc 1 20 11
+ 185 003c C7ED0B7A 		vstr.32	s15, [r7, #44]
+ 186 0040 FB68     		ldr	r3, [r7, #12]	@ float
+ 187 0042 3B63     		str	r3, [r7, #48]	@ float
+ 188 0044 4FF00003 		mov	r3, #0
+ 189 0048 7B63     		str	r3, [r7, #52]	@ float
+ 190 004a 7B68     		ldr	r3, [r7, #4]	@ float
+ 191 004c BB63     		str	r3, [r7, #56]	@ float
+  22:Core/Src/quaternion.c ****         {gx,  0,  gz, -gy},
+ 192              		.loc 1 22 23
+ 193 004e D7ED027A 		vldr.32	s15, [r7, #8]
+ 194 0052 F1EE677A 		vneg.f32	s15, s15
+  20:Core/Src/quaternion.c ****         {0, -gx, -gy, -gz},
+ 195              		.loc 1 20 11
+ 196 0056 C7ED0F7A 		vstr.32	s15, [r7, #60]
+ 197 005a BB68     		ldr	r3, [r7, #8]	@ float
+ 198 005c 3B64     		str	r3, [r7, #64]	@ float
+  23:Core/Src/quaternion.c ****         {gy, -gz,  0,  gx},
+ 199              		.loc 1 23 14
+ 200 005e D7ED017A 		vldr.32	s15, [r7, #4]
+ 201 0062 F1EE677A 		vneg.f32	s15, s15
+  20:Core/Src/quaternion.c ****         {0, -gx, -gy, -gz},
+ 202              		.loc 1 20 11
+ 203 0066 C7ED117A 		vstr.32	s15, [r7, #68]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 5
+
+
+ 204 006a 4FF00003 		mov	r3, #0
+ 205 006e BB64     		str	r3, [r7, #72]	@ float
+ 206 0070 FB68     		ldr	r3, [r7, #12]	@ float
+ 207 0072 FB64     		str	r3, [r7, #76]	@ float
+ 208 0074 7B68     		ldr	r3, [r7, #4]	@ float
+ 209 0076 3B65     		str	r3, [r7, #80]	@ float
+ 210 0078 BB68     		ldr	r3, [r7, #8]	@ float
+ 211 007a 7B65     		str	r3, [r7, #84]	@ float
+  24:Core/Src/quaternion.c ****         {gz,  gy, -gx,  0}
+ 212              		.loc 1 24 19
+ 213 007c D7ED037A 		vldr.32	s15, [r7, #12]
+ 214 0080 F1EE677A 		vneg.f32	s15, s15
+  20:Core/Src/quaternion.c ****         {0, -gx, -gy, -gz},
+ 215              		.loc 1 20 11
+ 216 0084 C7ED167A 		vstr.32	s15, [r7, #88]
+ 217 0088 4FF00003 		mov	r3, #0
+ 218 008c FB65     		str	r3, [r7, #92]	@ float
+  25:Core/Src/quaternion.c ****     };
+  26:Core/Src/quaternion.c **** 
+  27:Core/Src/quaternion.c ****     // dq = 0.5 * Omega * q
+  28:Core/Src/quaternion.c ****     float dq[4] = {0};
+ 219              		.loc 1 28 11
+ 220 008e 07F11003 		add	r3, r7, #16
+ 221 0092 0022     		movs	r2, #0
+ 222 0094 1A60     		str	r2, [r3]
+ 223 0096 5A60     		str	r2, [r3, #4]
+ 224 0098 9A60     		str	r2, [r3, #8]
+ 225 009a DA60     		str	r2, [r3, #12]
+ 226              	.LBB4:
+  29:Core/Src/quaternion.c ****     for (int i = 0; i < 4; i++) {
+ 227              		.loc 1 29 14
+ 228 009c 0023     		movs	r3, #0
+ 229 009e 7B67     		str	r3, [r7, #116]
+ 230              		.loc 1 29 5
+ 231 00a0 43E0     		b	.L11
+ 232              	.L14:
+ 233              	.LBB5:
+  30:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++) {
+ 234              		.loc 1 30 18
+ 235 00a2 0023     		movs	r3, #0
+ 236 00a4 3B67     		str	r3, [r7, #112]
+ 237              		.loc 1 30 9
+ 238 00a6 24E0     		b	.L12
+ 239              	.L13:
+  31:Core/Src/quaternion.c ****             dq[i] += Omega[i][j] * q[j];
+ 240              		.loc 1 31 15 discriminator 3
+ 241 00a8 7B6F     		ldr	r3, [r7, #116]
+ 242 00aa 9B00     		lsls	r3, r3, #2
+ 243 00ac 7833     		adds	r3, r3, #120
+ 244 00ae 3B44     		add	r3, r3, r7
+ 245 00b0 683B     		subs	r3, r3, #104
+ 246 00b2 93ED007A 		vldr.32	s14, [r3]
+ 247              		.loc 1 31 30 discriminator 3
+ 248 00b6 7B6F     		ldr	r3, [r7, #116]
+ 249 00b8 9A00     		lsls	r2, r3, #2
+ 250 00ba 3B6F     		ldr	r3, [r7, #112]
+ 251 00bc 1344     		add	r3, r3, r2
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 6
+
+
+ 252 00be 9B00     		lsls	r3, r3, #2
+ 253 00c0 7833     		adds	r3, r3, #120
+ 254 00c2 3B44     		add	r3, r3, r7
+ 255 00c4 583B     		subs	r3, r3, #88
+ 256 00c6 D3ED006A 		vldr.32	s13, [r3]
+ 257              		.loc 1 31 37 discriminator 3
+ 258 00ca 5D4A     		ldr	r2, .L21
+ 259 00cc 3B6F     		ldr	r3, [r7, #112]
+ 260 00ce 9B00     		lsls	r3, r3, #2
+ 261 00d0 1344     		add	r3, r3, r2
+ 262 00d2 D3ED007A 		vldr.32	s15, [r3]
+ 263              		.loc 1 31 34 discriminator 3
+ 264 00d6 66EEA77A 		vmul.f32	s15, s13, s15
+ 265              		.loc 1 31 19 discriminator 3
+ 266 00da 77EE277A 		vadd.f32	s15, s14, s15
+ 267 00de 7B6F     		ldr	r3, [r7, #116]
+ 268 00e0 9B00     		lsls	r3, r3, #2
+ 269 00e2 7833     		adds	r3, r3, #120
+ 270 00e4 3B44     		add	r3, r3, r7
+ 271 00e6 683B     		subs	r3, r3, #104
+ 272 00e8 C3ED007A 		vstr.32	s15, [r3]
+  30:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++) {
+ 273              		.loc 1 30 33 discriminator 3
+ 274 00ec 3B6F     		ldr	r3, [r7, #112]
+ 275 00ee 0133     		adds	r3, r3, #1
+ 276 00f0 3B67     		str	r3, [r7, #112]
+ 277              	.L12:
+  30:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++) {
+ 278              		.loc 1 30 27 discriminator 1
+ 279 00f2 3B6F     		ldr	r3, [r7, #112]
+ 280 00f4 032B     		cmp	r3, #3
+ 281 00f6 D7DD     		ble	.L13
+ 282              	.LBE5:
+  32:Core/Src/quaternion.c ****         }
+  33:Core/Src/quaternion.c ****         dq[i] *= 0.5f * dt;
+ 283              		.loc 1 33 11 discriminator 2
+ 284 00f8 7B6F     		ldr	r3, [r7, #116]
+ 285 00fa 9B00     		lsls	r3, r3, #2
+ 286 00fc 7833     		adds	r3, r3, #120
+ 287 00fe 3B44     		add	r3, r3, r7
+ 288 0100 683B     		subs	r3, r3, #104
+ 289 0102 93ED007A 		vldr.32	s14, [r3]
+ 290              		.loc 1 33 23 discriminator 2
+ 291 0106 D7ED007A 		vldr.32	s15, [r7]
+ 292 010a F6EE006A 		vmov.f32	s13, #5.0e-1
+ 293 010e 67EEA67A 		vmul.f32	s15, s15, s13
+ 294              		.loc 1 33 15 discriminator 2
+ 295 0112 67EE277A 		vmul.f32	s15, s14, s15
+ 296 0116 7B6F     		ldr	r3, [r7, #116]
+ 297 0118 9B00     		lsls	r3, r3, #2
+ 298 011a 7833     		adds	r3, r3, #120
+ 299 011c 3B44     		add	r3, r3, r7
+ 300 011e 683B     		subs	r3, r3, #104
+ 301 0120 C3ED007A 		vstr.32	s15, [r3]
+  29:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++) {
+ 302              		.loc 1 29 29 discriminator 2
+ 303 0124 7B6F     		ldr	r3, [r7, #116]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 7
+
+
+ 304 0126 0133     		adds	r3, r3, #1
+ 305 0128 7B67     		str	r3, [r7, #116]
+ 306              	.L11:
+  29:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++) {
+ 307              		.loc 1 29 23 discriminator 1
+ 308 012a 7B6F     		ldr	r3, [r7, #116]
+ 309 012c 032B     		cmp	r3, #3
+ 310 012e B8DD     		ble	.L14
+ 311              	.LBE4:
+ 312              	.LBB6:
+  34:Core/Src/quaternion.c ****     }
+  35:Core/Src/quaternion.c **** 
+  36:Core/Src/quaternion.c ****     // q = q + dq
+  37:Core/Src/quaternion.c ****     for (int i = 0; i < 4; i++)
+ 313              		.loc 1 37 14
+ 314 0130 0023     		movs	r3, #0
+ 315 0132 FB66     		str	r3, [r7, #108]
+ 316              		.loc 1 37 5
+ 317 0134 17E0     		b	.L15
+ 318              	.L16:
+  38:Core/Src/quaternion.c ****         q[i] += dq[i];
+ 319              		.loc 1 38 10 discriminator 3
+ 320 0136 424A     		ldr	r2, .L21
+ 321 0138 FB6E     		ldr	r3, [r7, #108]
+ 322 013a 9B00     		lsls	r3, r3, #2
+ 323 013c 1344     		add	r3, r3, r2
+ 324 013e 93ED007A 		vldr.32	s14, [r3]
+ 325              		.loc 1 38 19 discriminator 3
+ 326 0142 FB6E     		ldr	r3, [r7, #108]
+ 327 0144 9B00     		lsls	r3, r3, #2
+ 328 0146 7833     		adds	r3, r3, #120
+ 329 0148 3B44     		add	r3, r3, r7
+ 330 014a 683B     		subs	r3, r3, #104
+ 331 014c D3ED007A 		vldr.32	s15, [r3]
+ 332              		.loc 1 38 14 discriminator 3
+ 333 0150 77EE277A 		vadd.f32	s15, s14, s15
+ 334 0154 3A4A     		ldr	r2, .L21
+ 335 0156 FB6E     		ldr	r3, [r7, #108]
+ 336 0158 9B00     		lsls	r3, r3, #2
+ 337 015a 1344     		add	r3, r3, r2
+ 338 015c C3ED007A 		vstr.32	s15, [r3]
+  37:Core/Src/quaternion.c ****         q[i] += dq[i];
+ 339              		.loc 1 37 29 discriminator 3
+ 340 0160 FB6E     		ldr	r3, [r7, #108]
+ 341 0162 0133     		adds	r3, r3, #1
+ 342 0164 FB66     		str	r3, [r7, #108]
+ 343              	.L15:
+  37:Core/Src/quaternion.c ****         q[i] += dq[i];
+ 344              		.loc 1 37 23 discriminator 1
+ 345 0166 FB6E     		ldr	r3, [r7, #108]
+ 346 0168 032B     		cmp	r3, #3
+ 347 016a E4DD     		ble	.L16
+ 348              	.LBE6:
+  39:Core/Src/quaternion.c **** 
+  40:Core/Src/quaternion.c ****     // Normalize
+  41:Core/Src/quaternion.c ****     float norm = sqrtf(q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + q[3]*q[3]);
+ 349              		.loc 1 41 25
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 8
+
+
+ 350 016c 344B     		ldr	r3, .L21
+ 351 016e 93ED007A 		vldr.32	s14, [r3]
+ 352              		.loc 1 41 30
+ 353 0172 334B     		ldr	r3, .L21
+ 354 0174 D3ED007A 		vldr.32	s15, [r3]
+ 355              		.loc 1 41 28
+ 356 0178 27EE277A 		vmul.f32	s14, s14, s15
+ 357              		.loc 1 41 37
+ 358 017c 304B     		ldr	r3, .L21
+ 359 017e D3ED016A 		vldr.32	s13, [r3, #4]
+ 360              		.loc 1 41 42
+ 361 0182 2F4B     		ldr	r3, .L21
+ 362 0184 D3ED017A 		vldr.32	s15, [r3, #4]
+ 363              		.loc 1 41 40
+ 364 0188 66EEA77A 		vmul.f32	s15, s13, s15
+ 365              		.loc 1 41 34
+ 366 018c 37EE277A 		vadd.f32	s14, s14, s15
+ 367              		.loc 1 41 49
+ 368 0190 2B4B     		ldr	r3, .L21
+ 369 0192 D3ED026A 		vldr.32	s13, [r3, #8]
+ 370              		.loc 1 41 54
+ 371 0196 2A4B     		ldr	r3, .L21
+ 372 0198 D3ED027A 		vldr.32	s15, [r3, #8]
+ 373              		.loc 1 41 52
+ 374 019c 66EEA77A 		vmul.f32	s15, s13, s15
+ 375              		.loc 1 41 46
+ 376 01a0 37EE277A 		vadd.f32	s14, s14, s15
+ 377              		.loc 1 41 61
+ 378 01a4 264B     		ldr	r3, .L21
+ 379 01a6 D3ED036A 		vldr.32	s13, [r3, #12]
+ 380              		.loc 1 41 66
+ 381 01aa 254B     		ldr	r3, .L21
+ 382 01ac D3ED037A 		vldr.32	s15, [r3, #12]
+ 383              		.loc 1 41 64
+ 384 01b0 66EEA77A 		vmul.f32	s15, s13, s15
+ 385              		.loc 1 41 18
+ 386 01b4 77EE277A 		vadd.f32	s15, s14, s15
+ 387 01b8 B0EE670A 		vmov.f32	s0, s15
+ 388 01bc FFF7FEFF 		bl	sqrtf
+ 389 01c0 87ED180A 		vstr.32	s0, [r7, #96]
+ 390              	.LBB7:
+  42:Core/Src/quaternion.c ****     for (int i = 0; i < 4; i++)
+ 391              		.loc 1 42 14
+ 392 01c4 0023     		movs	r3, #0
+ 393 01c6 BB66     		str	r3, [r7, #104]
+ 394              		.loc 1 42 5
+ 395 01c8 12E0     		b	.L17
+ 396              	.L18:
+  43:Core/Src/quaternion.c ****         q[i] /= norm;
+ 397              		.loc 1 43 10 discriminator 3
+ 398 01ca 1D4A     		ldr	r2, .L21
+ 399 01cc BB6E     		ldr	r3, [r7, #104]
+ 400 01ce 9B00     		lsls	r3, r3, #2
+ 401 01d0 1344     		add	r3, r3, r2
+ 402 01d2 D3ED006A 		vldr.32	s13, [r3]
+ 403              		.loc 1 43 14 discriminator 3
+ 404 01d6 97ED187A 		vldr.32	s14, [r7, #96]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 9
+
+
+ 405 01da C6EE877A 		vdiv.f32	s15, s13, s14
+ 406 01de 184A     		ldr	r2, .L21
+ 407 01e0 BB6E     		ldr	r3, [r7, #104]
+ 408 01e2 9B00     		lsls	r3, r3, #2
+ 409 01e4 1344     		add	r3, r3, r2
+ 410 01e6 C3ED007A 		vstr.32	s15, [r3]
+  42:Core/Src/quaternion.c ****     for (int i = 0; i < 4; i++)
+ 411              		.loc 1 42 29 discriminator 3
+ 412 01ea BB6E     		ldr	r3, [r7, #104]
+ 413 01ec 0133     		adds	r3, r3, #1
+ 414 01ee BB66     		str	r3, [r7, #104]
+ 415              	.L17:
+  42:Core/Src/quaternion.c ****     for (int i = 0; i < 4; i++)
+ 416              		.loc 1 42 23 discriminator 1
+ 417 01f0 BB6E     		ldr	r3, [r7, #104]
+ 418 01f2 032B     		cmp	r3, #3
+ 419 01f4 E9DD     		ble	.L18
+ 420              	.LBE7:
+ 421              	.LBB8:
+  44:Core/Src/quaternion.c **** 
+  45:Core/Src/quaternion.c ****     // P = P + Q
+  46:Core/Src/quaternion.c ****     for (int i = 0; i < 4; i++)
+ 422              		.loc 1 46 14
+ 423 01f6 0023     		movs	r3, #0
+ 424 01f8 7B66     		str	r3, [r7, #100]
+ 425              		.loc 1 46 5
+ 426 01fa 18E0     		b	.L19
+ 427              	.L20:
+  47:Core/Src/quaternion.c ****         P[i][i] += Q_val;
+ 428              		.loc 1 47 13 discriminator 3
+ 429 01fc 1149     		ldr	r1, .L21+4
+ 430 01fe 7A6E     		ldr	r2, [r7, #100]
+ 431 0200 1346     		mov	r3, r2
+ 432 0202 9B00     		lsls	r3, r3, #2
+ 433 0204 1344     		add	r3, r3, r2
+ 434 0206 9B00     		lsls	r3, r3, #2
+ 435 0208 0B44     		add	r3, r3, r1
+ 436 020a D3ED007A 		vldr.32	s15, [r3]
+ 437              		.loc 1 47 17 discriminator 3
+ 438 020e 9FED0E7A 		vldr.32	s14, .L21+8
+ 439 0212 77EE877A 		vadd.f32	s15, s15, s14
+ 440 0216 0B49     		ldr	r1, .L21+4
+ 441 0218 7A6E     		ldr	r2, [r7, #100]
+ 442 021a 1346     		mov	r3, r2
+ 443 021c 9B00     		lsls	r3, r3, #2
+ 444 021e 1344     		add	r3, r3, r2
+ 445 0220 9B00     		lsls	r3, r3, #2
+ 446 0222 0B44     		add	r3, r3, r1
+ 447 0224 C3ED007A 		vstr.32	s15, [r3]
+  46:Core/Src/quaternion.c ****         P[i][i] += Q_val;
+ 448              		.loc 1 46 29 discriminator 3
+ 449 0228 7B6E     		ldr	r3, [r7, #100]
+ 450 022a 0133     		adds	r3, r3, #1
+ 451 022c 7B66     		str	r3, [r7, #100]
+ 452              	.L19:
+  46:Core/Src/quaternion.c ****         P[i][i] += Q_val;
+ 453              		.loc 1 46 23 discriminator 1
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 10
+
+
+ 454 022e 7B6E     		ldr	r3, [r7, #100]
+ 455 0230 032B     		cmp	r3, #3
+ 456 0232 E3DD     		ble	.L20
+ 457              	.LBE8:
+  48:Core/Src/quaternion.c **** }
+ 458              		.loc 1 48 1
+ 459 0234 00BF     		nop
+ 460 0236 00BF     		nop
+ 461 0238 7837     		adds	r7, r7, #120
+ 462              		.cfi_def_cfa_offset 8
+ 463 023a BD46     		mov	sp, r7
+ 464              		.cfi_def_cfa_register 13
+ 465              		@ sp needed
+ 466 023c 80BD     		pop	{r7, pc}
+ 467              	.L22:
+ 468 023e 00BF     		.align	2
+ 469              	.L21:
+ 470 0240 00000000 		.word	q
+ 471 0244 00000000 		.word	P
+ 472 0248 ACC52737 		.word	925353388
+ 473              		.cfi_endproc
+ 474              	.LFE1:
+ 476              		.section	.text.ekf_update,"ax",%progbits
+ 477              		.align	1
+ 478              		.global	ekf_update
+ 479              		.syntax unified
+ 480              		.thumb
+ 481              		.thumb_func
+ 483              	ekf_update:
+ 484              	.LFB2:
+  49:Core/Src/quaternion.c **** 
+  50:Core/Src/quaternion.c **** void ekf_update(float ax, float ay, float az) {
+ 485              		.loc 1 50 47
+ 486              		.cfi_startproc
+ 487              		@ args = 0, pretend = 0, frame = 520
+ 488              		@ frame_needed = 1, uses_anonymous_args = 0
+ 489 0000 80B5     		push	{r7, lr}
+ 490              		.cfi_def_cfa_offset 8
+ 491              		.cfi_offset 7, -8
+ 492              		.cfi_offset 14, -4
+ 493 0002 ADF5027D 		sub	sp, sp, #520
+ 494              		.cfi_def_cfa_offset 528
+ 495 0006 00AF     		add	r7, sp, #0
+ 496              		.cfi_def_cfa_register 7
+ 497 0008 07F50273 		add	r3, r7, #520
+ 498 000c A3F5FE73 		sub	r3, r3, #508
+ 499 0010 83ED000A 		vstr.32	s0, [r3]
+ 500 0014 07F50273 		add	r3, r7, #520
+ 501 0018 A3F50073 		sub	r3, r3, #512
+ 502 001c C3ED000A 		vstr.32	s1, [r3]
+ 503 0020 07F50273 		add	r3, r7, #520
+ 504 0024 A3F50173 		sub	r3, r3, #516
+ 505 0028 83ED001A 		vstr.32	s2, [r3]
+  51:Core/Src/quaternion.c **** 
+  52:Core/Src/quaternion.c **** 	static float ax_f = 0, ay_f = 0, az_f = 0;
+  53:Core/Src/quaternion.c **** 	float alpha = 0.1f;
+ 506              		.loc 1 53 8
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 11
+
+
+ 507 002c CE4B     		ldr	r3, .L80
+ 508 002e C7F8A431 		str	r3, [r7, #420]	@ float
+  54:Core/Src/quaternion.c **** 
+  55:Core/Src/quaternion.c **** 	ax_f = alpha * ax + (1 - alpha) * ax_f;
+ 509              		.loc 1 55 15
+ 510 0032 07F50273 		add	r3, r7, #520
+ 511 0036 A3F5FE73 		sub	r3, r3, #508
+ 512 003a 97ED697A 		vldr.32	s14, [r7, #420]
+ 513 003e D3ED007A 		vldr.32	s15, [r3]
+ 514 0042 27EE277A 		vmul.f32	s14, s14, s15
+ 515              		.loc 1 55 25
+ 516 0046 F7EE006A 		vmov.f32	s13, #1.0e+0
+ 517 004a D7ED697A 		vldr.32	s15, [r7, #420]
+ 518 004e 76EEE76A 		vsub.f32	s13, s13, s15
+ 519              		.loc 1 55 34
+ 520 0052 C64B     		ldr	r3, .L80+4
+ 521 0054 D3ED007A 		vldr.32	s15, [r3]
+ 522 0058 66EEA77A 		vmul.f32	s15, s13, s15
+ 523              		.loc 1 55 20
+ 524 005c 77EE277A 		vadd.f32	s15, s14, s15
+ 525              		.loc 1 55 7
+ 526 0060 C24B     		ldr	r3, .L80+4
+ 527 0062 C3ED007A 		vstr.32	s15, [r3]
+  56:Core/Src/quaternion.c **** 	ay_f = alpha * ay + (1 - alpha) * ay_f;
+ 528              		.loc 1 56 15
+ 529 0066 07F50273 		add	r3, r7, #520
+ 530 006a A3F50073 		sub	r3, r3, #512
+ 531 006e 97ED697A 		vldr.32	s14, [r7, #420]
+ 532 0072 D3ED007A 		vldr.32	s15, [r3]
+ 533 0076 27EE277A 		vmul.f32	s14, s14, s15
+ 534              		.loc 1 56 25
+ 535 007a F7EE006A 		vmov.f32	s13, #1.0e+0
+ 536 007e D7ED697A 		vldr.32	s15, [r7, #420]
+ 537 0082 76EEE76A 		vsub.f32	s13, s13, s15
+ 538              		.loc 1 56 34
+ 539 0086 BA4B     		ldr	r3, .L80+8
+ 540 0088 D3ED007A 		vldr.32	s15, [r3]
+ 541 008c 66EEA77A 		vmul.f32	s15, s13, s15
+ 542              		.loc 1 56 20
+ 543 0090 77EE277A 		vadd.f32	s15, s14, s15
+ 544              		.loc 1 56 7
+ 545 0094 B64B     		ldr	r3, .L80+8
+ 546 0096 C3ED007A 		vstr.32	s15, [r3]
+  57:Core/Src/quaternion.c **** 	az_f = alpha * az + (1 - alpha) * az_f;
+ 547              		.loc 1 57 15
+ 548 009a 07F50273 		add	r3, r7, #520
+ 549 009e A3F50173 		sub	r3, r3, #516
+ 550 00a2 97ED697A 		vldr.32	s14, [r7, #420]
+ 551 00a6 D3ED007A 		vldr.32	s15, [r3]
+ 552 00aa 27EE277A 		vmul.f32	s14, s14, s15
+ 553              		.loc 1 57 25
+ 554 00ae F7EE006A 		vmov.f32	s13, #1.0e+0
+ 555 00b2 D7ED697A 		vldr.32	s15, [r7, #420]
+ 556 00b6 76EEE76A 		vsub.f32	s13, s13, s15
+ 557              		.loc 1 57 34
+ 558 00ba AE4B     		ldr	r3, .L80+12
+ 559 00bc D3ED007A 		vldr.32	s15, [r3]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 12
+
+
+ 560 00c0 66EEA77A 		vmul.f32	s15, s13, s15
+ 561              		.loc 1 57 20
+ 562 00c4 77EE277A 		vadd.f32	s15, s14, s15
+ 563              		.loc 1 57 7
+ 564 00c8 AA4B     		ldr	r3, .L80+12
+ 565 00ca C3ED007A 		vstr.32	s15, [r3]
+  58:Core/Src/quaternion.c **** 
+  59:Core/Src/quaternion.c **** 	float norm = sqrtf(ax_f*ax_f + ay_f*ay_f + az_f*az_f);
+ 566              		.loc 1 59 25
+ 567 00ce A74B     		ldr	r3, .L80+4
+ 568 00d0 93ED007A 		vldr.32	s14, [r3]
+ 569 00d4 A54B     		ldr	r3, .L80+4
+ 570 00d6 D3ED007A 		vldr.32	s15, [r3]
+ 571 00da 27EE277A 		vmul.f32	s14, s14, s15
+ 572              		.loc 1 59 37
+ 573 00de A44B     		ldr	r3, .L80+8
+ 574 00e0 D3ED006A 		vldr.32	s13, [r3]
+ 575 00e4 A24B     		ldr	r3, .L80+8
+ 576 00e6 D3ED007A 		vldr.32	s15, [r3]
+ 577 00ea 66EEA77A 		vmul.f32	s15, s13, s15
+ 578              		.loc 1 59 31
+ 579 00ee 37EE277A 		vadd.f32	s14, s14, s15
+ 580              		.loc 1 59 49
+ 581 00f2 A04B     		ldr	r3, .L80+12
+ 582 00f4 D3ED006A 		vldr.32	s13, [r3]
+ 583 00f8 9E4B     		ldr	r3, .L80+12
+ 584 00fa D3ED007A 		vldr.32	s15, [r3]
+ 585 00fe 66EEA77A 		vmul.f32	s15, s13, s15
+ 586              		.loc 1 59 15
+ 587 0102 77EE277A 		vadd.f32	s15, s14, s15
+ 588 0106 B0EE670A 		vmov.f32	s0, s15
+ 589 010a FFF7FEFF 		bl	sqrtf
+ 590 010e 87ED680A 		vstr.32	s0, [r7, #416]
+  60:Core/Src/quaternion.c **** 	if (fabsf(norm - 1.0f) > 0.1f) return;
+ 591              		.loc 1 60 17
+ 592 0112 D7ED687A 		vldr.32	s15, [r7, #416]
+ 593 0116 B7EE007A 		vmov.f32	s14, #1.0e+0
+ 594 011a 77EEC77A 		vsub.f32	s15, s15, s14
+ 595              		.loc 1 60 6
+ 596 011e F0EEE77A 		vabs.f32	s15, s15
+ 597              		.loc 1 60 5
+ 598 0122 9FED957A 		vldr.32	s14, .L80+16
+ 599 0126 F4EEC77A 		vcmpe.f32	s15, s14
+ 600 012a F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 601 012e 00F35284 		bgt	.L78
+  61:Core/Src/quaternion.c **** 	if (norm < 1e-6f) return;
+ 602              		.loc 1 61 5
+ 603 0132 D7ED687A 		vldr.32	s15, [r7, #416]
+ 604 0136 9FED917A 		vldr.32	s14, .L80+20
+ 605 013a F4EEC77A 		vcmpe.f32	s15, s14
+ 606 013e F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 607 0142 00F14A84 		bmi	.L79
+  62:Core/Src/quaternion.c **** 	ax_f /= norm;
+ 608              		.loc 1 62 7
+ 609 0146 894B     		ldr	r3, .L80+4
+ 610 0148 D3ED006A 		vldr.32	s13, [r3]
+ 611 014c 97ED687A 		vldr.32	s14, [r7, #416]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 13
+
+
+ 612 0150 C6EE877A 		vdiv.f32	s15, s13, s14
+ 613 0154 854B     		ldr	r3, .L80+4
+ 614 0156 C3ED007A 		vstr.32	s15, [r3]
+  63:Core/Src/quaternion.c **** 	ay_f /= norm;
+ 615              		.loc 1 63 7
+ 616 015a 854B     		ldr	r3, .L80+8
+ 617 015c D3ED006A 		vldr.32	s13, [r3]
+ 618 0160 97ED687A 		vldr.32	s14, [r7, #416]
+ 619 0164 C6EE877A 		vdiv.f32	s15, s13, s14
+ 620 0168 814B     		ldr	r3, .L80+8
+ 621 016a C3ED007A 		vstr.32	s15, [r3]
+  64:Core/Src/quaternion.c **** 	az_f /= norm;
+ 622              		.loc 1 64 7
+ 623 016e 814B     		ldr	r3, .L80+12
+ 624 0170 D3ED006A 		vldr.32	s13, [r3]
+ 625 0174 97ED687A 		vldr.32	s14, [r7, #416]
+ 626 0178 C6EE877A 		vdiv.f32	s15, s13, s14
+ 627 017c 7D4B     		ldr	r3, .L80+12
+ 628 017e C3ED007A 		vstr.32	s15, [r3]
+  65:Core/Src/quaternion.c **** 
+  66:Core/Src/quaternion.c **** 
+  67:Core/Src/quaternion.c ****     // Gravity vektörü tahmini (dünya referansında [0 0 1])
+  68:Core/Src/quaternion.c ****     float gx = 2 * (q[1]*q[3] - q[0]*q[2]);
+ 629              		.loc 1 68 22
+ 630 0182 7F4B     		ldr	r3, .L80+24
+ 631 0184 93ED017A 		vldr.32	s14, [r3, #4]
+ 632              		.loc 1 68 27
+ 633 0188 7D4B     		ldr	r3, .L80+24
+ 634 018a D3ED037A 		vldr.32	s15, [r3, #12]
+ 635              		.loc 1 68 25
+ 636 018e 27EE277A 		vmul.f32	s14, s14, s15
+ 637              		.loc 1 68 34
+ 638 0192 7B4B     		ldr	r3, .L80+24
+ 639 0194 D3ED006A 		vldr.32	s13, [r3]
+ 640              		.loc 1 68 39
+ 641 0198 794B     		ldr	r3, .L80+24
+ 642 019a D3ED027A 		vldr.32	s15, [r3, #8]
+ 643              		.loc 1 68 37
+ 644 019e 66EEA77A 		vmul.f32	s15, s13, s15
+ 645              		.loc 1 68 31
+ 646 01a2 77EE677A 		vsub.f32	s15, s14, s15
+ 647              		.loc 1 68 11
+ 648 01a6 77EEA77A 		vadd.f32	s15, s15, s15
+ 649 01aa C7ED677A 		vstr.32	s15, [r7, #412]
+  69:Core/Src/quaternion.c ****     float gy = 2 * (q[0]*q[1] + q[2]*q[3]);
+ 650              		.loc 1 69 22
+ 651 01ae 744B     		ldr	r3, .L80+24
+ 652 01b0 93ED007A 		vldr.32	s14, [r3]
+ 653              		.loc 1 69 27
+ 654 01b4 724B     		ldr	r3, .L80+24
+ 655 01b6 D3ED017A 		vldr.32	s15, [r3, #4]
+ 656              		.loc 1 69 25
+ 657 01ba 27EE277A 		vmul.f32	s14, s14, s15
+ 658              		.loc 1 69 34
+ 659 01be 704B     		ldr	r3, .L80+24
+ 660 01c0 D3ED026A 		vldr.32	s13, [r3, #8]
+ 661              		.loc 1 69 39
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 14
+
+
+ 662 01c4 6E4B     		ldr	r3, .L80+24
+ 663 01c6 D3ED037A 		vldr.32	s15, [r3, #12]
+ 664              		.loc 1 69 37
+ 665 01ca 66EEA77A 		vmul.f32	s15, s13, s15
+ 666              		.loc 1 69 31
+ 667 01ce 77EE277A 		vadd.f32	s15, s14, s15
+ 668              		.loc 1 69 11
+ 669 01d2 77EEA77A 		vadd.f32	s15, s15, s15
+ 670 01d6 C7ED667A 		vstr.32	s15, [r7, #408]
+  70:Core/Src/quaternion.c ****     float gz = q[0]*q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3];
+ 671              		.loc 1 70 17
+ 672 01da 694B     		ldr	r3, .L80+24
+ 673 01dc 93ED007A 		vldr.32	s14, [r3]
+ 674              		.loc 1 70 22
+ 675 01e0 674B     		ldr	r3, .L80+24
+ 676 01e2 D3ED007A 		vldr.32	s15, [r3]
+ 677              		.loc 1 70 20
+ 678 01e6 27EE277A 		vmul.f32	s14, s14, s15
+ 679              		.loc 1 70 29
+ 680 01ea 654B     		ldr	r3, .L80+24
+ 681 01ec D3ED016A 		vldr.32	s13, [r3, #4]
+ 682              		.loc 1 70 34
+ 683 01f0 634B     		ldr	r3, .L80+24
+ 684 01f2 D3ED017A 		vldr.32	s15, [r3, #4]
+ 685              		.loc 1 70 32
+ 686 01f6 66EEA77A 		vmul.f32	s15, s13, s15
+ 687              		.loc 1 70 26
+ 688 01fa 37EE677A 		vsub.f32	s14, s14, s15
+ 689              		.loc 1 70 41
+ 690 01fe 604B     		ldr	r3, .L80+24
+ 691 0200 D3ED026A 		vldr.32	s13, [r3, #8]
+ 692              		.loc 1 70 46
+ 693 0204 5E4B     		ldr	r3, .L80+24
+ 694 0206 D3ED027A 		vldr.32	s15, [r3, #8]
+ 695              		.loc 1 70 44
+ 696 020a 66EEA77A 		vmul.f32	s15, s13, s15
+ 697              		.loc 1 70 38
+ 698 020e 37EE677A 		vsub.f32	s14, s14, s15
+ 699              		.loc 1 70 53
+ 700 0212 5B4B     		ldr	r3, .L80+24
+ 701 0214 D3ED036A 		vldr.32	s13, [r3, #12]
+ 702              		.loc 1 70 58
+ 703 0218 594B     		ldr	r3, .L80+24
+ 704 021a D3ED037A 		vldr.32	s15, [r3, #12]
+ 705              		.loc 1 70 56
+ 706 021e 66EEA77A 		vmul.f32	s15, s13, s15
+ 707              		.loc 1 70 11
+ 708 0222 77EE277A 		vadd.f32	s15, s14, s15
+ 709 0226 C7ED657A 		vstr.32	s15, [r7, #404]
+  71:Core/Src/quaternion.c **** 
+  72:Core/Src/quaternion.c ****     float y[3] = {ax_f - gx, ay_f - gy, az_f - gz};
+ 710              		.loc 1 72 24
+ 711 022a 504B     		ldr	r3, .L80+4
+ 712 022c 93ED007A 		vldr.32	s14, [r3]
+ 713 0230 D7ED677A 		vldr.32	s15, [r7, #412]
+ 714 0234 77EE677A 		vsub.f32	s15, s14, s15
+ 715              		.loc 1 72 11
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 15
+
+
+ 716 0238 C7ED617A 		vstr.32	s15, [r7, #388]
+ 717              		.loc 1 72 35
+ 718 023c 4C4B     		ldr	r3, .L80+8
+ 719 023e 93ED007A 		vldr.32	s14, [r3]
+ 720 0242 D7ED667A 		vldr.32	s15, [r7, #408]
+ 721 0246 77EE677A 		vsub.f32	s15, s14, s15
+ 722              		.loc 1 72 11
+ 723 024a C7ED627A 		vstr.32	s15, [r7, #392]
+ 724              		.loc 1 72 46
+ 725 024e 494B     		ldr	r3, .L80+12
+ 726 0250 93ED007A 		vldr.32	s14, [r3]
+ 727 0254 D7ED657A 		vldr.32	s15, [r7, #404]
+ 728 0258 77EE677A 		vsub.f32	s15, s14, s15
+ 729              		.loc 1 72 11
+ 730 025c C7ED637A 		vstr.32	s15, [r7, #396]
+  73:Core/Src/quaternion.c **** 
+  74:Core/Src/quaternion.c ****     // H sabit alınır (yaklaşım): her q bileşeninin gravity ile türevi
+  75:Core/Src/quaternion.c ****     float H[3][4] = {
+  76:Core/Src/quaternion.c ****         {-2*q[2],  2*q[3], -2*q[0],  2*q[1]},
+ 731              		.loc 1 76 14
+ 732 0260 474B     		ldr	r3, .L80+24
+ 733 0262 D3ED027A 		vldr.32	s15, [r3, #8]
+ 734              		.loc 1 76 12
+ 735 0266 B8EE007A 		vmov.f32	s14, #-2.0e+0
+ 736 026a 67EE877A 		vmul.f32	s15, s15, s14
+  75:Core/Src/quaternion.c ****         {-2*q[2],  2*q[3], -2*q[0],  2*q[1]},
+ 737              		.loc 1 75 11
+ 738 026e C7ED557A 		vstr.32	s15, [r7, #340]
+ 739              		.loc 1 76 23
+ 740 0272 434B     		ldr	r3, .L80+24
+ 741 0274 D3ED037A 		vldr.32	s15, [r3, #12]
+ 742              		.loc 1 76 21
+ 743 0278 77EEA77A 		vadd.f32	s15, s15, s15
+  75:Core/Src/quaternion.c ****         {-2*q[2],  2*q[3], -2*q[0],  2*q[1]},
+ 744              		.loc 1 75 11
+ 745 027c C7ED567A 		vstr.32	s15, [r7, #344]
+ 746              		.loc 1 76 32
+ 747 0280 3F4B     		ldr	r3, .L80+24
+ 748 0282 D3ED007A 		vldr.32	s15, [r3]
+ 749              		.loc 1 76 30
+ 750 0286 B8EE007A 		vmov.f32	s14, #-2.0e+0
+ 751 028a 67EE877A 		vmul.f32	s15, s15, s14
+  75:Core/Src/quaternion.c ****         {-2*q[2],  2*q[3], -2*q[0],  2*q[1]},
+ 752              		.loc 1 75 11
+ 753 028e C7ED577A 		vstr.32	s15, [r7, #348]
+ 754              		.loc 1 76 41
+ 755 0292 3B4B     		ldr	r3, .L80+24
+ 756 0294 D3ED017A 		vldr.32	s15, [r3, #4]
+ 757              		.loc 1 76 39
+ 758 0298 77EEA77A 		vadd.f32	s15, s15, s15
+  75:Core/Src/quaternion.c ****         {-2*q[2],  2*q[3], -2*q[0],  2*q[1]},
+ 759              		.loc 1 75 11
+ 760 029c C7ED587A 		vstr.32	s15, [r7, #352]
+  77:Core/Src/quaternion.c ****         { 2*q[1],  2*q[0],  2*q[3],  2*q[2]},
+ 761              		.loc 1 77 14
+ 762 02a0 374B     		ldr	r3, .L80+24
+ 763 02a2 D3ED017A 		vldr.32	s15, [r3, #4]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 16
+
+
+ 764              		.loc 1 77 12
+ 765 02a6 77EEA77A 		vadd.f32	s15, s15, s15
+  75:Core/Src/quaternion.c ****         {-2*q[2],  2*q[3], -2*q[0],  2*q[1]},
+ 766              		.loc 1 75 11
+ 767 02aa C7ED597A 		vstr.32	s15, [r7, #356]
+ 768              		.loc 1 77 23
+ 769 02ae 344B     		ldr	r3, .L80+24
+ 770 02b0 D3ED007A 		vldr.32	s15, [r3]
+ 771              		.loc 1 77 21
+ 772 02b4 77EEA77A 		vadd.f32	s15, s15, s15
+  75:Core/Src/quaternion.c ****         {-2*q[2],  2*q[3], -2*q[0],  2*q[1]},
+ 773              		.loc 1 75 11
+ 774 02b8 C7ED5A7A 		vstr.32	s15, [r7, #360]
+ 775              		.loc 1 77 32
+ 776 02bc 304B     		ldr	r3, .L80+24
+ 777 02be D3ED037A 		vldr.32	s15, [r3, #12]
+ 778              		.loc 1 77 30
+ 779 02c2 77EEA77A 		vadd.f32	s15, s15, s15
+  75:Core/Src/quaternion.c ****         {-2*q[2],  2*q[3], -2*q[0],  2*q[1]},
+ 780              		.loc 1 75 11
+ 781 02c6 C7ED5B7A 		vstr.32	s15, [r7, #364]
+ 782              		.loc 1 77 41
+ 783 02ca 2D4B     		ldr	r3, .L80+24
+ 784 02cc D3ED027A 		vldr.32	s15, [r3, #8]
+ 785              		.loc 1 77 39
+ 786 02d0 77EEA77A 		vadd.f32	s15, s15, s15
+  75:Core/Src/quaternion.c ****         {-2*q[2],  2*q[3], -2*q[0],  2*q[1]},
+ 787              		.loc 1 75 11
+ 788 02d4 C7ED5C7A 		vstr.32	s15, [r7, #368]
+  78:Core/Src/quaternion.c ****         { 2*q[0], -2*q[1], -2*q[2],  2*q[3]}
+ 789              		.loc 1 78 14
+ 790 02d8 294B     		ldr	r3, .L80+24
+ 791 02da D3ED007A 		vldr.32	s15, [r3]
+ 792              		.loc 1 78 12
+ 793 02de 77EEA77A 		vadd.f32	s15, s15, s15
+  75:Core/Src/quaternion.c ****         {-2*q[2],  2*q[3], -2*q[0],  2*q[1]},
+ 794              		.loc 1 75 11
+ 795 02e2 C7ED5D7A 		vstr.32	s15, [r7, #372]
+ 796              		.loc 1 78 23
+ 797 02e6 264B     		ldr	r3, .L80+24
+ 798 02e8 D3ED017A 		vldr.32	s15, [r3, #4]
+ 799              		.loc 1 78 21
+ 800 02ec B8EE007A 		vmov.f32	s14, #-2.0e+0
+ 801 02f0 67EE877A 		vmul.f32	s15, s15, s14
+  75:Core/Src/quaternion.c ****         {-2*q[2],  2*q[3], -2*q[0],  2*q[1]},
+ 802              		.loc 1 75 11
+ 803 02f4 C7ED5E7A 		vstr.32	s15, [r7, #376]
+ 804              		.loc 1 78 32
+ 805 02f8 214B     		ldr	r3, .L80+24
+ 806 02fa D3ED027A 		vldr.32	s15, [r3, #8]
+ 807              		.loc 1 78 30
+ 808 02fe B8EE007A 		vmov.f32	s14, #-2.0e+0
+ 809 0302 67EE877A 		vmul.f32	s15, s15, s14
+  75:Core/Src/quaternion.c ****         {-2*q[2],  2*q[3], -2*q[0],  2*q[1]},
+ 810              		.loc 1 75 11
+ 811 0306 C7ED5F7A 		vstr.32	s15, [r7, #380]
+ 812              		.loc 1 78 41
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 17
+
+
+ 813 030a 1D4B     		ldr	r3, .L80+24
+ 814 030c D3ED037A 		vldr.32	s15, [r3, #12]
+ 815              		.loc 1 78 39
+ 816 0310 77EEA77A 		vadd.f32	s15, s15, s15
+  75:Core/Src/quaternion.c ****         {-2*q[2],  2*q[3], -2*q[0],  2*q[1]},
+ 817              		.loc 1 75 11
+ 818 0314 C7ED607A 		vstr.32	s15, [r7, #384]
+  79:Core/Src/quaternion.c ****     };
+  80:Core/Src/quaternion.c **** 
+  81:Core/Src/quaternion.c ****     // Kalman gain K = P*H^T * (H*P*H^T + R)^-1
+  82:Core/Src/quaternion.c ****     float HP[3][4] = {0};
+ 819              		.loc 1 82 11
+ 820 0318 07F59273 		add	r3, r7, #292
+ 821 031c 3022     		movs	r2, #48
+ 822 031e 0021     		movs	r1, #0
+ 823 0320 1846     		mov	r0, r3
+ 824 0322 FFF7FEFF 		bl	memset
+  83:Core/Src/quaternion.c ****     float S[3][3] = {0};
+ 825              		.loc 1 83 11
+ 826 0326 07F50273 		add	r3, r7, #520
+ 827 032a A3F58473 		sub	r3, r3, #264
+ 828 032e 1846     		mov	r0, r3
+ 829 0330 2423     		movs	r3, #36
+ 830 0332 1A46     		mov	r2, r3
+ 831 0334 0021     		movs	r1, #0
+ 832 0336 FFF7FEFF 		bl	memset
+  84:Core/Src/quaternion.c ****     float K[4][3] = {0};
+ 833              		.loc 1 84 11
+ 834 033a 07F50273 		add	r3, r7, #520
+ 835 033e A3F59C73 		sub	r3, r3, #312
+ 836 0342 1846     		mov	r0, r3
+ 837 0344 3023     		movs	r3, #48
+ 838 0346 1A46     		mov	r2, r3
+ 839 0348 0021     		movs	r1, #0
+ 840 034a FFF7FEFF 		bl	memset
+ 841              	.LBB9:
+  85:Core/Src/quaternion.c **** 
+  86:Core/Src/quaternion.c ****     // HP = H * P
+  87:Core/Src/quaternion.c ****     for (int i = 0; i < 3; i++)
+ 842              		.loc 1 87 14
+ 843 034e 0023     		movs	r3, #0
+ 844 0350 C7F80432 		str	r3, [r7, #516]
+ 845              		.loc 1 87 5
+ 846 0354 63E0     		b	.L29
+ 847              	.L34:
+ 848              	.LBB10:
+  88:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 849              		.loc 1 88 18
+ 850 0356 0023     		movs	r3, #0
+ 851 0358 C7F80032 		str	r3, [r7, #512]
+ 852              		.loc 1 88 9
+ 853 035c 56E0     		b	.L30
+ 854              	.L33:
+ 855              	.LBB11:
+  89:Core/Src/quaternion.c ****             for (int k = 0; k < 4; k++)
+ 856              		.loc 1 89 22
+ 857 035e 0023     		movs	r3, #0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 18
+
+
+ 858 0360 C7F8FC31 		str	r3, [r7, #508]
+ 859              		.loc 1 89 13
+ 860 0364 49E0     		b	.L31
+ 861              	.L81:
+ 862 0366 00BF     		.align	2
+ 863              	.L80:
+ 864 0368 CDCCCC3D 		.word	1036831949
+ 865 036c 00000000 		.word	ax_f.2
+ 866 0370 00000000 		.word	ay_f.1
+ 867 0374 00000000 		.word	az_f.0
+ 868 0378 CDCCCC3D 		.word	1036831949
+ 869 037c BD378635 		.word	897988541
+ 870 0380 00000000 		.word	q
+ 871              	.L32:
+  90:Core/Src/quaternion.c ****                 HP[i][j] += H[i][k] * P[k][j];
+ 872              		.loc 1 90 22 discriminator 3
+ 873 0384 D7F80432 		ldr	r3, [r7, #516]
+ 874 0388 9A00     		lsls	r2, r3, #2
+ 875 038a D7F80032 		ldr	r3, [r7, #512]
+ 876 038e 1344     		add	r3, r3, r2
+ 877 0390 9B00     		lsls	r3, r3, #2
+ 878 0392 03F50273 		add	r3, r3, #520
+ 879 0396 3B44     		add	r3, r3, r7
+ 880 0398 E43B     		subs	r3, r3, #228
+ 881 039a 93ED007A 		vldr.32	s14, [r3]
+ 882              		.loc 1 90 33 discriminator 3
+ 883 039e D7F80432 		ldr	r3, [r7, #516]
+ 884 03a2 9A00     		lsls	r2, r3, #2
+ 885 03a4 D7F8FC31 		ldr	r3, [r7, #508]
+ 886 03a8 1344     		add	r3, r3, r2
+ 887 03aa 9B00     		lsls	r3, r3, #2
+ 888 03ac 03F50273 		add	r3, r3, #520
+ 889 03b0 3B44     		add	r3, r3, r7
+ 890 03b2 B43B     		subs	r3, r3, #180
+ 891 03b4 D3ED006A 		vldr.32	s13, [r3]
+ 892              		.loc 1 90 43 discriminator 3
+ 893 03b8 E349     		ldr	r1, .L82
+ 894 03ba D7F8FC31 		ldr	r3, [r7, #508]
+ 895 03be 9A00     		lsls	r2, r3, #2
+ 896 03c0 D7F80032 		ldr	r3, [r7, #512]
+ 897 03c4 1344     		add	r3, r3, r2
+ 898 03c6 9B00     		lsls	r3, r3, #2
+ 899 03c8 0B44     		add	r3, r3, r1
+ 900 03ca D3ED007A 		vldr.32	s15, [r3]
+ 901              		.loc 1 90 37 discriminator 3
+ 902 03ce 66EEA77A 		vmul.f32	s15, s13, s15
+ 903              		.loc 1 90 26 discriminator 3
+ 904 03d2 77EE277A 		vadd.f32	s15, s14, s15
+ 905 03d6 D7F80432 		ldr	r3, [r7, #516]
+ 906 03da 9A00     		lsls	r2, r3, #2
+ 907 03dc D7F80032 		ldr	r3, [r7, #512]
+ 908 03e0 1344     		add	r3, r3, r2
+ 909 03e2 9B00     		lsls	r3, r3, #2
+ 910 03e4 03F50273 		add	r3, r3, #520
+ 911 03e8 3B44     		add	r3, r3, r7
+ 912 03ea E43B     		subs	r3, r3, #228
+ 913 03ec C3ED007A 		vstr.32	s15, [r3]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 19
+
+
+  89:Core/Src/quaternion.c ****             for (int k = 0; k < 4; k++)
+ 914              		.loc 1 89 37 discriminator 3
+ 915 03f0 D7F8FC31 		ldr	r3, [r7, #508]
+ 916 03f4 0133     		adds	r3, r3, #1
+ 917 03f6 C7F8FC31 		str	r3, [r7, #508]
+ 918              	.L31:
+  89:Core/Src/quaternion.c ****             for (int k = 0; k < 4; k++)
+ 919              		.loc 1 89 31 discriminator 1
+ 920 03fa D7F8FC31 		ldr	r3, [r7, #508]
+ 921 03fe 032B     		cmp	r3, #3
+ 922 0400 C0DD     		ble	.L32
+ 923              	.LBE11:
+  88:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 924              		.loc 1 88 33 discriminator 2
+ 925 0402 D7F80032 		ldr	r3, [r7, #512]
+ 926 0406 0133     		adds	r3, r3, #1
+ 927 0408 C7F80032 		str	r3, [r7, #512]
+ 928              	.L30:
+  88:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 929              		.loc 1 88 27 discriminator 1
+ 930 040c D7F80032 		ldr	r3, [r7, #512]
+ 931 0410 032B     		cmp	r3, #3
+ 932 0412 A4DD     		ble	.L33
+ 933              	.LBE10:
+  87:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 934              		.loc 1 87 29 discriminator 2
+ 935 0414 D7F80432 		ldr	r3, [r7, #516]
+ 936 0418 0133     		adds	r3, r3, #1
+ 937 041a C7F80432 		str	r3, [r7, #516]
+ 938              	.L29:
+  87:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 939              		.loc 1 87 23 discriminator 1
+ 940 041e D7F80432 		ldr	r3, [r7, #516]
+ 941 0422 022B     		cmp	r3, #2
+ 942 0424 97DD     		ble	.L34
+ 943              	.LBE9:
+ 944              	.LBB12:
+  91:Core/Src/quaternion.c **** 
+  92:Core/Src/quaternion.c ****     // S = HP * H^T + R
+  93:Core/Src/quaternion.c ****     for (int i = 0; i < 3; i++)
+ 945              		.loc 1 93 14
+ 946 0426 0023     		movs	r3, #0
+ 947 0428 C7F8F831 		str	r3, [r7, #504]
+ 948              		.loc 1 93 5
+ 949 042c 5CE0     		b	.L35
+ 950              	.L40:
+ 951              	.LBB13:
+  94:Core/Src/quaternion.c ****         for (int j = 0; j < 3; j++)
+ 952              		.loc 1 94 18
+ 953 042e 0023     		movs	r3, #0
+ 954 0430 C7F8F431 		str	r3, [r7, #500]
+ 955              		.loc 1 94 9
+ 956 0434 4FE0     		b	.L36
+ 957              	.L39:
+ 958              	.LBB14:
+  95:Core/Src/quaternion.c ****             for (int k = 0; k < 4; k++)
+ 959              		.loc 1 95 22
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 20
+
+
+ 960 0436 0023     		movs	r3, #0
+ 961 0438 C7F8F031 		str	r3, [r7, #496]
+ 962              		.loc 1 95 13
+ 963 043c 42E0     		b	.L37
+ 964              	.L38:
+  96:Core/Src/quaternion.c ****                 S[i][j] += HP[i][k] * H[j][k];
+ 965              		.loc 1 96 21 discriminator 3
+ 966 043e 07F50273 		add	r3, r7, #520
+ 967 0442 A3F58471 		sub	r1, r3, #264
+ 968 0446 D7F8F821 		ldr	r2, [r7, #504]
+ 969 044a 1346     		mov	r3, r2
+ 970 044c 5B00     		lsls	r3, r3, #1
+ 971 044e 1344     		add	r3, r3, r2
+ 972 0450 D7F8F421 		ldr	r2, [r7, #500]
+ 973 0454 1344     		add	r3, r3, r2
+ 974 0456 9B00     		lsls	r3, r3, #2
+ 975 0458 0B44     		add	r3, r3, r1
+ 976 045a 93ED007A 		vldr.32	s14, [r3]
+ 977              		.loc 1 96 33 discriminator 3
+ 978 045e D7F8F831 		ldr	r3, [r7, #504]
+ 979 0462 9A00     		lsls	r2, r3, #2
+ 980 0464 D7F8F031 		ldr	r3, [r7, #496]
+ 981 0468 1344     		add	r3, r3, r2
+ 982 046a 9B00     		lsls	r3, r3, #2
+ 983 046c 03F50273 		add	r3, r3, #520
+ 984 0470 3B44     		add	r3, r3, r7
+ 985 0472 E43B     		subs	r3, r3, #228
+ 986 0474 D3ED006A 		vldr.32	s13, [r3]
+ 987              		.loc 1 96 43 discriminator 3
+ 988 0478 D7F8F431 		ldr	r3, [r7, #500]
+ 989 047c 9A00     		lsls	r2, r3, #2
+ 990 047e D7F8F031 		ldr	r3, [r7, #496]
+ 991 0482 1344     		add	r3, r3, r2
+ 992 0484 9B00     		lsls	r3, r3, #2
+ 993 0486 03F50273 		add	r3, r3, #520
+ 994 048a 3B44     		add	r3, r3, r7
+ 995 048c B43B     		subs	r3, r3, #180
+ 996 048e D3ED007A 		vldr.32	s15, [r3]
+ 997              		.loc 1 96 37 discriminator 3
+ 998 0492 66EEA77A 		vmul.f32	s15, s13, s15
+ 999              		.loc 1 96 25 discriminator 3
+ 1000 0496 77EE277A 		vadd.f32	s15, s14, s15
+ 1001 049a 07F50273 		add	r3, r7, #520
+ 1002 049e A3F58471 		sub	r1, r3, #264
+ 1003 04a2 D7F8F821 		ldr	r2, [r7, #504]
+ 1004 04a6 1346     		mov	r3, r2
+ 1005 04a8 5B00     		lsls	r3, r3, #1
+ 1006 04aa 1344     		add	r3, r3, r2
+ 1007 04ac D7F8F421 		ldr	r2, [r7, #500]
+ 1008 04b0 1344     		add	r3, r3, r2
+ 1009 04b2 9B00     		lsls	r3, r3, #2
+ 1010 04b4 0B44     		add	r3, r3, r1
+ 1011 04b6 C3ED007A 		vstr.32	s15, [r3]
+  95:Core/Src/quaternion.c ****             for (int k = 0; k < 4; k++)
+ 1012              		.loc 1 95 37 discriminator 3
+ 1013 04ba D7F8F031 		ldr	r3, [r7, #496]
+ 1014 04be 0133     		adds	r3, r3, #1
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 21
+
+
+ 1015 04c0 C7F8F031 		str	r3, [r7, #496]
+ 1016              	.L37:
+  95:Core/Src/quaternion.c ****             for (int k = 0; k < 4; k++)
+ 1017              		.loc 1 95 31 discriminator 1
+ 1018 04c4 D7F8F031 		ldr	r3, [r7, #496]
+ 1019 04c8 032B     		cmp	r3, #3
+ 1020 04ca B8DD     		ble	.L38
+ 1021              	.LBE14:
+  94:Core/Src/quaternion.c ****         for (int j = 0; j < 3; j++)
+ 1022              		.loc 1 94 33 discriminator 2
+ 1023 04cc D7F8F431 		ldr	r3, [r7, #500]
+ 1024 04d0 0133     		adds	r3, r3, #1
+ 1025 04d2 C7F8F431 		str	r3, [r7, #500]
+ 1026              	.L36:
+  94:Core/Src/quaternion.c ****         for (int j = 0; j < 3; j++)
+ 1027              		.loc 1 94 27 discriminator 1
+ 1028 04d6 D7F8F431 		ldr	r3, [r7, #500]
+ 1029 04da 022B     		cmp	r3, #2
+ 1030 04dc ABDD     		ble	.L39
+ 1031              	.LBE13:
+  93:Core/Src/quaternion.c ****         for (int j = 0; j < 3; j++)
+ 1032              		.loc 1 93 29 discriminator 2
+ 1033 04de D7F8F831 		ldr	r3, [r7, #504]
+ 1034 04e2 0133     		adds	r3, r3, #1
+ 1035 04e4 C7F8F831 		str	r3, [r7, #504]
+ 1036              	.L35:
+  93:Core/Src/quaternion.c ****         for (int j = 0; j < 3; j++)
+ 1037              		.loc 1 93 23 discriminator 1
+ 1038 04e8 D7F8F831 		ldr	r3, [r7, #504]
+ 1039 04ec 022B     		cmp	r3, #2
+ 1040 04ee 9EDD     		ble	.L40
+ 1041              	.LBE12:
+ 1042              	.LBB15:
+  97:Core/Src/quaternion.c **** 
+  98:Core/Src/quaternion.c ****     for (int i = 0; i < 3; i++)
+ 1043              		.loc 1 98 14
+ 1044 04f0 0023     		movs	r3, #0
+ 1045 04f2 C7F8EC31 		str	r3, [r7, #492]
+ 1046              		.loc 1 98 5
+ 1047 04f6 1CE0     		b	.L41
+ 1048              	.L42:
+  99:Core/Src/quaternion.c ****         S[i][i] += R_val;
+ 1049              		.loc 1 99 13 discriminator 3
+ 1050 04f8 07F50273 		add	r3, r7, #520
+ 1051 04fc A3F58472 		sub	r2, r3, #264
+ 1052 0500 D7F8EC31 		ldr	r3, [r7, #492]
+ 1053 0504 1B01     		lsls	r3, r3, #4
+ 1054 0506 1344     		add	r3, r3, r2
+ 1055 0508 D3ED007A 		vldr.32	s15, [r3]
+ 1056              		.loc 1 99 17 discriminator 3
+ 1057 050c 9FED8F7A 		vldr.32	s14, .L82+4
+ 1058 0510 77EE877A 		vadd.f32	s15, s15, s14
+ 1059 0514 07F50273 		add	r3, r7, #520
+ 1060 0518 A3F58472 		sub	r2, r3, #264
+ 1061 051c D7F8EC31 		ldr	r3, [r7, #492]
+ 1062 0520 1B01     		lsls	r3, r3, #4
+ 1063 0522 1344     		add	r3, r3, r2
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 22
+
+
+ 1064 0524 C3ED007A 		vstr.32	s15, [r3]
+  98:Core/Src/quaternion.c ****         S[i][i] += R_val;
+ 1065              		.loc 1 98 29 discriminator 3
+ 1066 0528 D7F8EC31 		ldr	r3, [r7, #492]
+ 1067 052c 0133     		adds	r3, r3, #1
+ 1068 052e C7F8EC31 		str	r3, [r7, #492]
+ 1069              	.L41:
+  98:Core/Src/quaternion.c ****         S[i][i] += R_val;
+ 1070              		.loc 1 98 23 discriminator 1
+ 1071 0532 D7F8EC31 		ldr	r3, [r7, #492]
+ 1072 0536 022B     		cmp	r3, #2
+ 1073 0538 DEDD     		ble	.L42
+ 1074              	.LBE15:
+ 1075              	.LBB16:
+ 100:Core/Src/quaternion.c **** 
+ 101:Core/Src/quaternion.c ****     // Basit ters alma: sadece diagonal R olduğu için yaklaşık olarak K = P * H^T / S
+ 102:Core/Src/quaternion.c ****     for (int i = 0; i < 4; i++) {
+ 1076              		.loc 1 102 14
+ 1077 053a 0023     		movs	r3, #0
+ 1078 053c C7F8E831 		str	r3, [r7, #488]
+ 1079              		.loc 1 102 5
+ 1080 0540 60E0     		b	.L43
+ 1081              	.L48:
+ 1082              	.LBB17:
+ 103:Core/Src/quaternion.c ****         for (int j = 0; j < 3; j++) {
+ 1083              		.loc 1 103 18
+ 1084 0542 0023     		movs	r3, #0
+ 1085 0544 C7F8E431 		str	r3, [r7, #484]
+ 1086              		.loc 1 103 9
+ 1087 0548 53E0     		b	.L44
+ 1088              	.L47:
+ 1089              	.LBB18:
+ 104:Core/Src/quaternion.c ****             float sum = 0;
+ 1090              		.loc 1 104 19
+ 1091 054a 4FF00003 		mov	r3, #0
+ 1092 054e C7F8E031 		str	r3, [r7, #480]	@ float
+ 1093              	.LBB19:
+ 105:Core/Src/quaternion.c ****             for (int k = 0; k < 4; k++) {
+ 1094              		.loc 1 105 22
+ 1095 0552 0023     		movs	r3, #0
+ 1096 0554 C7F8DC31 		str	r3, [r7, #476]
+ 1097              		.loc 1 105 13
+ 1098 0558 24E0     		b	.L45
+ 1099              	.L46:
+ 106:Core/Src/quaternion.c ****                 sum += P[i][k] * H[j][k];
+ 1100              		.loc 1 106 28 discriminator 3
+ 1101 055a 7B49     		ldr	r1, .L82
+ 1102 055c D7F8E831 		ldr	r3, [r7, #488]
+ 1103 0560 9A00     		lsls	r2, r3, #2
+ 1104 0562 D7F8DC31 		ldr	r3, [r7, #476]
+ 1105 0566 1344     		add	r3, r3, r2
+ 1106 0568 9B00     		lsls	r3, r3, #2
+ 1107 056a 0B44     		add	r3, r3, r1
+ 1108 056c 93ED007A 		vldr.32	s14, [r3]
+ 1109              		.loc 1 106 38 discriminator 3
+ 1110 0570 D7F8E431 		ldr	r3, [r7, #484]
+ 1111 0574 9A00     		lsls	r2, r3, #2
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 23
+
+
+ 1112 0576 D7F8DC31 		ldr	r3, [r7, #476]
+ 1113 057a 1344     		add	r3, r3, r2
+ 1114 057c 9B00     		lsls	r3, r3, #2
+ 1115 057e 03F50273 		add	r3, r3, #520
+ 1116 0582 3B44     		add	r3, r3, r7
+ 1117 0584 B43B     		subs	r3, r3, #180
+ 1118 0586 D3ED007A 		vldr.32	s15, [r3]
+ 1119              		.loc 1 106 32 discriminator 3
+ 1120 058a 67EE277A 		vmul.f32	s15, s14, s15
+ 1121              		.loc 1 106 21 discriminator 3
+ 1122 058e 97ED787A 		vldr.32	s14, [r7, #480]
+ 1123 0592 77EE277A 		vadd.f32	s15, s14, s15
+ 1124 0596 C7ED787A 		vstr.32	s15, [r7, #480]
+ 105:Core/Src/quaternion.c ****             for (int k = 0; k < 4; k++) {
+ 1125              		.loc 1 105 37 discriminator 3
+ 1126 059a D7F8DC31 		ldr	r3, [r7, #476]
+ 1127 059e 0133     		adds	r3, r3, #1
+ 1128 05a0 C7F8DC31 		str	r3, [r7, #476]
+ 1129              	.L45:
+ 105:Core/Src/quaternion.c ****             for (int k = 0; k < 4; k++) {
+ 1130              		.loc 1 105 31 discriminator 1
+ 1131 05a4 D7F8DC31 		ldr	r3, [r7, #476]
+ 1132 05a8 032B     		cmp	r3, #3
+ 1133 05aa D6DD     		ble	.L46
+ 1134              	.LBE19:
+ 107:Core/Src/quaternion.c ****             }
+ 108:Core/Src/quaternion.c ****             K[i][j] = sum / S[j][j];
+ 1135              		.loc 1 108 33 discriminator 2
+ 1136 05ac 07F50273 		add	r3, r7, #520
+ 1137 05b0 A3F58472 		sub	r2, r3, #264
+ 1138 05b4 D7F8E431 		ldr	r3, [r7, #484]
+ 1139 05b8 1B01     		lsls	r3, r3, #4
+ 1140 05ba 1344     		add	r3, r3, r2
+ 1141 05bc 93ED007A 		vldr.32	s14, [r3]
+ 1142              		.loc 1 108 27 discriminator 2
+ 1143 05c0 D7ED786A 		vldr.32	s13, [r7, #480]
+ 1144 05c4 C6EE877A 		vdiv.f32	s15, s13, s14
+ 1145              		.loc 1 108 21 discriminator 2
+ 1146 05c8 07F50273 		add	r3, r7, #520
+ 1147 05cc A3F59C71 		sub	r1, r3, #312
+ 1148 05d0 D7F8E821 		ldr	r2, [r7, #488]
+ 1149 05d4 1346     		mov	r3, r2
+ 1150 05d6 5B00     		lsls	r3, r3, #1
+ 1151 05d8 1344     		add	r3, r3, r2
+ 1152 05da D7F8E421 		ldr	r2, [r7, #484]
+ 1153 05de 1344     		add	r3, r3, r2
+ 1154 05e0 9B00     		lsls	r3, r3, #2
+ 1155 05e2 0B44     		add	r3, r3, r1
+ 1156 05e4 C3ED007A 		vstr.32	s15, [r3]
+ 1157              	.LBE18:
+ 103:Core/Src/quaternion.c ****             float sum = 0;
+ 1158              		.loc 1 103 33 discriminator 2
+ 1159 05e8 D7F8E431 		ldr	r3, [r7, #484]
+ 1160 05ec 0133     		adds	r3, r3, #1
+ 1161 05ee C7F8E431 		str	r3, [r7, #484]
+ 1162              	.L44:
+ 103:Core/Src/quaternion.c ****             float sum = 0;
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 24
+
+
+ 1163              		.loc 1 103 27 discriminator 1
+ 1164 05f2 D7F8E431 		ldr	r3, [r7, #484]
+ 1165 05f6 022B     		cmp	r3, #2
+ 1166 05f8 A7DD     		ble	.L47
+ 1167              	.LBE17:
+ 102:Core/Src/quaternion.c ****         for (int j = 0; j < 3; j++) {
+ 1168              		.loc 1 102 29 discriminator 2
+ 1169 05fa D7F8E831 		ldr	r3, [r7, #488]
+ 1170 05fe 0133     		adds	r3, r3, #1
+ 1171 0600 C7F8E831 		str	r3, [r7, #488]
+ 1172              	.L43:
+ 102:Core/Src/quaternion.c ****         for (int j = 0; j < 3; j++) {
+ 1173              		.loc 1 102 23 discriminator 1
+ 1174 0604 D7F8E831 		ldr	r3, [r7, #488]
+ 1175 0608 032B     		cmp	r3, #3
+ 1176 060a 9ADD     		ble	.L48
+ 1177              	.LBE16:
+ 1178              	.LBB20:
+ 109:Core/Src/quaternion.c ****         }
+ 110:Core/Src/quaternion.c ****     }
+ 111:Core/Src/quaternion.c **** 
+ 112:Core/Src/quaternion.c ****     // q = q + K * y
+ 113:Core/Src/quaternion.c ****     for (int i = 0; i < 4; i++) {
+ 1179              		.loc 1 113 14
+ 1180 060c 0023     		movs	r3, #0
+ 1181 060e C7F8D831 		str	r3, [r7, #472]
+ 1182              		.loc 1 113 5
+ 1183 0612 3CE0     		b	.L49
+ 1184              	.L52:
+ 1185              	.LBB21:
+ 114:Core/Src/quaternion.c ****         for (int j = 0; j < 3; j++) {
+ 1186              		.loc 1 114 18
+ 1187 0614 0023     		movs	r3, #0
+ 1188 0616 C7F8D431 		str	r3, [r7, #468]
+ 1189              		.loc 1 114 9
+ 1190 061a 2FE0     		b	.L50
+ 1191              	.L51:
+ 115:Core/Src/quaternion.c ****             q[i] += K[i][j] * y[j];
+ 1192              		.loc 1 115 14 discriminator 3
+ 1193 061c 4C4A     		ldr	r2, .L82+8
+ 1194 061e D7F8D831 		ldr	r3, [r7, #472]
+ 1195 0622 9B00     		lsls	r3, r3, #2
+ 1196 0624 1344     		add	r3, r3, r2
+ 1197 0626 93ED007A 		vldr.32	s14, [r3]
+ 1198              		.loc 1 115 25 discriminator 3
+ 1199 062a 07F50273 		add	r3, r7, #520
+ 1200 062e A3F59C71 		sub	r1, r3, #312
+ 1201 0632 D7F8D821 		ldr	r2, [r7, #472]
+ 1202 0636 1346     		mov	r3, r2
+ 1203 0638 5B00     		lsls	r3, r3, #1
+ 1204 063a 1344     		add	r3, r3, r2
+ 1205 063c D7F8D421 		ldr	r2, [r7, #468]
+ 1206 0640 1344     		add	r3, r3, r2
+ 1207 0642 9B00     		lsls	r3, r3, #2
+ 1208 0644 0B44     		add	r3, r3, r1
+ 1209 0646 D3ED006A 		vldr.32	s13, [r3]
+ 1210              		.loc 1 115 32 discriminator 3
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 25
+
+
+ 1211 064a D7F8D431 		ldr	r3, [r7, #468]
+ 1212 064e 9B00     		lsls	r3, r3, #2
+ 1213 0650 03F50273 		add	r3, r3, #520
+ 1214 0654 3B44     		add	r3, r3, r7
+ 1215 0656 843B     		subs	r3, r3, #132
+ 1216 0658 D3ED007A 		vldr.32	s15, [r3]
+ 1217              		.loc 1 115 29 discriminator 3
+ 1218 065c 66EEA77A 		vmul.f32	s15, s13, s15
+ 1219              		.loc 1 115 18 discriminator 3
+ 1220 0660 77EE277A 		vadd.f32	s15, s14, s15
+ 1221 0664 3A4A     		ldr	r2, .L82+8
+ 1222 0666 D7F8D831 		ldr	r3, [r7, #472]
+ 1223 066a 9B00     		lsls	r3, r3, #2
+ 1224 066c 1344     		add	r3, r3, r2
+ 1225 066e C3ED007A 		vstr.32	s15, [r3]
+ 114:Core/Src/quaternion.c ****         for (int j = 0; j < 3; j++) {
+ 1226              		.loc 1 114 33 discriminator 3
+ 1227 0672 D7F8D431 		ldr	r3, [r7, #468]
+ 1228 0676 0133     		adds	r3, r3, #1
+ 1229 0678 C7F8D431 		str	r3, [r7, #468]
+ 1230              	.L50:
+ 114:Core/Src/quaternion.c ****         for (int j = 0; j < 3; j++) {
+ 1231              		.loc 1 114 27 discriminator 1
+ 1232 067c D7F8D431 		ldr	r3, [r7, #468]
+ 1233 0680 022B     		cmp	r3, #2
+ 1234 0682 CBDD     		ble	.L51
+ 1235              	.LBE21:
+ 113:Core/Src/quaternion.c ****         for (int j = 0; j < 3; j++) {
+ 1236              		.loc 1 113 29 discriminator 2
+ 1237 0684 D7F8D831 		ldr	r3, [r7, #472]
+ 1238 0688 0133     		adds	r3, r3, #1
+ 1239 068a C7F8D831 		str	r3, [r7, #472]
+ 1240              	.L49:
+ 113:Core/Src/quaternion.c ****         for (int j = 0; j < 3; j++) {
+ 1241              		.loc 1 113 23 discriminator 1
+ 1242 068e D7F8D831 		ldr	r3, [r7, #472]
+ 1243 0692 032B     		cmp	r3, #3
+ 1244 0694 BEDD     		ble	.L52
+ 1245              	.LBE20:
+ 116:Core/Src/quaternion.c ****         }
+ 117:Core/Src/quaternion.c ****     }
+ 118:Core/Src/quaternion.c **** 
+ 119:Core/Src/quaternion.c ****     // Normalize q
+ 120:Core/Src/quaternion.c ****     float qnorm = sqrtf(q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + q[3]*q[3]);
+ 1246              		.loc 1 120 26
+ 1247 0696 2E4B     		ldr	r3, .L82+8
+ 1248 0698 93ED007A 		vldr.32	s14, [r3]
+ 1249              		.loc 1 120 31
+ 1250 069c 2C4B     		ldr	r3, .L82+8
+ 1251 069e D3ED007A 		vldr.32	s15, [r3]
+ 1252              		.loc 1 120 29
+ 1253 06a2 27EE277A 		vmul.f32	s14, s14, s15
+ 1254              		.loc 1 120 38
+ 1255 06a6 2A4B     		ldr	r3, .L82+8
+ 1256 06a8 D3ED016A 		vldr.32	s13, [r3, #4]
+ 1257              		.loc 1 120 43
+ 1258 06ac 284B     		ldr	r3, .L82+8
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 26
+
+
+ 1259 06ae D3ED017A 		vldr.32	s15, [r3, #4]
+ 1260              		.loc 1 120 41
+ 1261 06b2 66EEA77A 		vmul.f32	s15, s13, s15
+ 1262              		.loc 1 120 35
+ 1263 06b6 37EE277A 		vadd.f32	s14, s14, s15
+ 1264              		.loc 1 120 50
+ 1265 06ba 254B     		ldr	r3, .L82+8
+ 1266 06bc D3ED026A 		vldr.32	s13, [r3, #8]
+ 1267              		.loc 1 120 55
+ 1268 06c0 234B     		ldr	r3, .L82+8
+ 1269 06c2 D3ED027A 		vldr.32	s15, [r3, #8]
+ 1270              		.loc 1 120 53
+ 1271 06c6 66EEA77A 		vmul.f32	s15, s13, s15
+ 1272              		.loc 1 120 47
+ 1273 06ca 37EE277A 		vadd.f32	s14, s14, s15
+ 1274              		.loc 1 120 62
+ 1275 06ce 204B     		ldr	r3, .L82+8
+ 1276 06d0 D3ED036A 		vldr.32	s13, [r3, #12]
+ 1277              		.loc 1 120 67
+ 1278 06d4 1E4B     		ldr	r3, .L82+8
+ 1279 06d6 D3ED037A 		vldr.32	s15, [r3, #12]
+ 1280              		.loc 1 120 65
+ 1281 06da 66EEA77A 		vmul.f32	s15, s13, s15
+ 1282              		.loc 1 120 19
+ 1283 06de 77EE277A 		vadd.f32	s15, s14, s15
+ 1284 06e2 B0EE670A 		vmov.f32	s0, s15
+ 1285 06e6 FFF7FEFF 		bl	sqrtf
+ 1286 06ea 87ED640A 		vstr.32	s0, [r7, #400]
+ 1287              	.LBB22:
+ 121:Core/Src/quaternion.c ****     for (int i = 0; i < 4; i++)
+ 1288              		.loc 1 121 14
+ 1289 06ee 0023     		movs	r3, #0
+ 1290 06f0 C7F8D031 		str	r3, [r7, #464]
+ 1291              		.loc 1 121 5
+ 1292 06f4 16E0     		b	.L53
+ 1293              	.L54:
+ 122:Core/Src/quaternion.c ****         q[i] /= qnorm;
+ 1294              		.loc 1 122 10 discriminator 3
+ 1295 06f6 164A     		ldr	r2, .L82+8
+ 1296 06f8 D7F8D031 		ldr	r3, [r7, #464]
+ 1297 06fc 9B00     		lsls	r3, r3, #2
+ 1298 06fe 1344     		add	r3, r3, r2
+ 1299 0700 D3ED006A 		vldr.32	s13, [r3]
+ 1300              		.loc 1 122 14 discriminator 3
+ 1301 0704 97ED647A 		vldr.32	s14, [r7, #400]
+ 1302 0708 C6EE877A 		vdiv.f32	s15, s13, s14
+ 1303 070c 104A     		ldr	r2, .L82+8
+ 1304 070e D7F8D031 		ldr	r3, [r7, #464]
+ 1305 0712 9B00     		lsls	r3, r3, #2
+ 1306 0714 1344     		add	r3, r3, r2
+ 1307 0716 C3ED007A 		vstr.32	s15, [r3]
+ 121:Core/Src/quaternion.c ****     for (int i = 0; i < 4; i++)
+ 1308              		.loc 1 121 29 discriminator 3
+ 1309 071a D7F8D031 		ldr	r3, [r7, #464]
+ 1310 071e 0133     		adds	r3, r3, #1
+ 1311 0720 C7F8D031 		str	r3, [r7, #464]
+ 1312              	.L53:
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 27
+
+
+ 121:Core/Src/quaternion.c ****     for (int i = 0; i < 4; i++)
+ 1313              		.loc 1 121 23 discriminator 1
+ 1314 0724 D7F8D031 		ldr	r3, [r7, #464]
+ 1315 0728 032B     		cmp	r3, #3
+ 1316 072a E4DD     		ble	.L54
+ 1317              	.LBE22:
+ 123:Core/Src/quaternion.c **** 
+ 124:Core/Src/quaternion.c ****     // P = (I - K*H) * P
+ 125:Core/Src/quaternion.c ****     float KH[4][4] = {0};
+ 1318              		.loc 1 125 11
+ 1319 072c 07F50273 		add	r3, r7, #520
+ 1320 0730 A3F5BC73 		sub	r3, r3, #376
+ 1321 0734 1846     		mov	r0, r3
+ 1322 0736 4023     		movs	r3, #64
+ 1323 0738 1A46     		mov	r2, r3
+ 1324 073a 0021     		movs	r1, #0
+ 1325 073c FFF7FEFF 		bl	memset
+ 1326              	.LBB23:
+ 126:Core/Src/quaternion.c ****     for (int i = 0; i < 4; i++)
+ 1327              		.loc 1 126 14
+ 1328 0740 0023     		movs	r3, #0
+ 1329 0742 C7F8CC31 		str	r3, [r7, #460]
+ 1330              		.loc 1 126 5
+ 1331 0746 63E0     		b	.L55
+ 1332              	.L83:
+ 1333              		.align	2
+ 1334              	.L82:
+ 1335 0748 00000000 		.word	P
+ 1336 074c 0AD7233C 		.word	1008981770
+ 1337 0750 00000000 		.word	q
+ 1338 0754 00000000 		.word	0
+ 1339              	.L60:
+ 1340              	.LBB24:
+ 127:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1341              		.loc 1 127 18
+ 1342 0758 0023     		movs	r3, #0
+ 1343 075a C7F8C831 		str	r3, [r7, #456]
+ 1344              		.loc 1 127 9
+ 1345 075e 4EE0     		b	.L56
+ 1346              	.L59:
+ 1347              	.LBB25:
+ 128:Core/Src/quaternion.c ****             for (int k = 0; k < 3; k++)
+ 1348              		.loc 1 128 22
+ 1349 0760 0023     		movs	r3, #0
+ 1350 0762 C7F8C431 		str	r3, [r7, #452]
+ 1351              		.loc 1 128 13
+ 1352 0766 41E0     		b	.L57
+ 1353              	.L58:
+ 129:Core/Src/quaternion.c ****                 KH[i][j] += K[i][k] * H[k][j];
+ 1354              		.loc 1 129 22 discriminator 3
+ 1355 0768 07F50273 		add	r3, r7, #520
+ 1356 076c A3F5BC72 		sub	r2, r3, #376
+ 1357 0770 D7F8CC31 		ldr	r3, [r7, #460]
+ 1358 0774 9900     		lsls	r1, r3, #2
+ 1359 0776 D7F8C831 		ldr	r3, [r7, #456]
+ 1360 077a 0B44     		add	r3, r3, r1
+ 1361 077c 9B00     		lsls	r3, r3, #2
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 28
+
+
+ 1362 077e 1344     		add	r3, r3, r2
+ 1363 0780 93ED007A 		vldr.32	s14, [r3]
+ 1364              		.loc 1 129 33 discriminator 3
+ 1365 0784 07F50273 		add	r3, r7, #520
+ 1366 0788 A3F59C71 		sub	r1, r3, #312
+ 1367 078c D7F8CC21 		ldr	r2, [r7, #460]
+ 1368 0790 1346     		mov	r3, r2
+ 1369 0792 5B00     		lsls	r3, r3, #1
+ 1370 0794 1344     		add	r3, r3, r2
+ 1371 0796 D7F8C421 		ldr	r2, [r7, #452]
+ 1372 079a 1344     		add	r3, r3, r2
+ 1373 079c 9B00     		lsls	r3, r3, #2
+ 1374 079e 0B44     		add	r3, r3, r1
+ 1375 07a0 D3ED006A 		vldr.32	s13, [r3]
+ 1376              		.loc 1 129 43 discriminator 3
+ 1377 07a4 D7F8C431 		ldr	r3, [r7, #452]
+ 1378 07a8 9A00     		lsls	r2, r3, #2
+ 1379 07aa D7F8C831 		ldr	r3, [r7, #456]
+ 1380 07ae 1344     		add	r3, r3, r2
+ 1381 07b0 9B00     		lsls	r3, r3, #2
+ 1382 07b2 03F50273 		add	r3, r3, #520
+ 1383 07b6 3B44     		add	r3, r3, r7
+ 1384 07b8 B43B     		subs	r3, r3, #180
+ 1385 07ba D3ED007A 		vldr.32	s15, [r3]
+ 1386              		.loc 1 129 37 discriminator 3
+ 1387 07be 66EEA77A 		vmul.f32	s15, s13, s15
+ 1388              		.loc 1 129 26 discriminator 3
+ 1389 07c2 77EE277A 		vadd.f32	s15, s14, s15
+ 1390 07c6 07F50273 		add	r3, r7, #520
+ 1391 07ca A3F5BC72 		sub	r2, r3, #376
+ 1392 07ce D7F8CC31 		ldr	r3, [r7, #460]
+ 1393 07d2 9900     		lsls	r1, r3, #2
+ 1394 07d4 D7F8C831 		ldr	r3, [r7, #456]
+ 1395 07d8 0B44     		add	r3, r3, r1
+ 1396 07da 9B00     		lsls	r3, r3, #2
+ 1397 07dc 1344     		add	r3, r3, r2
+ 1398 07de C3ED007A 		vstr.32	s15, [r3]
+ 128:Core/Src/quaternion.c ****             for (int k = 0; k < 3; k++)
+ 1399              		.loc 1 128 37 discriminator 3
+ 1400 07e2 D7F8C431 		ldr	r3, [r7, #452]
+ 1401 07e6 0133     		adds	r3, r3, #1
+ 1402 07e8 C7F8C431 		str	r3, [r7, #452]
+ 1403              	.L57:
+ 128:Core/Src/quaternion.c ****             for (int k = 0; k < 3; k++)
+ 1404              		.loc 1 128 31 discriminator 1
+ 1405 07ec D7F8C431 		ldr	r3, [r7, #452]
+ 1406 07f0 022B     		cmp	r3, #2
+ 1407 07f2 B9DD     		ble	.L58
+ 1408              	.LBE25:
+ 127:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1409              		.loc 1 127 33 discriminator 2
+ 1410 07f4 D7F8C831 		ldr	r3, [r7, #456]
+ 1411 07f8 0133     		adds	r3, r3, #1
+ 1412 07fa C7F8C831 		str	r3, [r7, #456]
+ 1413              	.L56:
+ 127:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1414              		.loc 1 127 27 discriminator 1
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 29
+
+
+ 1415 07fe D7F8C831 		ldr	r3, [r7, #456]
+ 1416 0802 032B     		cmp	r3, #3
+ 1417 0804 ACDD     		ble	.L59
+ 1418              	.LBE24:
+ 126:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1419              		.loc 1 126 29 discriminator 2
+ 1420 0806 D7F8CC31 		ldr	r3, [r7, #460]
+ 1421 080a 0133     		adds	r3, r3, #1
+ 1422 080c C7F8CC31 		str	r3, [r7, #460]
+ 1423              	.L55:
+ 126:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1424              		.loc 1 126 23 discriminator 1
+ 1425 0810 D7F8CC31 		ldr	r3, [r7, #460]
+ 1426 0814 032B     		cmp	r3, #3
+ 1427 0816 9FDD     		ble	.L60
+ 1428              	.LBE23:
+ 1429              	.LBB26:
+ 130:Core/Src/quaternion.c **** 
+ 131:Core/Src/quaternion.c ****     float I_KH[4][4];
+ 132:Core/Src/quaternion.c ****     for (int i = 0; i < 4; i++)
+ 1430              		.loc 1 132 14
+ 1431 0818 0023     		movs	r3, #0
+ 1432 081a C7F8C031 		str	r3, [r7, #448]
+ 1433              		.loc 1 132 5
+ 1434 081e 3AE0     		b	.L61
+ 1435              	.L66:
+ 1436              	.LBB27:
+ 133:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1437              		.loc 1 133 18
+ 1438 0820 0023     		movs	r3, #0
+ 1439 0822 C7F8BC31 		str	r3, [r7, #444]
+ 1440              		.loc 1 133 9
+ 1441 0826 2DE0     		b	.L62
+ 1442              	.L65:
+ 134:Core/Src/quaternion.c ****             I_KH[i][j] = (i == j ? 1.0f : 0.0f) - KH[i][j];
+ 1443              		.loc 1 134 41
+ 1444 0828 D7F8C021 		ldr	r2, [r7, #448]
+ 1445 082c D7F8BC31 		ldr	r3, [r7, #444]
+ 1446 0830 9A42     		cmp	r2, r3
+ 1447 0832 02D1     		bne	.L63
+ 1448              		.loc 1 134 41 is_stmt 0 discriminator 1
+ 1449 0834 B7EE007A 		vmov.f32	s14, #1.0e+0
+ 1450 0838 01E0     		b	.L64
+ 1451              	.L63:
+ 1452              		.loc 1 134 41 discriminator 2
+ 1453 083a 1FED3A7A 		vldr.32	s14, .L82+12
+ 1454              	.L64:
+ 1455              		.loc 1 134 56 is_stmt 1 discriminator 4
+ 1456 083e 07F50273 		add	r3, r7, #520
+ 1457 0842 A3F5BC72 		sub	r2, r3, #376
+ 1458 0846 D7F8C031 		ldr	r3, [r7, #448]
+ 1459 084a 9900     		lsls	r1, r3, #2
+ 1460 084c D7F8BC31 		ldr	r3, [r7, #444]
+ 1461 0850 0B44     		add	r3, r3, r1
+ 1462 0852 9B00     		lsls	r3, r3, #2
+ 1463 0854 1344     		add	r3, r3, r2
+ 1464 0856 D3ED007A 		vldr.32	s15, [r3]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 30
+
+
+ 1465              		.loc 1 134 49 discriminator 4
+ 1466 085a 77EE677A 		vsub.f32	s15, s14, s15
+ 1467              		.loc 1 134 24 discriminator 4
+ 1468 085e 07F50273 		add	r3, r7, #520
+ 1469 0862 A3F5DC72 		sub	r2, r3, #440
+ 1470 0866 D7F8C031 		ldr	r3, [r7, #448]
+ 1471 086a 9900     		lsls	r1, r3, #2
+ 1472 086c D7F8BC31 		ldr	r3, [r7, #444]
+ 1473 0870 0B44     		add	r3, r3, r1
+ 1474 0872 9B00     		lsls	r3, r3, #2
+ 1475 0874 1344     		add	r3, r3, r2
+ 1476 0876 C3ED007A 		vstr.32	s15, [r3]
+ 133:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1477              		.loc 1 133 33 discriminator 4
+ 1478 087a D7F8BC31 		ldr	r3, [r7, #444]
+ 1479 087e 0133     		adds	r3, r3, #1
+ 1480 0880 C7F8BC31 		str	r3, [r7, #444]
+ 1481              	.L62:
+ 133:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1482              		.loc 1 133 27 discriminator 2
+ 1483 0884 D7F8BC31 		ldr	r3, [r7, #444]
+ 1484 0888 032B     		cmp	r3, #3
+ 1485 088a CDDD     		ble	.L65
+ 1486              	.LBE27:
+ 132:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1487              		.loc 1 132 29 discriminator 2
+ 1488 088c D7F8C031 		ldr	r3, [r7, #448]
+ 1489 0890 0133     		adds	r3, r3, #1
+ 1490 0892 C7F8C031 		str	r3, [r7, #448]
+ 1491              	.L61:
+ 132:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1492              		.loc 1 132 23 discriminator 1
+ 1493 0896 D7F8C031 		ldr	r3, [r7, #448]
+ 1494 089a 032B     		cmp	r3, #3
+ 1495 089c C0DD     		ble	.L66
+ 1496              	.LBE26:
+ 135:Core/Src/quaternion.c **** 
+ 136:Core/Src/quaternion.c ****     float newP[4][4] = {0};
+ 1497              		.loc 1 136 11
+ 1498 089e 07F50273 		add	r3, r7, #520
+ 1499 08a2 A3F5FC73 		sub	r3, r3, #504
+ 1500 08a6 1846     		mov	r0, r3
+ 1501 08a8 4023     		movs	r3, #64
+ 1502 08aa 1A46     		mov	r2, r3
+ 1503 08ac 0021     		movs	r1, #0
+ 1504 08ae FFF7FEFF 		bl	memset
+ 1505              	.LBB28:
+ 137:Core/Src/quaternion.c ****     for (int i = 0; i < 4; i++)
+ 1506              		.loc 1 137 14
+ 1507 08b2 0023     		movs	r3, #0
+ 1508 08b4 C7F8B831 		str	r3, [r7, #440]
+ 1509              		.loc 1 137 5
+ 1510 08b8 57E0     		b	.L67
+ 1511              	.L72:
+ 1512              	.LBB29:
+ 138:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1513              		.loc 1 138 18
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 31
+
+
+ 1514 08ba 0023     		movs	r3, #0
+ 1515 08bc C7F8B431 		str	r3, [r7, #436]
+ 1516              		.loc 1 138 9
+ 1517 08c0 4AE0     		b	.L68
+ 1518              	.L71:
+ 1519              	.LBB30:
+ 139:Core/Src/quaternion.c ****             for (int k = 0; k < 4; k++)
+ 1520              		.loc 1 139 22
+ 1521 08c2 0023     		movs	r3, #0
+ 1522 08c4 C7F8B031 		str	r3, [r7, #432]
+ 1523              		.loc 1 139 13
+ 1524 08c8 3DE0     		b	.L69
+ 1525              	.L70:
+ 140:Core/Src/quaternion.c ****                 newP[i][j] += I_KH[i][k] * P[k][j];
+ 1526              		.loc 1 140 24 discriminator 3
+ 1527 08ca 07F50273 		add	r3, r7, #520
+ 1528 08ce A3F5FC72 		sub	r2, r3, #504
+ 1529 08d2 D7F8B831 		ldr	r3, [r7, #440]
+ 1530 08d6 9900     		lsls	r1, r3, #2
+ 1531 08d8 D7F8B431 		ldr	r3, [r7, #436]
+ 1532 08dc 0B44     		add	r3, r3, r1
+ 1533 08de 9B00     		lsls	r3, r3, #2
+ 1534 08e0 1344     		add	r3, r3, r2
+ 1535 08e2 93ED007A 		vldr.32	s14, [r3]
+ 1536              		.loc 1 140 38 discriminator 3
+ 1537 08e6 07F50273 		add	r3, r7, #520
+ 1538 08ea A3F5DC72 		sub	r2, r3, #440
+ 1539 08ee D7F8B831 		ldr	r3, [r7, #440]
+ 1540 08f2 9900     		lsls	r1, r3, #2
+ 1541 08f4 D7F8B031 		ldr	r3, [r7, #432]
+ 1542 08f8 0B44     		add	r3, r3, r1
+ 1543 08fa 9B00     		lsls	r3, r3, #2
+ 1544 08fc 1344     		add	r3, r3, r2
+ 1545 08fe D3ED006A 		vldr.32	s13, [r3]
+ 1546              		.loc 1 140 48 discriminator 3
+ 1547 0902 3849     		ldr	r1, .L84
+ 1548 0904 D7F8B031 		ldr	r3, [r7, #432]
+ 1549 0908 9A00     		lsls	r2, r3, #2
+ 1550 090a D7F8B431 		ldr	r3, [r7, #436]
+ 1551 090e 1344     		add	r3, r3, r2
+ 1552 0910 9B00     		lsls	r3, r3, #2
+ 1553 0912 0B44     		add	r3, r3, r1
+ 1554 0914 D3ED007A 		vldr.32	s15, [r3]
+ 1555              		.loc 1 140 42 discriminator 3
+ 1556 0918 66EEA77A 		vmul.f32	s15, s13, s15
+ 1557              		.loc 1 140 28 discriminator 3
+ 1558 091c 77EE277A 		vadd.f32	s15, s14, s15
+ 1559 0920 07F50273 		add	r3, r7, #520
+ 1560 0924 A3F5FC72 		sub	r2, r3, #504
+ 1561 0928 D7F8B831 		ldr	r3, [r7, #440]
+ 1562 092c 9900     		lsls	r1, r3, #2
+ 1563 092e D7F8B431 		ldr	r3, [r7, #436]
+ 1564 0932 0B44     		add	r3, r3, r1
+ 1565 0934 9B00     		lsls	r3, r3, #2
+ 1566 0936 1344     		add	r3, r3, r2
+ 1567 0938 C3ED007A 		vstr.32	s15, [r3]
+ 139:Core/Src/quaternion.c ****             for (int k = 0; k < 4; k++)
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 32
+
+
+ 1568              		.loc 1 139 37 discriminator 3
+ 1569 093c D7F8B031 		ldr	r3, [r7, #432]
+ 1570 0940 0133     		adds	r3, r3, #1
+ 1571 0942 C7F8B031 		str	r3, [r7, #432]
+ 1572              	.L69:
+ 139:Core/Src/quaternion.c ****             for (int k = 0; k < 4; k++)
+ 1573              		.loc 1 139 31 discriminator 1
+ 1574 0946 D7F8B031 		ldr	r3, [r7, #432]
+ 1575 094a 032B     		cmp	r3, #3
+ 1576 094c BDDD     		ble	.L70
+ 1577              	.LBE30:
+ 138:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1578              		.loc 1 138 33 discriminator 2
+ 1579 094e D7F8B431 		ldr	r3, [r7, #436]
+ 1580 0952 0133     		adds	r3, r3, #1
+ 1581 0954 C7F8B431 		str	r3, [r7, #436]
+ 1582              	.L68:
+ 138:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1583              		.loc 1 138 27 discriminator 1
+ 1584 0958 D7F8B431 		ldr	r3, [r7, #436]
+ 1585 095c 032B     		cmp	r3, #3
+ 1586 095e B0DD     		ble	.L71
+ 1587              	.LBE29:
+ 137:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1588              		.loc 1 137 29 discriminator 2
+ 1589 0960 D7F8B831 		ldr	r3, [r7, #440]
+ 1590 0964 0133     		adds	r3, r3, #1
+ 1591 0966 C7F8B831 		str	r3, [r7, #440]
+ 1592              	.L67:
+ 137:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1593              		.loc 1 137 23 discriminator 1
+ 1594 096a D7F8B831 		ldr	r3, [r7, #440]
+ 1595 096e 032B     		cmp	r3, #3
+ 1596 0970 A3DD     		ble	.L72
+ 1597              	.LBE28:
+ 1598              	.LBB31:
+ 141:Core/Src/quaternion.c **** 
+ 142:Core/Src/quaternion.c ****     for (int i = 0; i < 4; i++)
+ 1599              		.loc 1 142 14
+ 1600 0972 0023     		movs	r3, #0
+ 1601 0974 C7F8AC31 		str	r3, [r7, #428]
+ 1602              		.loc 1 142 5
+ 1603 0978 28E0     		b	.L73
+ 1604              	.L76:
+ 1605              	.LBB32:
+ 143:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1606              		.loc 1 143 18
+ 1607 097a 0023     		movs	r3, #0
+ 1608 097c C7F8A831 		str	r3, [r7, #424]
+ 1609              		.loc 1 143 9
+ 1610 0980 1BE0     		b	.L74
+ 1611              	.L75:
+ 144:Core/Src/quaternion.c ****             P[i][j] = newP[i][j];
+ 1612              		.loc 1 144 30 discriminator 3
+ 1613 0982 07F50273 		add	r3, r7, #520
+ 1614 0986 A3F5FC72 		sub	r2, r3, #504
+ 1615 098a D7F8AC31 		ldr	r3, [r7, #428]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 33
+
+
+ 1616 098e 9900     		lsls	r1, r3, #2
+ 1617 0990 D7F8A831 		ldr	r3, [r7, #424]
+ 1618 0994 0B44     		add	r3, r3, r1
+ 1619 0996 9B00     		lsls	r3, r3, #2
+ 1620 0998 1344     		add	r3, r3, r2
+ 1621 099a 1A68     		ldr	r2, [r3]	@ float
+ 1622              		.loc 1 144 21 discriminator 3
+ 1623 099c 1148     		ldr	r0, .L84
+ 1624 099e D7F8AC31 		ldr	r3, [r7, #428]
+ 1625 09a2 9900     		lsls	r1, r3, #2
+ 1626 09a4 D7F8A831 		ldr	r3, [r7, #424]
+ 1627 09a8 0B44     		add	r3, r3, r1
+ 1628 09aa 9B00     		lsls	r3, r3, #2
+ 1629 09ac 0344     		add	r3, r3, r0
+ 1630 09ae 1A60     		str	r2, [r3]	@ float
+ 143:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1631              		.loc 1 143 33 discriminator 3
+ 1632 09b0 D7F8A831 		ldr	r3, [r7, #424]
+ 1633 09b4 0133     		adds	r3, r3, #1
+ 1634 09b6 C7F8A831 		str	r3, [r7, #424]
+ 1635              	.L74:
+ 143:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1636              		.loc 1 143 27 discriminator 1
+ 1637 09ba D7F8A831 		ldr	r3, [r7, #424]
+ 1638 09be 032B     		cmp	r3, #3
+ 1639 09c0 DFDD     		ble	.L75
+ 1640              	.LBE32:
+ 142:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1641              		.loc 1 142 29 discriminator 2
+ 1642 09c2 D7F8AC31 		ldr	r3, [r7, #428]
+ 1643 09c6 0133     		adds	r3, r3, #1
+ 1644 09c8 C7F8AC31 		str	r3, [r7, #428]
+ 1645              	.L73:
+ 142:Core/Src/quaternion.c ****         for (int j = 0; j < 4; j++)
+ 1646              		.loc 1 142 23 discriminator 1
+ 1647 09cc D7F8AC31 		ldr	r3, [r7, #428]
+ 1648 09d0 032B     		cmp	r3, #3
+ 1649 09d2 D2DD     		ble	.L76
+ 1650 09d4 02E0     		b	.L23
+ 1651              	.L78:
+ 1652              	.LBE31:
+  60:Core/Src/quaternion.c **** 	if (norm < 1e-6f) return;
+ 1653              		.loc 1 60 33
+ 1654 09d6 00BF     		nop
+ 1655 09d8 00E0     		b	.L23
+ 1656              	.L79:
+  61:Core/Src/quaternion.c **** 	ax_f /= norm;
+ 1657              		.loc 1 61 20
+ 1658 09da 00BF     		nop
+ 1659              	.L23:
+ 145:Core/Src/quaternion.c **** }
+ 1660              		.loc 1 145 1
+ 1661 09dc 07F50277 		add	r7, r7, #520
+ 1662              		.cfi_def_cfa_offset 8
+ 1663 09e0 BD46     		mov	sp, r7
+ 1664              		.cfi_def_cfa_register 13
+ 1665              		@ sp needed
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 34
+
+
+ 1666 09e2 80BD     		pop	{r7, pc}
+ 1667              	.L85:
+ 1668              		.align	2
+ 1669              	.L84:
+ 1670 09e4 00000000 		.word	P
+ 1671              		.cfi_endproc
+ 1672              	.LFE2:
+ 1674              		.section	.text.ekf_getTheta,"ax",%progbits
+ 1675              		.align	1
+ 1676              		.global	ekf_getTheta
+ 1677              		.syntax unified
+ 1678              		.thumb
+ 1679              		.thumb_func
+ 1681              	ekf_getTheta:
+ 1682              	.LFB3:
+ 146:Core/Src/quaternion.c **** 
+ 147:Core/Src/quaternion.c **** float ekf_getTheta(void) {
+ 1683              		.loc 1 147 26
+ 1684              		.cfi_startproc
+ 1685              		@ args = 0, pretend = 0, frame = 24
+ 1686              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1687 0000 80B5     		push	{r7, lr}
+ 1688              		.cfi_def_cfa_offset 8
+ 1689              		.cfi_offset 7, -8
+ 1690              		.cfi_offset 14, -4
+ 1691 0002 86B0     		sub	sp, sp, #24
+ 1692              		.cfi_def_cfa_offset 32
+ 1693 0004 00AF     		add	r7, sp, #0
+ 1694              		.cfi_def_cfa_register 7
+ 148:Core/Src/quaternion.c ****     float r13 = 2 * q[1] * q[3] + 2 * q[2] * q[0];
+ 1695              		.loc 1 148 22
+ 1696 0006 444B     		ldr	r3, .L88
+ 1697 0008 D3ED017A 		vldr.32	s15, [r3, #4]
+ 1698              		.loc 1 148 19
+ 1699 000c 37EEA77A 		vadd.f32	s14, s15, s15
+ 1700              		.loc 1 148 29
+ 1701 0010 414B     		ldr	r3, .L88
+ 1702 0012 D3ED037A 		vldr.32	s15, [r3, #12]
+ 1703              		.loc 1 148 26
+ 1704 0016 27EE277A 		vmul.f32	s14, s14, s15
+ 1705              		.loc 1 148 40
+ 1706 001a 3F4B     		ldr	r3, .L88
+ 1707 001c D3ED027A 		vldr.32	s15, [r3, #8]
+ 1708              		.loc 1 148 37
+ 1709 0020 77EEA76A 		vadd.f32	s13, s15, s15
+ 1710              		.loc 1 148 47
+ 1711 0024 3C4B     		ldr	r3, .L88
+ 1712 0026 D3ED007A 		vldr.32	s15, [r3]
+ 1713              		.loc 1 148 44
+ 1714 002a 66EEA77A 		vmul.f32	s15, s13, s15
+ 1715              		.loc 1 148 11
+ 1716 002e 77EE277A 		vadd.f32	s15, s14, s15
+ 1717 0032 C7ED057A 		vstr.32	s15, [r7, #20]
+ 149:Core/Src/quaternion.c ****     float r23 = 2 * q[2] * q[3] - 2 * q[1] * q[0];
+ 1718              		.loc 1 149 22
+ 1719 0036 384B     		ldr	r3, .L88
+ 1720 0038 D3ED027A 		vldr.32	s15, [r3, #8]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 35
+
+
+ 1721              		.loc 1 149 19
+ 1722 003c 37EEA77A 		vadd.f32	s14, s15, s15
+ 1723              		.loc 1 149 29
+ 1724 0040 354B     		ldr	r3, .L88
+ 1725 0042 D3ED037A 		vldr.32	s15, [r3, #12]
+ 1726              		.loc 1 149 26
+ 1727 0046 27EE277A 		vmul.f32	s14, s14, s15
+ 1728              		.loc 1 149 40
+ 1729 004a 334B     		ldr	r3, .L88
+ 1730 004c D3ED017A 		vldr.32	s15, [r3, #4]
+ 1731              		.loc 1 149 37
+ 1732 0050 77EEA76A 		vadd.f32	s13, s15, s15
+ 1733              		.loc 1 149 47
+ 1734 0054 304B     		ldr	r3, .L88
+ 1735 0056 D3ED007A 		vldr.32	s15, [r3]
+ 1736              		.loc 1 149 44
+ 1737 005a 66EEA77A 		vmul.f32	s15, s13, s15
+ 1738              		.loc 1 149 11
+ 1739 005e 77EE677A 		vsub.f32	s15, s14, s15
+ 1740 0062 C7ED047A 		vstr.32	s15, [r7, #16]
+ 150:Core/Src/quaternion.c ****     float r33 = 1 - 2 * q[1] * q[1] - 2 * q[2] * q[2];
+ 1741              		.loc 1 150 26
+ 1742 0066 2C4B     		ldr	r3, .L88
+ 1743 0068 D3ED017A 		vldr.32	s15, [r3, #4]
+ 1744              		.loc 1 150 23
+ 1745 006c 37EEA77A 		vadd.f32	s14, s15, s15
+ 1746              		.loc 1 150 33
+ 1747 0070 294B     		ldr	r3, .L88
+ 1748 0072 D3ED017A 		vldr.32	s15, [r3, #4]
+ 1749              		.loc 1 150 30
+ 1750 0076 67EE277A 		vmul.f32	s15, s14, s15
+ 1751              		.loc 1 150 19
+ 1752 007a B7EE007A 		vmov.f32	s14, #1.0e+0
+ 1753 007e 37EE677A 		vsub.f32	s14, s14, s15
+ 1754              		.loc 1 150 44
+ 1755 0082 254B     		ldr	r3, .L88
+ 1756 0084 D3ED027A 		vldr.32	s15, [r3, #8]
+ 1757              		.loc 1 150 41
+ 1758 0088 77EEA76A 		vadd.f32	s13, s15, s15
+ 1759              		.loc 1 150 51
+ 1760 008c 224B     		ldr	r3, .L88
+ 1761 008e D3ED027A 		vldr.32	s15, [r3, #8]
+ 1762              		.loc 1 150 48
+ 1763 0092 66EEA77A 		vmul.f32	s15, s13, s15
+ 1764              		.loc 1 150 11
+ 1765 0096 77EE677A 		vsub.f32	s15, s14, s15
+ 1766 009a C7ED037A 		vstr.32	s15, [r7, #12]
+ 151:Core/Src/quaternion.c **** 
+ 152:Core/Src/quaternion.c ****     float dotProduct = r33;
+ 1767              		.loc 1 152 11
+ 1768 009e FB68     		ldr	r3, [r7, #12]	@ float
+ 1769 00a0 BB60     		str	r3, [r7, #8]	@ float
+ 153:Core/Src/quaternion.c ****     float magnitude = sqrtf(r13 * r13 + r23 * r23 + r33 * r33);
+ 1770              		.loc 1 153 33
+ 1771 00a2 D7ED057A 		vldr.32	s15, [r7, #20]
+ 1772 00a6 27EEA77A 		vmul.f32	s14, s15, s15
+ 1773              		.loc 1 153 45
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 36
+
+
+ 1774 00aa D7ED047A 		vldr.32	s15, [r7, #16]
+ 1775 00ae 67EEA77A 		vmul.f32	s15, s15, s15
+ 1776              		.loc 1 153 39
+ 1777 00b2 37EE277A 		vadd.f32	s14, s14, s15
+ 1778              		.loc 1 153 57
+ 1779 00b6 D7ED037A 		vldr.32	s15, [r7, #12]
+ 1780 00ba 67EEA77A 		vmul.f32	s15, s15, s15
+ 1781              		.loc 1 153 23
+ 1782 00be 77EE277A 		vadd.f32	s15, s14, s15
+ 1783 00c2 B0EE670A 		vmov.f32	s0, s15
+ 1784 00c6 FFF7FEFF 		bl	sqrtf
+ 1785 00ca 87ED010A 		vstr.32	s0, [r7, #4]
+ 154:Core/Src/quaternion.c **** 
+ 155:Core/Src/quaternion.c ****     float safeValue = fmaxf(-1.0f, fminf(1.0f, dotProduct / magnitude));
+ 1786              		.loc 1 155 23
+ 1787 00ce 97ED027A 		vldr.32	s14, [r7, #8]
+ 1788 00d2 D7ED017A 		vldr.32	s15, [r7, #4]
+ 1789 00d6 C7EE276A 		vdiv.f32	s13, s14, s15
+ 1790 00da F7EE000A 		vmov.f32	s1, #1.0e+0
+ 1791 00de B0EE660A 		vmov.f32	s0, s13
+ 1792 00e2 FFF7FEFF 		bl	fminf
+ 1793 00e6 F0EE407A 		vmov.f32	s15, s0
+ 1794 00ea FFEE000A 		vmov.f32	s1, #-1.0e+0
+ 1795 00ee B0EE670A 		vmov.f32	s0, s15
+ 1796 00f2 FFF7FEFF 		bl	fmaxf
+ 1797 00f6 87ED000A 		vstr.32	s0, [r7]
+ 156:Core/Src/quaternion.c ****     return acosf(safeValue) * (180.0f / 3.14f);
+ 1798              		.loc 1 156 12
+ 1799 00fa 97ED000A 		vldr.32	s0, [r7]
+ 1800 00fe FFF7FEFF 		bl	acosf
+ 1801 0102 F0EE407A 		vmov.f32	s15, s0
+ 1802              		.loc 1 156 29
+ 1803 0106 9FED057A 		vldr.32	s14, .L88+4
+ 1804 010a 67EE877A 		vmul.f32	s15, s15, s14
+ 157:Core/Src/quaternion.c **** }
+ 1805              		.loc 1 157 1
+ 1806 010e B0EE670A 		vmov.f32	s0, s15
+ 1807 0112 1837     		adds	r7, r7, #24
+ 1808              		.cfi_def_cfa_offset 8
+ 1809 0114 BD46     		mov	sp, r7
+ 1810              		.cfi_def_cfa_register 13
+ 1811              		@ sp needed
+ 1812 0116 80BD     		pop	{r7, pc}
+ 1813              	.L89:
+ 1814              		.align	2
+ 1815              	.L88:
+ 1816 0118 00000000 		.word	q
+ 1817 011c A34C6542 		.word	1113935011
+ 1818              		.cfi_endproc
+ 1819              	.LFE3:
+ 1821              		.section	.text.quaternionToYaw1,"ax",%progbits
+ 1822              		.align	1
+ 1823              		.global	quaternionToYaw1
+ 1824              		.syntax unified
+ 1825              		.thumb
+ 1826              		.thumb_func
+ 1828              	quaternionToYaw1:
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 37
+
+
+ 1829              	.LFB4:
+ 158:Core/Src/quaternion.c **** 
+ 159:Core/Src/quaternion.c **** float quaternionToYaw1(){
+ 1830              		.loc 1 159 25
+ 1831              		.cfi_startproc
+ 1832              		@ args = 0, pretend = 0, frame = 8
+ 1833              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1834 0000 80B5     		push	{r7, lr}
+ 1835              		.cfi_def_cfa_offset 8
+ 1836              		.cfi_offset 7, -8
+ 1837              		.cfi_offset 14, -4
+ 1838 0002 82B0     		sub	sp, sp, #8
+ 1839              		.cfi_def_cfa_offset 16
+ 1840 0004 00AF     		add	r7, sp, #0
+ 1841              		.cfi_def_cfa_register 7
+ 160:Core/Src/quaternion.c **** float yaw = atan2f(2.0f*(q[1]*q[2] + q[0]*q[3]), q[0]*q[0] + q[1]*q[1] - q[2]*q[2] - q[3]*q[3]) * 1
+ 1842              		.loc 1 160 27
+ 1843 0006 2A4B     		ldr	r3, .L92
+ 1844 0008 93ED017A 		vldr.32	s14, [r3, #4]
+ 1845              		.loc 1 160 32
+ 1846 000c 284B     		ldr	r3, .L92
+ 1847 000e D3ED027A 		vldr.32	s15, [r3, #8]
+ 1848              		.loc 1 160 30
+ 1849 0012 27EE277A 		vmul.f32	s14, s14, s15
+ 1850              		.loc 1 160 39
+ 1851 0016 264B     		ldr	r3, .L92
+ 1852 0018 D3ED006A 		vldr.32	s13, [r3]
+ 1853              		.loc 1 160 44
+ 1854 001c 244B     		ldr	r3, .L92
+ 1855 001e D3ED037A 		vldr.32	s15, [r3, #12]
+ 1856              		.loc 1 160 42
+ 1857 0022 66EEA77A 		vmul.f32	s15, s13, s15
+ 1858              		.loc 1 160 36
+ 1859 0026 77EE277A 		vadd.f32	s15, s14, s15
+ 1860              		.loc 1 160 13
+ 1861 002a 37EEA76A 		vadd.f32	s12, s15, s15
+ 1862              		.loc 1 160 51
+ 1863 002e 204B     		ldr	r3, .L92
+ 1864 0030 93ED007A 		vldr.32	s14, [r3]
+ 1865              		.loc 1 160 56
+ 1866 0034 1E4B     		ldr	r3, .L92
+ 1867 0036 D3ED007A 		vldr.32	s15, [r3]
+ 1868              		.loc 1 160 54
+ 1869 003a 27EE277A 		vmul.f32	s14, s14, s15
+ 1870              		.loc 1 160 63
+ 1871 003e 1C4B     		ldr	r3, .L92
+ 1872 0040 D3ED016A 		vldr.32	s13, [r3, #4]
+ 1873              		.loc 1 160 68
+ 1874 0044 1A4B     		ldr	r3, .L92
+ 1875 0046 D3ED017A 		vldr.32	s15, [r3, #4]
+ 1876              		.loc 1 160 66
+ 1877 004a 66EEA77A 		vmul.f32	s15, s13, s15
+ 1878              		.loc 1 160 60
+ 1879 004e 37EE277A 		vadd.f32	s14, s14, s15
+ 1880              		.loc 1 160 75
+ 1881 0052 174B     		ldr	r3, .L92
+ 1882 0054 D3ED026A 		vldr.32	s13, [r3, #8]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 38
+
+
+ 1883              		.loc 1 160 80
+ 1884 0058 154B     		ldr	r3, .L92
+ 1885 005a D3ED027A 		vldr.32	s15, [r3, #8]
+ 1886              		.loc 1 160 78
+ 1887 005e 66EEA77A 		vmul.f32	s15, s13, s15
+ 1888              		.loc 1 160 72
+ 1889 0062 37EE677A 		vsub.f32	s14, s14, s15
+ 1890              		.loc 1 160 87
+ 1891 0066 124B     		ldr	r3, .L92
+ 1892 0068 D3ED036A 		vldr.32	s13, [r3, #12]
+ 1893              		.loc 1 160 92
+ 1894 006c 104B     		ldr	r3, .L92
+ 1895 006e D3ED037A 		vldr.32	s15, [r3, #12]
+ 1896              		.loc 1 160 90
+ 1897 0072 66EEA77A 		vmul.f32	s15, s13, s15
+ 1898              		.loc 1 160 13
+ 1899 0076 77EE677A 		vsub.f32	s15, s14, s15
+ 1900 007a F0EE670A 		vmov.f32	s1, s15
+ 1901 007e B0EE460A 		vmov.f32	s0, s12
+ 1902 0082 FFF7FEFF 		bl	atan2f
+ 1903 0086 F0EE407A 		vmov.f32	s15, s0
+ 1904              		.loc 1 160 97
+ 1905 008a 9FED0A7A 		vldr.32	s14, .L92+4
+ 1906 008e 27EE877A 		vmul.f32	s14, s15, s14
+ 1907              		.loc 1 160 7
+ 1908 0092 DFED096A 		vldr.32	s13, .L92+8
+ 1909 0096 C7EE267A 		vdiv.f32	s15, s14, s13
+ 1910 009a C7ED017A 		vstr.32	s15, [r7, #4]
+ 161:Core/Src/quaternion.c **** return yaw;
+ 1911              		.loc 1 161 8
+ 1912 009e 7B68     		ldr	r3, [r7, #4]	@ float
+ 1913 00a0 07EE903A 		vmov	s15, r3
+ 162:Core/Src/quaternion.c **** }
+ 1914              		.loc 1 162 1
+ 1915 00a4 B0EE670A 		vmov.f32	s0, s15
+ 1916 00a8 0837     		adds	r7, r7, #8
+ 1917              		.cfi_def_cfa_offset 8
+ 1918 00aa BD46     		mov	sp, r7
+ 1919              		.cfi_def_cfa_register 13
+ 1920              		@ sp needed
+ 1921 00ac 80BD     		pop	{r7, pc}
+ 1922              	.L93:
+ 1923 00ae 00BF     		.align	2
+ 1924              	.L92:
+ 1925 00b0 00000000 		.word	q
+ 1926 00b4 00003443 		.word	1127481344
+ 1927 00b8 D00F4940 		.word	1078530000
+ 1928              		.cfi_endproc
+ 1929              	.LFE4:
+ 1931              		.section	.text.quaternionToPitch1,"ax",%progbits
+ 1932              		.align	1
+ 1933              		.global	quaternionToPitch1
+ 1934              		.syntax unified
+ 1935              		.thumb
+ 1936              		.thumb_func
+ 1938              	quaternionToPitch1:
+ 1939              	.LFB5:
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 39
+
+
+ 163:Core/Src/quaternion.c **** 
+ 164:Core/Src/quaternion.c **** float quaternionToPitch1(){
+ 1940              		.loc 1 164 27
+ 1941              		.cfi_startproc
+ 1942              		@ args = 0, pretend = 0, frame = 8
+ 1943              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1944 0000 80B5     		push	{r7, lr}
+ 1945              		.cfi_def_cfa_offset 8
+ 1946              		.cfi_offset 7, -8
+ 1947              		.cfi_offset 14, -4
+ 1948 0002 82B0     		sub	sp, sp, #8
+ 1949              		.cfi_def_cfa_offset 16
+ 1950 0004 00AF     		add	r7, sp, #0
+ 1951              		.cfi_def_cfa_register 7
+ 165:Core/Src/quaternion.c **** float pitch = -asinf(2.0f*(q[1]*q[3] - q[0]*q[2])) * 180.0f / 3.14159f;
+ 1952              		.loc 1 165 29
+ 1953 0006 174B     		ldr	r3, .L96
+ 1954 0008 93ED017A 		vldr.32	s14, [r3, #4]
+ 1955              		.loc 1 165 34
+ 1956 000c 154B     		ldr	r3, .L96
+ 1957 000e D3ED037A 		vldr.32	s15, [r3, #12]
+ 1958              		.loc 1 165 32
+ 1959 0012 27EE277A 		vmul.f32	s14, s14, s15
+ 1960              		.loc 1 165 41
+ 1961 0016 134B     		ldr	r3, .L96
+ 1962 0018 D3ED006A 		vldr.32	s13, [r3]
+ 1963              		.loc 1 165 46
+ 1964 001c 114B     		ldr	r3, .L96
+ 1965 001e D3ED027A 		vldr.32	s15, [r3, #8]
+ 1966              		.loc 1 165 44
+ 1967 0022 66EEA77A 		vmul.f32	s15, s13, s15
+ 1968              		.loc 1 165 38
+ 1969 0026 77EE677A 		vsub.f32	s15, s14, s15
+ 1970              		.loc 1 165 16
+ 1971 002a 77EEA77A 		vadd.f32	s15, s15, s15
+ 1972 002e B0EE670A 		vmov.f32	s0, s15
+ 1973 0032 FFF7FEFF 		bl	asinf
+ 1974 0036 F0EE407A 		vmov.f32	s15, s0
+ 1975              		.loc 1 165 15
+ 1976 003a F1EE677A 		vneg.f32	s15, s15
+ 1977              		.loc 1 165 52
+ 1978 003e 9FED0A7A 		vldr.32	s14, .L96+4
+ 1979 0042 27EE877A 		vmul.f32	s14, s15, s14
+ 1980              		.loc 1 165 7
+ 1981 0046 DFED096A 		vldr.32	s13, .L96+8
+ 1982 004a C7EE267A 		vdiv.f32	s15, s14, s13
+ 1983 004e C7ED017A 		vstr.32	s15, [r7, #4]
+ 166:Core/Src/quaternion.c **** return pitch;
+ 1984              		.loc 1 166 8
+ 1985 0052 7B68     		ldr	r3, [r7, #4]	@ float
+ 1986 0054 07EE903A 		vmov	s15, r3
+ 167:Core/Src/quaternion.c **** }
+ 1987              		.loc 1 167 1
+ 1988 0058 B0EE670A 		vmov.f32	s0, s15
+ 1989 005c 0837     		adds	r7, r7, #8
+ 1990              		.cfi_def_cfa_offset 8
+ 1991 005e BD46     		mov	sp, r7
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 40
+
+
+ 1992              		.cfi_def_cfa_register 13
+ 1993              		@ sp needed
+ 1994 0060 80BD     		pop	{r7, pc}
+ 1995              	.L97:
+ 1996 0062 00BF     		.align	2
+ 1997              	.L96:
+ 1998 0064 00000000 		.word	q
+ 1999 0068 00003443 		.word	1127481344
+ 2000 006c D00F4940 		.word	1078530000
+ 2001              		.cfi_endproc
+ 2002              	.LFE5:
+ 2004              		.section	.text.quaternionToRoll1,"ax",%progbits
+ 2005              		.align	1
+ 2006              		.global	quaternionToRoll1
+ 2007              		.syntax unified
+ 2008              		.thumb
+ 2009              		.thumb_func
+ 2011              	quaternionToRoll1:
+ 2012              	.LFB6:
+ 168:Core/Src/quaternion.c **** 
+ 169:Core/Src/quaternion.c **** float quaternionToRoll1(){
+ 2013              		.loc 1 169 26
+ 2014              		.cfi_startproc
+ 2015              		@ args = 0, pretend = 0, frame = 8
+ 2016              		@ frame_needed = 1, uses_anonymous_args = 0
+ 2017 0000 80B5     		push	{r7, lr}
+ 2018              		.cfi_def_cfa_offset 8
+ 2019              		.cfi_offset 7, -8
+ 2020              		.cfi_offset 14, -4
+ 2021 0002 82B0     		sub	sp, sp, #8
+ 2022              		.cfi_def_cfa_offset 16
+ 2023 0004 00AF     		add	r7, sp, #0
+ 2024              		.cfi_def_cfa_register 7
+ 170:Core/Src/quaternion.c **** float roll = atan2f(2.0f*(q[0]*q[1] + q[2]*q[3]), q[0]*q[0] - q[1]*q[1] - q[2]*q[2] + q[3]*q[3]) * 
+ 2025              		.loc 1 170 28
+ 2026 0006 2A4B     		ldr	r3, .L100
+ 2027 0008 93ED007A 		vldr.32	s14, [r3]
+ 2028              		.loc 1 170 33
+ 2029 000c 284B     		ldr	r3, .L100
+ 2030 000e D3ED017A 		vldr.32	s15, [r3, #4]
+ 2031              		.loc 1 170 31
+ 2032 0012 27EE277A 		vmul.f32	s14, s14, s15
+ 2033              		.loc 1 170 40
+ 2034 0016 264B     		ldr	r3, .L100
+ 2035 0018 D3ED026A 		vldr.32	s13, [r3, #8]
+ 2036              		.loc 1 170 45
+ 2037 001c 244B     		ldr	r3, .L100
+ 2038 001e D3ED037A 		vldr.32	s15, [r3, #12]
+ 2039              		.loc 1 170 43
+ 2040 0022 66EEA77A 		vmul.f32	s15, s13, s15
+ 2041              		.loc 1 170 37
+ 2042 0026 77EE277A 		vadd.f32	s15, s14, s15
+ 2043              		.loc 1 170 14
+ 2044 002a 37EEA76A 		vadd.f32	s12, s15, s15
+ 2045              		.loc 1 170 52
+ 2046 002e 204B     		ldr	r3, .L100
+ 2047 0030 93ED007A 		vldr.32	s14, [r3]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 41
+
+
+ 2048              		.loc 1 170 57
+ 2049 0034 1E4B     		ldr	r3, .L100
+ 2050 0036 D3ED007A 		vldr.32	s15, [r3]
+ 2051              		.loc 1 170 55
+ 2052 003a 27EE277A 		vmul.f32	s14, s14, s15
+ 2053              		.loc 1 170 64
+ 2054 003e 1C4B     		ldr	r3, .L100
+ 2055 0040 D3ED016A 		vldr.32	s13, [r3, #4]
+ 2056              		.loc 1 170 69
+ 2057 0044 1A4B     		ldr	r3, .L100
+ 2058 0046 D3ED017A 		vldr.32	s15, [r3, #4]
+ 2059              		.loc 1 170 67
+ 2060 004a 66EEA77A 		vmul.f32	s15, s13, s15
+ 2061              		.loc 1 170 61
+ 2062 004e 37EE677A 		vsub.f32	s14, s14, s15
+ 2063              		.loc 1 170 76
+ 2064 0052 174B     		ldr	r3, .L100
+ 2065 0054 D3ED026A 		vldr.32	s13, [r3, #8]
+ 2066              		.loc 1 170 81
+ 2067 0058 154B     		ldr	r3, .L100
+ 2068 005a D3ED027A 		vldr.32	s15, [r3, #8]
+ 2069              		.loc 1 170 79
+ 2070 005e 66EEA77A 		vmul.f32	s15, s13, s15
+ 2071              		.loc 1 170 73
+ 2072 0062 37EE677A 		vsub.f32	s14, s14, s15
+ 2073              		.loc 1 170 88
+ 2074 0066 124B     		ldr	r3, .L100
+ 2075 0068 D3ED036A 		vldr.32	s13, [r3, #12]
+ 2076              		.loc 1 170 93
+ 2077 006c 104B     		ldr	r3, .L100
+ 2078 006e D3ED037A 		vldr.32	s15, [r3, #12]
+ 2079              		.loc 1 170 91
+ 2080 0072 66EEA77A 		vmul.f32	s15, s13, s15
+ 2081              		.loc 1 170 14
+ 2082 0076 77EE277A 		vadd.f32	s15, s14, s15
+ 2083 007a F0EE670A 		vmov.f32	s1, s15
+ 2084 007e B0EE460A 		vmov.f32	s0, s12
+ 2085 0082 FFF7FEFF 		bl	atan2f
+ 2086 0086 F0EE407A 		vmov.f32	s15, s0
+ 2087              		.loc 1 170 98
+ 2088 008a 9FED0A7A 		vldr.32	s14, .L100+4
+ 2089 008e 27EE877A 		vmul.f32	s14, s15, s14
+ 2090              		.loc 1 170 7
+ 2091 0092 DFED096A 		vldr.32	s13, .L100+8
+ 2092 0096 C7EE267A 		vdiv.f32	s15, s14, s13
+ 2093 009a C7ED017A 		vstr.32	s15, [r7, #4]
+ 171:Core/Src/quaternion.c **** return roll;
+ 2094              		.loc 1 171 8
+ 2095 009e 7B68     		ldr	r3, [r7, #4]	@ float
+ 2096 00a0 07EE903A 		vmov	s15, r3
+ 172:Core/Src/quaternion.c **** }
+ 2097              		.loc 1 172 1
+ 2098 00a4 B0EE670A 		vmov.f32	s0, s15
+ 2099 00a8 0837     		adds	r7, r7, #8
+ 2100              		.cfi_def_cfa_offset 8
+ 2101 00aa BD46     		mov	sp, r7
+ 2102              		.cfi_def_cfa_register 13
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 42
+
+
+ 2103              		@ sp needed
+ 2104 00ac 80BD     		pop	{r7, pc}
+ 2105              	.L101:
+ 2106 00ae 00BF     		.align	2
+ 2107              	.L100:
+ 2108 00b0 00000000 		.word	q
+ 2109 00b4 00003443 		.word	1127481344
+ 2110 00b8 D00F4940 		.word	1078530000
+ 2111              		.cfi_endproc
+ 2112              	.LFE6:
+ 2114              		.section	.text.quaternionToYawDegree1,"ax",%progbits
+ 2115              		.align	1
+ 2116              		.global	quaternionToYawDegree1
+ 2117              		.syntax unified
+ 2118              		.thumb
+ 2119              		.thumb_func
+ 2121              	quaternionToYawDegree1:
+ 2122              	.LFB7:
+ 173:Core/Src/quaternion.c **** 
+ 174:Core/Src/quaternion.c **** float quaternionToYawDegree1(){
+ 2123              		.loc 1 174 31
+ 2124              		.cfi_startproc
+ 2125              		@ args = 0, pretend = 0, frame = 24
+ 2126              		@ frame_needed = 1, uses_anonymous_args = 0
+ 2127 0000 80B5     		push	{r7, lr}
+ 2128              		.cfi_def_cfa_offset 8
+ 2129              		.cfi_offset 7, -8
+ 2130              		.cfi_offset 14, -4
+ 2131 0002 86B0     		sub	sp, sp, #24
+ 2132              		.cfi_def_cfa_offset 32
+ 2133 0004 00AF     		add	r7, sp, #0
+ 2134              		.cfi_def_cfa_register 7
+ 175:Core/Src/quaternion.c ****     float w = q[0], x = q[1], y = q[2], z = q[3];
+ 2135              		.loc 1 175 11
+ 2136 0006 204B     		ldr	r3, .L104
+ 2137 0008 1B68     		ldr	r3, [r3]	@ float
+ 2138 000a 7B61     		str	r3, [r7, #20]	@ float
+ 2139              		.loc 1 175 21
+ 2140 000c 1E4B     		ldr	r3, .L104
+ 2141 000e 5B68     		ldr	r3, [r3, #4]	@ float
+ 2142 0010 3B61     		str	r3, [r7, #16]	@ float
+ 2143              		.loc 1 175 31
+ 2144 0012 1D4B     		ldr	r3, .L104
+ 2145 0014 9B68     		ldr	r3, [r3, #8]	@ float
+ 2146 0016 FB60     		str	r3, [r7, #12]	@ float
+ 2147              		.loc 1 175 41
+ 2148 0018 1B4B     		ldr	r3, .L104
+ 2149 001a DB68     		ldr	r3, [r3, #12]	@ float
+ 2150 001c BB60     		str	r3, [r7, #8]	@ float
+ 176:Core/Src/quaternion.c ****     float siny_cosp = 2.0f * (w * z + x * y);
+ 2151              		.loc 1 176 33
+ 2152 001e 97ED057A 		vldr.32	s14, [r7, #20]
+ 2153 0022 D7ED027A 		vldr.32	s15, [r7, #8]
+ 2154 0026 27EE277A 		vmul.f32	s14, s14, s15
+ 2155              		.loc 1 176 41
+ 2156 002a D7ED046A 		vldr.32	s13, [r7, #16]
+ 2157 002e D7ED037A 		vldr.32	s15, [r7, #12]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 43
+
+
+ 2158 0032 66EEA77A 		vmul.f32	s15, s13, s15
+ 2159              		.loc 1 176 37
+ 2160 0036 77EE277A 		vadd.f32	s15, s14, s15
+ 2161              		.loc 1 176 11
+ 2162 003a 77EEA77A 		vadd.f32	s15, s15, s15
+ 2163 003e C7ED017A 		vstr.32	s15, [r7, #4]
+ 177:Core/Src/quaternion.c ****     float cosy_cosp = 1.0f - 2.0f * (y * y + z * z);
+ 2164              		.loc 1 177 40
+ 2165 0042 D7ED037A 		vldr.32	s15, [r7, #12]
+ 2166 0046 27EEA77A 		vmul.f32	s14, s15, s15
+ 2167              		.loc 1 177 48
+ 2168 004a D7ED027A 		vldr.32	s15, [r7, #8]
+ 2169 004e 67EEA77A 		vmul.f32	s15, s15, s15
+ 2170              		.loc 1 177 44
+ 2171 0052 77EE277A 		vadd.f32	s15, s14, s15
+ 2172              		.loc 1 177 35
+ 2173 0056 77EEA77A 		vadd.f32	s15, s15, s15
+ 2174              		.loc 1 177 11
+ 2175 005a B7EE007A 		vmov.f32	s14, #1.0e+0
+ 2176 005e 77EE677A 		vsub.f32	s15, s14, s15
+ 2177 0062 C7ED007A 		vstr.32	s15, [r7]
+ 178:Core/Src/quaternion.c ****     return atan2f(siny_cosp, cosy_cosp) * (180.0f / 3.14159265f);
+ 2178              		.loc 1 178 12
+ 2179 0066 D7ED000A 		vldr.32	s1, [r7]
+ 2180 006a 97ED010A 		vldr.32	s0, [r7, #4]
+ 2181 006e FFF7FEFF 		bl	atan2f
+ 2182 0072 F0EE407A 		vmov.f32	s15, s0
+ 2183              		.loc 1 178 41
+ 2184 0076 9FED057A 		vldr.32	s14, .L104+4
+ 2185 007a 67EE877A 		vmul.f32	s15, s15, s14
+ 179:Core/Src/quaternion.c **** }
+ 2186              		.loc 1 179 1
+ 2187 007e B0EE670A 		vmov.f32	s0, s15
+ 2188 0082 1837     		adds	r7, r7, #24
+ 2189              		.cfi_def_cfa_offset 8
+ 2190 0084 BD46     		mov	sp, r7
+ 2191              		.cfi_def_cfa_register 13
+ 2192              		@ sp needed
+ 2193 0086 80BD     		pop	{r7, pc}
+ 2194              	.L105:
+ 2195              		.align	2
+ 2196              	.L104:
+ 2197 0088 00000000 		.word	q
+ 2198 008c E02E6542 		.word	1113927392
+ 2199              		.cfi_endproc
+ 2200              	.LFE7:
+ 2202              		.section	.text.ekf_getQuaternion,"ax",%progbits
+ 2203              		.align	1
+ 2204              		.global	ekf_getQuaternion
+ 2205              		.syntax unified
+ 2206              		.thumb
+ 2207              		.thumb_func
+ 2209              	ekf_getQuaternion:
+ 2210              	.LFB8:
+ 180:Core/Src/quaternion.c **** 
+ 181:Core/Src/quaternion.c **** float* ekf_getQuaternion(void) {
+ 2211              		.loc 1 181 32
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 44
+
+
+ 2212              		.cfi_startproc
+ 2213              		@ args = 0, pretend = 0, frame = 0
+ 2214              		@ frame_needed = 1, uses_anonymous_args = 0
+ 2215              		@ link register save eliminated.
+ 2216 0000 80B4     		push	{r7}
+ 2217              		.cfi_def_cfa_offset 4
+ 2218              		.cfi_offset 7, -4
+ 2219 0002 00AF     		add	r7, sp, #0
+ 2220              		.cfi_def_cfa_register 7
+ 182:Core/Src/quaternion.c ****     return q;
+ 2221              		.loc 1 182 12
+ 2222 0004 024B     		ldr	r3, .L108
+ 183:Core/Src/quaternion.c **** }
+ 2223              		.loc 1 183 1
+ 2224 0006 1846     		mov	r0, r3
+ 2225 0008 BD46     		mov	sp, r7
+ 2226              		.cfi_def_cfa_register 13
+ 2227              		@ sp needed
+ 2228 000a 5DF8047B 		ldr	r7, [sp], #4
+ 2229              		.cfi_restore 7
+ 2230              		.cfi_def_cfa_offset 0
+ 2231 000e 7047     		bx	lr
+ 2232              	.L109:
+ 2233              		.align	2
+ 2234              	.L108:
+ 2235 0010 00000000 		.word	q
+ 2236              		.cfi_endproc
+ 2237              	.LFE8:
+ 2239              		.section	.bss.ax_f.2,"aw",%nobits
+ 2240              		.align	2
+ 2243              	ax_f.2:
+ 2244 0000 00000000 		.space	4
+ 2245              		.section	.bss.ay_f.1,"aw",%nobits
+ 2246              		.align	2
+ 2249              	ay_f.1:
+ 2250 0000 00000000 		.space	4
+ 2251              		.section	.bss.az_f.0,"aw",%nobits
+ 2252              		.align	2
+ 2255              	az_f.0:
+ 2256 0000 00000000 		.space	4
+ 2257              		.text
+ 2258              	.Letext0:
+ 2259              		.file 2 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 45
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 quaternion.c
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:21     .data.q:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:24     .data.q:00000000 q
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:30     .bss.P:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:33     .bss.P:00000000 P
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:36     .rodata.Q_val:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:39     .rodata.Q_val:00000000 Q_val
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:42     .rodata.R_val:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:45     .rodata.R_val:00000000 R_val
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:48     .text.ekf_init:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:54     .text.ekf_init:00000000 ekf_init
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:138    .text.ekf_init:00000058 $d
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:144    .text.ekf_predict:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:150    .text.ekf_predict:00000000 ekf_predict
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:470    .text.ekf_predict:00000240 $d
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:477    .text.ekf_update:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:483    .text.ekf_update:00000000 ekf_update
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:864    .text.ekf_update:00000368 $d
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:2243   .bss.ax_f.2:00000000 ax_f.2
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:2249   .bss.ay_f.1:00000000 ay_f.1
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:2255   .bss.az_f.0:00000000 az_f.0
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:873    .text.ekf_update:00000384 $t
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:1335   .text.ekf_update:00000748 $d
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:1342   .text.ekf_update:00000758 $t
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:1670   .text.ekf_update:000009e4 $d
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:1675   .text.ekf_getTheta:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:1681   .text.ekf_getTheta:00000000 ekf_getTheta
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:1816   .text.ekf_getTheta:00000118 $d
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:1822   .text.quaternionToYaw1:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:1828   .text.quaternionToYaw1:00000000 quaternionToYaw1
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:1925   .text.quaternionToYaw1:000000b0 $d
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:1932   .text.quaternionToPitch1:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:1938   .text.quaternionToPitch1:00000000 quaternionToPitch1
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:1998   .text.quaternionToPitch1:00000064 $d
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:2005   .text.quaternionToRoll1:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:2011   .text.quaternionToRoll1:00000000 quaternionToRoll1
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:2108   .text.quaternionToRoll1:000000b0 $d
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:2115   .text.quaternionToYawDegree1:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:2121   .text.quaternionToYawDegree1:00000000 quaternionToYawDegree1
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:2197   .text.quaternionToYawDegree1:00000088 $d
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:2203   .text.ekf_getQuaternion:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:2209   .text.ekf_getQuaternion:00000000 ekf_getQuaternion
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:2235   .text.ekf_getQuaternion:00000010 $d
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:2240   .bss.ax_f.2:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:2246   .bss.ay_f.1:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s:2252   .bss.az_f.0:00000000 $d
+                           .group:00000000 wm4.0.fbeba72283fbbed79c5ed62adcf8946b
+                           .group:00000000 wm4._newlib_version.h.4.6d111ab2e95434b664b53815e5c8ccba
+                           .group:00000000 wm4.newlib.h.27.13c3dcbbace0888e13b51843af197034
+                           .group:00000000 wm4.ieeefp.h.77.9dc6728f2d488a554e7c0cabef1b6c33
+                           .group:00000000 wm4.features.h.22.7877b139107948f7dadcf3660cc79cfd
+                           .group:00000000 wm4.config.h.224.10ee1ad185d877c6e334e6581faab44d
+                           .group:00000000 wm4._ansi.h.31.de524f58584151836e90d8620a16f8e8
+                           .group:00000000 wm4.stddef.h.39.3e0425629195acf083c9561151306b4d
+                           .group:00000000 wm4._types.h.20.dd0d04dca3800a0d2a6129b87f3adbb2
+                           .group:00000000 wm4.stddef.h.158.5f30652bb2ea05b142c1bbee9108c999
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccQl0C1f.s 			page 46
+
+
+                           .group:00000000 wm4._default_types.h.6.959254cf5f09734ea7516c89e8bb21bd
+                           .group:00000000 wm4._types.h.127.3bdfe3ff8ea2d0985b03d9cbe93480e3
+                           .group:00000000 wm4.reent.h.17.e292bf8b0bec6c96e131a54347145a30
+                           .group:00000000 wm4.lock.h.2.1461d1fff82dffe8bfddc23307f6484f
+                           .group:00000000 wm4.reent.h.77.89f7dde66c62b1f1dee32bdb6ab2d544
+                           .group:00000000 wm4.cdefs.h.49.f93868eb904b9ca05b5c0257d31128ca
+                           .group:00000000 wm4.math.h.13.35ad80917fddb38312d53499dad31194
+
+UNDEFINED SYMBOLS
+sqrtf
+memset
+fminf
+fmaxf
+acosf
+atan2f
+asinf

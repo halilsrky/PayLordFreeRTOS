@@ -1,0 +1,772 @@
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 6
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"data_logger.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Core/Src/data_logger.c"
+  20              		.section	.bss.packet_buffer,"aw",%nobits
+  21              		.align	2
+  24              	packet_buffer:
+  25 0000 00000000 		.space	512
+  25      00000000 
+  25      00000000 
+  25      00000000 
+  25      00000000 
+  26              		.section	.bss.buffer_index,"aw",%nobits
+  27              		.align	1
+  30              	buffer_index:
+  31 0000 0000     		.space	2
+  32              		.section	.bss.flush_counter,"aw",%nobits
+  35              	flush_counter:
+  36 0000 00       		.space	1
+  37              		.section	.bss.file_open,"aw",%nobits
+  40              	file_open:
+  41 0000 00       		.space	1
+  42              		.section	.data.sd_open,"aw"
+  45              	sd_open:
+  46 0000 01       		.byte	1
+  47              		.global	FatFs
+  48              		.section	.bss.FatFs,"aw",%nobits
+  49              		.align	2
+  52              	FatFs:
+  53 0000 00000000 		.space	564
+  53      00000000 
+  53      00000000 
+  53      00000000 
+  53      00000000 
+  54              		.global	fil
+  55              		.section	.bss.fil,"aw",%nobits
+  56              		.align	2
+  59              	fil:
+  60 0000 00000000 		.space	560
+  60      00000000 
+  60      00000000 
+  60      00000000 
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s 			page 2
+
+
+  60      00000000 
+  61              		.global	fres
+  62              		.section	.bss.fres,"aw",%nobits
+  65              	fres:
+  66 0000 00       		.space	1
+  67              		.section	.rodata
+  68              		.align	2
+  69              	.LC0:
+  70 0000 00       		.ascii	"\000"
+  71 0001 000000   		.align	2
+  72              	.LC1:
+  73 0004 676F7265 		.ascii	"gorev.bin\000"
+  73      762E6269 
+  73      6E00
+  74              		.section	.text.data_logger_init,"ax",%progbits
+  75              		.align	1
+  76              		.global	data_logger_init
+  77              		.syntax unified
+  78              		.thumb
+  79              		.thumb_func
+  81              	data_logger_init:
+  82              	.LFB246:
+   1:Core/Src/data_logger.c **** /*
+   2:Core/Src/data_logger.c ****  * data_logger.c
+   3:Core/Src/data_logger.c ****  *
+   4:Core/Src/data_logger.c ****  *  Created on: Jun 7, 2025
+   5:Core/Src/data_logger.c ****  *      Author: yahya
+   6:Core/Src/data_logger.c ****  */
+   7:Core/Src/data_logger.c **** #include "data_logger.h"
+   8:Core/Src/data_logger.c **** #include "fatfs.h"
+   9:Core/Src/data_logger.c **** #include "stdint.h"
+  10:Core/Src/data_logger.c **** #include "stdio.h"
+  11:Core/Src/data_logger.c **** #include "string.h"
+  12:Core/Src/data_logger.c **** #include "stm32f4xx_hal.h"
+  13:Core/Src/data_logger.c **** 
+  14:Core/Src/data_logger.c **** // Buffer için tanımlamalar
+  15:Core/Src/data_logger.c **** #define PACKET_SIZE 64
+  16:Core/Src/data_logger.c **** #define PACKETS_PER_SECTOR 8  // 8 paket = 512 byte
+  17:Core/Src/data_logger.c **** #define BUFFER_SIZE (PACKET_SIZE * PACKETS_PER_SECTOR)
+  18:Core/Src/data_logger.c **** #define FLUSH_THRESHOLD 10  // 10 kez buffer dolunca dosyayı kapat
+  19:Core/Src/data_logger.c **** 
+  20:Core/Src/data_logger.c **** static uint8_t packet_buffer[BUFFER_SIZE];
+  21:Core/Src/data_logger.c **** static uint16_t buffer_index = 0;
+  22:Core/Src/data_logger.c **** static uint8_t flush_counter = 0;  // Kaç kez buffer dolduğunu sayar
+  23:Core/Src/data_logger.c **** static uint8_t file_open = 0;  // Dosya açık mı?
+  24:Core/Src/data_logger.c **** static uint8_t sd_open = 1;  // Dosya açık mı?
+  25:Core/Src/data_logger.c **** 
+  26:Core/Src/data_logger.c **** 
+  27:Core/Src/data_logger.c **** FATFS FatFs; 	//Fatfs handle
+  28:Core/Src/data_logger.c **** FIL fil; 		//File handle
+  29:Core/Src/data_logger.c **** FRESULT fres; 	//Result after operations
+  30:Core/Src/data_logger.c **** 
+  31:Core/Src/data_logger.c **** //For file operation functions look at https://elm-chan.org/fsw/ff/00index_e.html
+  32:Core/Src/data_logger.c **** 
+  33:Core/Src/data_logger.c **** void data_logger_init()
+  34:Core/Src/data_logger.c **** {
+  83              		.loc 1 34 1
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s 			page 3
+
+
+  84              		.cfi_startproc
+  85              		@ args = 0, pretend = 0, frame = 0
+  86              		@ frame_needed = 1, uses_anonymous_args = 0
+  87 0000 80B5     		push	{r7, lr}
+  88              		.cfi_def_cfa_offset 8
+  89              		.cfi_offset 7, -8
+  90              		.cfi_offset 14, -4
+  91 0002 00AF     		add	r7, sp, #0
+  92              		.cfi_def_cfa_register 7
+  35:Core/Src/data_logger.c **** 	// SD kartı mount et
+  36:Core/Src/data_logger.c **** 	fres = f_mount(&FatFs, "", 1);
+  93              		.loc 1 36 9
+  94 0004 0122     		movs	r2, #1
+  95 0006 1549     		ldr	r1, .L5
+  96 0008 1548     		ldr	r0, .L5+4
+  97 000a FFF7FEFF 		bl	f_mount
+  98 000e 0346     		mov	r3, r0
+  99 0010 1A46     		mov	r2, r3
+ 100              		.loc 1 36 7
+ 101 0012 144B     		ldr	r3, .L5+8
+ 102 0014 1A70     		strb	r2, [r3]
+  37:Core/Src/data_logger.c **** 	if (fres != FR_OK) {
+ 103              		.loc 1 37 11
+ 104 0016 134B     		ldr	r3, .L5+8
+ 105 0018 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 106              		.loc 1 37 5
+ 107 001a 002B     		cmp	r3, #0
+ 108 001c 03D0     		beq	.L2
+  38:Core/Src/data_logger.c **** 		sd_open = 0;
+ 109              		.loc 1 38 11
+ 110 001e 124B     		ldr	r3, .L5+12
+ 111 0020 0022     		movs	r2, #0
+ 112 0022 1A70     		strb	r2, [r3]
+  39:Core/Src/data_logger.c **** 		return;
+ 113              		.loc 1 39 3
+ 114 0024 18E0     		b	.L1
+ 115              	.L2:
+  40:Core/Src/data_logger.c **** 	}
+  41:Core/Src/data_logger.c **** 	
+  42:Core/Src/data_logger.c **** 	// packets.bin dosyasını oluştur (eğer yoksa)
+  43:Core/Src/data_logger.c **** 	fres = f_open(&fil, "gorev.bin", FA_WRITE | FA_OPEN_ALWAYS);
+ 116              		.loc 1 43 9
+ 117 0026 1222     		movs	r2, #18
+ 118 0028 1049     		ldr	r1, .L5+16
+ 119 002a 1148     		ldr	r0, .L5+20
+ 120 002c FFF7FEFF 		bl	f_open
+ 121 0030 0346     		mov	r3, r0
+ 122 0032 1A46     		mov	r2, r3
+ 123              		.loc 1 43 7
+ 124 0034 0B4B     		ldr	r3, .L5+8
+ 125 0036 1A70     		strb	r2, [r3]
+  44:Core/Src/data_logger.c **** 	if (fres == FR_OK) {
+ 126              		.loc 1 44 11
+ 127 0038 0A4B     		ldr	r3, .L5+8
+ 128 003a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 129              		.loc 1 44 5
+ 130 003c 002B     		cmp	r3, #0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s 			page 4
+
+
+ 131 003e 02D1     		bne	.L4
+  45:Core/Src/data_logger.c **** 		f_close(&fil);
+ 132              		.loc 1 45 3
+ 133 0040 0B48     		ldr	r0, .L5+20
+ 134 0042 FFF7FEFF 		bl	f_close
+ 135              	.L4:
+  46:Core/Src/data_logger.c **** 	}
+  47:Core/Src/data_logger.c **** 	
+  48:Core/Src/data_logger.c **** 	// Buffer'ı sıfırla
+  49:Core/Src/data_logger.c **** 	buffer_index = 0;
+ 136              		.loc 1 49 15
+ 137 0046 0B4B     		ldr	r3, .L5+24
+ 138 0048 0022     		movs	r2, #0
+ 139 004a 1A80     		strh	r2, [r3]	@ movhi
+  50:Core/Src/data_logger.c **** 	flush_counter = 0;
+ 140              		.loc 1 50 16
+ 141 004c 0A4B     		ldr	r3, .L5+28
+ 142 004e 0022     		movs	r2, #0
+ 143 0050 1A70     		strb	r2, [r3]
+  51:Core/Src/data_logger.c **** 	file_open = 0;
+ 144              		.loc 1 51 12
+ 145 0052 0A4B     		ldr	r3, .L5+32
+ 146 0054 0022     		movs	r2, #0
+ 147 0056 1A70     		strb	r2, [r3]
+ 148              	.L1:
+  52:Core/Src/data_logger.c **** }
+ 149              		.loc 1 52 1
+ 150 0058 80BD     		pop	{r7, pc}
+ 151              	.L6:
+ 152 005a 00BF     		.align	2
+ 153              	.L5:
+ 154 005c 00000000 		.word	.LC0
+ 155 0060 00000000 		.word	FatFs
+ 156 0064 00000000 		.word	fres
+ 157 0068 00000000 		.word	sd_open
+ 158 006c 04000000 		.word	.LC1
+ 159 0070 00000000 		.word	fil
+ 160 0074 00000000 		.word	buffer_index
+ 161 0078 00000000 		.word	flush_counter
+ 162 007c 00000000 		.word	file_open
+ 163              		.cfi_endproc
+ 164              	.LFE246:
+ 166              		.section	.text.log_normal_packet_data,"ax",%progbits
+ 167              		.align	1
+ 168              		.global	log_normal_packet_data
+ 169              		.syntax unified
+ 170              		.thumb
+ 171              		.thumb_func
+ 173              	log_normal_packet_data:
+ 174              	.LFB247:
+  53:Core/Src/data_logger.c **** 
+  54:Core/Src/data_logger.c **** void log_normal_packet_data(unsigned char* packet_data)
+  55:Core/Src/data_logger.c **** {
+ 175              		.loc 1 55 1
+ 176              		.cfi_startproc
+ 177              		@ args = 0, pretend = 0, frame = 16
+ 178              		@ frame_needed = 1, uses_anonymous_args = 0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s 			page 5
+
+
+ 179 0000 80B5     		push	{r7, lr}
+ 180              		.cfi_def_cfa_offset 8
+ 181              		.cfi_offset 7, -8
+ 182              		.cfi_offset 14, -4
+ 183 0002 84B0     		sub	sp, sp, #16
+ 184              		.cfi_def_cfa_offset 24
+ 185 0004 00AF     		add	r7, sp, #0
+ 186              		.cfi_def_cfa_register 7
+ 187 0006 7860     		str	r0, [r7, #4]
+  56:Core/Src/data_logger.c **** 
+  57:Core/Src/data_logger.c **** 	if (sd_open == 0) {
+ 188              		.loc 1 57 14
+ 189 0008 304B     		ldr	r3, .L14
+ 190 000a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 191              		.loc 1 57 5
+ 192 000c 002B     		cmp	r3, #0
+ 193 000e 58D0     		beq	.L13
+  58:Core/Src/data_logger.c **** 		return;
+  59:Core/Src/data_logger.c **** 	}
+  60:Core/Src/data_logger.c **** 
+  61:Core/Src/data_logger.c **** 	// Paketi buffer'a kopyala
+  62:Core/Src/data_logger.c **** 	memcpy(&packet_buffer[buffer_index], packet_data, PACKET_SIZE);
+ 194              		.loc 1 62 23
+ 195 0010 2F4B     		ldr	r3, .L14+4
+ 196 0012 1B88     		ldrh	r3, [r3]
+ 197 0014 1A46     		mov	r2, r3
+ 198              		.loc 1 62 9
+ 199 0016 2F4B     		ldr	r3, .L14+8
+ 200 0018 1344     		add	r3, r3, r2
+ 201              		.loc 1 62 2
+ 202 001a 4022     		movs	r2, #64
+ 203 001c 7968     		ldr	r1, [r7, #4]
+ 204 001e 1846     		mov	r0, r3
+ 205 0020 FFF7FEFF 		bl	memcpy
+  63:Core/Src/data_logger.c **** 	buffer_index += PACKET_SIZE;
+ 206              		.loc 1 63 15
+ 207 0024 2A4B     		ldr	r3, .L14+4
+ 208 0026 1B88     		ldrh	r3, [r3]
+ 209 0028 4033     		adds	r3, r3, #64
+ 210 002a 9AB2     		uxth	r2, r3
+ 211 002c 284B     		ldr	r3, .L14+4
+ 212 002e 1A80     		strh	r2, [r3]	@ movhi
+  64:Core/Src/data_logger.c **** 	
+  65:Core/Src/data_logger.c **** 	// Buffer doldu mu kontrol et
+  66:Core/Src/data_logger.c **** 	if (buffer_index >= BUFFER_SIZE) {
+ 213              		.loc 1 66 19
+ 214 0030 274B     		ldr	r3, .L14+4
+ 215 0032 1B88     		ldrh	r3, [r3]
+ 216              		.loc 1 66 5
+ 217 0034 B3F5007F 		cmp	r3, #512
+ 218 0038 44D3     		bcc	.L7
+ 219              	.LBB2:
+  67:Core/Src/data_logger.c **** 		// Dosya açık değilse aç
+  68:Core/Src/data_logger.c **** 		if (!file_open) {
+ 220              		.loc 1 68 7
+ 221 003a 274B     		ldr	r3, .L14+12
+ 222 003c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s 			page 6
+
+
+ 223              		.loc 1 68 6
+ 224 003e 002B     		cmp	r3, #0
+ 225 0040 1DD1     		bne	.L10
+  69:Core/Src/data_logger.c **** 			fres = f_open(&fil, "gorev.bin", FA_WRITE | FA_OPEN_ALWAYS);
+ 226              		.loc 1 69 11
+ 227 0042 1222     		movs	r2, #18
+ 228 0044 2549     		ldr	r1, .L14+16
+ 229 0046 2648     		ldr	r0, .L14+20
+ 230 0048 FFF7FEFF 		bl	f_open
+ 231 004c 0346     		mov	r3, r0
+ 232 004e 1A46     		mov	r2, r3
+ 233              		.loc 1 69 9
+ 234 0050 244B     		ldr	r3, .L14+24
+ 235 0052 1A70     		strb	r2, [r3]
+  70:Core/Src/data_logger.c **** 			if (fres == FR_OK) {
+ 236              		.loc 1 70 13
+ 237 0054 234B     		ldr	r3, .L14+24
+ 238 0056 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 239              		.loc 1 70 7
+ 240 0058 002B     		cmp	r3, #0
+ 241 005a 09D1     		bne	.L11
+  71:Core/Src/data_logger.c **** 				f_lseek(&fil, f_size(&fil));  // Dosya sonuna git
+ 242              		.loc 1 71 5
+ 243 005c 204B     		ldr	r3, .L14+20
+ 244 005e DB68     		ldr	r3, [r3, #12]
+ 245 0060 1946     		mov	r1, r3
+ 246 0062 1F48     		ldr	r0, .L14+20
+ 247 0064 FFF7FEFF 		bl	f_lseek
+  72:Core/Src/data_logger.c **** 				file_open = 1;
+ 248              		.loc 1 72 15
+ 249 0068 1B4B     		ldr	r3, .L14+12
+ 250 006a 0122     		movs	r2, #1
+ 251 006c 1A70     		strb	r2, [r3]
+ 252 006e 06E0     		b	.L10
+ 253              	.L11:
+  73:Core/Src/data_logger.c **** 			} else {
+  74:Core/Src/data_logger.c **** 				sd_open = 0;
+ 254              		.loc 1 74 13
+ 255 0070 164B     		ldr	r3, .L14
+ 256 0072 0022     		movs	r2, #0
+ 257 0074 1A70     		strb	r2, [r3]
+  75:Core/Src/data_logger.c **** 				buffer_index = 0;
+ 258              		.loc 1 75 18
+ 259 0076 164B     		ldr	r3, .L14+4
+ 260 0078 0022     		movs	r2, #0
+ 261 007a 1A80     		strh	r2, [r3]	@ movhi
+ 262 007c 22E0     		b	.L7
+ 263              	.L10:
+  76:Core/Src/data_logger.c **** 				return;
+  77:Core/Src/data_logger.c **** 			}
+  78:Core/Src/data_logger.c **** 		}
+  79:Core/Src/data_logger.c **** 
+  80:Core/Src/data_logger.c **** 		// Buffer'ı dosyaya yaz
+  81:Core/Src/data_logger.c **** 		unsigned int file_res = 0;
+ 264              		.loc 1 81 16
+ 265 007e 0023     		movs	r3, #0
+ 266 0080 FB60     		str	r3, [r7, #12]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s 			page 7
+
+
+  82:Core/Src/data_logger.c **** 		f_write(&fil, packet_buffer, buffer_index, &file_res);
+ 267              		.loc 1 82 3
+ 268 0082 134B     		ldr	r3, .L14+4
+ 269 0084 1B88     		ldrh	r3, [r3]
+ 270 0086 1A46     		mov	r2, r3
+ 271 0088 07F10C03 		add	r3, r7, #12
+ 272 008c 1149     		ldr	r1, .L14+8
+ 273 008e 1448     		ldr	r0, .L14+20
+ 274 0090 FFF7FEFF 		bl	f_write
+  83:Core/Src/data_logger.c **** 
+  84:Core/Src/data_logger.c **** 		// Buffer'ı sıfırla ve sayacı artır
+  85:Core/Src/data_logger.c **** 		buffer_index = 0;
+ 275              		.loc 1 85 16
+ 276 0094 0E4B     		ldr	r3, .L14+4
+ 277 0096 0022     		movs	r2, #0
+ 278 0098 1A80     		strh	r2, [r3]	@ movhi
+  86:Core/Src/data_logger.c **** 		flush_counter++;
+ 279              		.loc 1 86 16
+ 280 009a 134B     		ldr	r3, .L14+28
+ 281 009c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 282 009e 0133     		adds	r3, r3, #1
+ 283 00a0 DAB2     		uxtb	r2, r3
+ 284 00a2 114B     		ldr	r3, .L14+28
+ 285 00a4 1A70     		strb	r2, [r3]
+  87:Core/Src/data_logger.c **** 
+  88:Core/Src/data_logger.c **** 		// 10 kez yazım yapıldıysa dosyayı kapat
+  89:Core/Src/data_logger.c **** 		if (flush_counter >= FLUSH_THRESHOLD) {
+ 286              		.loc 1 89 21
+ 287 00a6 104B     		ldr	r3, .L14+28
+ 288 00a8 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 289              		.loc 1 89 6
+ 290 00aa 092B     		cmp	r3, #9
+ 291 00ac 0AD9     		bls	.L7
+  90:Core/Src/data_logger.c **** 			f_close(&fil);
+ 292              		.loc 1 90 4
+ 293 00ae 0C48     		ldr	r0, .L14+20
+ 294 00b0 FFF7FEFF 		bl	f_close
+  91:Core/Src/data_logger.c **** 			file_open = 0;
+ 295              		.loc 1 91 14
+ 296 00b4 084B     		ldr	r3, .L14+12
+ 297 00b6 0022     		movs	r2, #0
+ 298 00b8 1A70     		strb	r2, [r3]
+  92:Core/Src/data_logger.c **** 			flush_counter = 0;
+ 299              		.loc 1 92 18
+ 300 00ba 0B4B     		ldr	r3, .L14+28
+ 301 00bc 0022     		movs	r2, #0
+ 302 00be 1A70     		strb	r2, [r3]
+ 303 00c0 00E0     		b	.L7
+ 304              	.L13:
+ 305              	.LBE2:
+  58:Core/Src/data_logger.c **** 	}
+ 306              		.loc 1 58 3
+ 307 00c2 00BF     		nop
+ 308              	.L7:
+  93:Core/Src/data_logger.c **** 		}
+  94:Core/Src/data_logger.c **** 	}
+  95:Core/Src/data_logger.c **** }
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s 			page 8
+
+
+ 309              		.loc 1 95 1
+ 310 00c4 1037     		adds	r7, r7, #16
+ 311              		.cfi_def_cfa_offset 8
+ 312 00c6 BD46     		mov	sp, r7
+ 313              		.cfi_def_cfa_register 13
+ 314              		@ sp needed
+ 315 00c8 80BD     		pop	{r7, pc}
+ 316              	.L15:
+ 317 00ca 00BF     		.align	2
+ 318              	.L14:
+ 319 00cc 00000000 		.word	sd_open
+ 320 00d0 00000000 		.word	buffer_index
+ 321 00d4 00000000 		.word	packet_buffer
+ 322 00d8 00000000 		.word	file_open
+ 323 00dc 04000000 		.word	.LC1
+ 324 00e0 00000000 		.word	fil
+ 325 00e4 00000000 		.word	fres
+ 326 00e8 00000000 		.word	flush_counter
+ 327              		.cfi_endproc
+ 328              	.LFE247:
+ 330              		.section	.text.flush_packet_buffer,"ax",%progbits
+ 331              		.align	1
+ 332              		.global	flush_packet_buffer
+ 333              		.syntax unified
+ 334              		.thumb
+ 335              		.thumb_func
+ 337              	flush_packet_buffer:
+ 338              	.LFB248:
+  96:Core/Src/data_logger.c **** 
+  97:Core/Src/data_logger.c **** void flush_packet_buffer(void)
+  98:Core/Src/data_logger.c **** {
+ 339              		.loc 1 98 1
+ 340              		.cfi_startproc
+ 341              		@ args = 0, pretend = 0, frame = 8
+ 342              		@ frame_needed = 1, uses_anonymous_args = 0
+ 343 0000 80B5     		push	{r7, lr}
+ 344              		.cfi_def_cfa_offset 8
+ 345              		.cfi_offset 7, -8
+ 346              		.cfi_offset 14, -4
+ 347 0002 82B0     		sub	sp, sp, #8
+ 348              		.cfi_def_cfa_offset 16
+ 349 0004 00AF     		add	r7, sp, #0
+ 350              		.cfi_def_cfa_register 7
+  99:Core/Src/data_logger.c **** 	// Eğer buffer'da veri varsa yaz
+ 100:Core/Src/data_logger.c **** 	if (buffer_index > 0) {
+ 351              		.loc 1 100 19
+ 352 0006 204B     		ldr	r3, .L21
+ 353 0008 1B88     		ldrh	r3, [r3]
+ 354              		.loc 1 100 5
+ 355 000a 002B     		cmp	r3, #0
+ 356 000c 2AD0     		beq	.L17
+ 101:Core/Src/data_logger.c **** 		// Dosya açık değilse aç
+ 102:Core/Src/data_logger.c **** 		if (!file_open) {
+ 357              		.loc 1 102 7
+ 358 000e 1F4B     		ldr	r3, .L21+4
+ 359 0010 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 360              		.loc 1 102 6
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s 			page 9
+
+
+ 361 0012 002B     		cmp	r3, #0
+ 362 0014 15D1     		bne	.L18
+ 103:Core/Src/data_logger.c **** 			fres = f_open(&fil, "gorev.bin", FA_WRITE | FA_OPEN_ALWAYS);
+ 363              		.loc 1 103 11
+ 364 0016 1222     		movs	r2, #18
+ 365 0018 1D49     		ldr	r1, .L21+8
+ 366 001a 1E48     		ldr	r0, .L21+12
+ 367 001c FFF7FEFF 		bl	f_open
+ 368 0020 0346     		mov	r3, r0
+ 369 0022 1A46     		mov	r2, r3
+ 370              		.loc 1 103 9
+ 371 0024 1C4B     		ldr	r3, .L21+16
+ 372 0026 1A70     		strb	r2, [r3]
+ 104:Core/Src/data_logger.c **** 			if (fres == FR_OK) {
+ 373              		.loc 1 104 13
+ 374 0028 1B4B     		ldr	r3, .L21+16
+ 375 002a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 376              		.loc 1 104 7
+ 377 002c 002B     		cmp	r3, #0
+ 378 002e 08D1     		bne	.L18
+ 105:Core/Src/data_logger.c **** 				f_lseek(&fil, f_size(&fil));
+ 379              		.loc 1 105 5
+ 380 0030 184B     		ldr	r3, .L21+12
+ 381 0032 DB68     		ldr	r3, [r3, #12]
+ 382 0034 1946     		mov	r1, r3
+ 383 0036 1748     		ldr	r0, .L21+12
+ 384 0038 FFF7FEFF 		bl	f_lseek
+ 106:Core/Src/data_logger.c **** 				file_open = 1;
+ 385              		.loc 1 106 15
+ 386 003c 134B     		ldr	r3, .L21+4
+ 387 003e 0122     		movs	r2, #1
+ 388 0040 1A70     		strb	r2, [r3]
+ 389              	.L18:
+ 107:Core/Src/data_logger.c **** 			}
+ 108:Core/Src/data_logger.c **** 		}
+ 109:Core/Src/data_logger.c **** 
+ 110:Core/Src/data_logger.c **** 		if (file_open) {
+ 390              		.loc 1 110 7
+ 391 0042 124B     		ldr	r3, .L21+4
+ 392 0044 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 393              		.loc 1 110 6
+ 394 0046 002B     		cmp	r3, #0
+ 395 0048 0CD0     		beq	.L17
+ 396              	.LBB3:
+ 111:Core/Src/data_logger.c **** 			unsigned int file_res = 0;
+ 397              		.loc 1 111 17
+ 398 004a 0023     		movs	r3, #0
+ 399 004c 7B60     		str	r3, [r7, #4]
+ 112:Core/Src/data_logger.c **** 			f_write(&fil, packet_buffer, buffer_index, &file_res);
+ 400              		.loc 1 112 4
+ 401 004e 0E4B     		ldr	r3, .L21
+ 402 0050 1B88     		ldrh	r3, [r3]
+ 403 0052 1A46     		mov	r2, r3
+ 404 0054 3B1D     		adds	r3, r7, #4
+ 405 0056 1149     		ldr	r1, .L21+20
+ 406 0058 0E48     		ldr	r0, .L21+12
+ 407 005a FFF7FEFF 		bl	f_write
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s 			page 10
+
+
+ 113:Core/Src/data_logger.c **** 			buffer_index = 0;
+ 408              		.loc 1 113 17
+ 409 005e 0A4B     		ldr	r3, .L21
+ 410 0060 0022     		movs	r2, #0
+ 411 0062 1A80     		strh	r2, [r3]	@ movhi
+ 412              	.L17:
+ 413              	.LBE3:
+ 114:Core/Src/data_logger.c **** 		}
+ 115:Core/Src/data_logger.c **** 	}
+ 116:Core/Src/data_logger.c **** 
+ 117:Core/Src/data_logger.c **** 	// Dosya açıksa kapat
+ 118:Core/Src/data_logger.c **** 	if (file_open) {
+ 414              		.loc 1 118 6
+ 415 0064 094B     		ldr	r3, .L21+4
+ 416 0066 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 417              		.loc 1 118 5
+ 418 0068 002B     		cmp	r3, #0
+ 419 006a 08D0     		beq	.L20
+ 119:Core/Src/data_logger.c **** 		f_close(&fil);
+ 420              		.loc 1 119 3
+ 421 006c 0948     		ldr	r0, .L21+12
+ 422 006e FFF7FEFF 		bl	f_close
+ 120:Core/Src/data_logger.c **** 		file_open = 0;
+ 423              		.loc 1 120 13
+ 424 0072 064B     		ldr	r3, .L21+4
+ 425 0074 0022     		movs	r2, #0
+ 426 0076 1A70     		strb	r2, [r3]
+ 121:Core/Src/data_logger.c **** 		flush_counter = 0;
+ 427              		.loc 1 121 17
+ 428 0078 094B     		ldr	r3, .L21+24
+ 429 007a 0022     		movs	r2, #0
+ 430 007c 1A70     		strb	r2, [r3]
+ 431              	.L20:
+ 122:Core/Src/data_logger.c **** 	}
+ 123:Core/Src/data_logger.c **** }
+ 432              		.loc 1 123 1
+ 433 007e 00BF     		nop
+ 434 0080 0837     		adds	r7, r7, #8
+ 435              		.cfi_def_cfa_offset 8
+ 436 0082 BD46     		mov	sp, r7
+ 437              		.cfi_def_cfa_register 13
+ 438              		@ sp needed
+ 439 0084 80BD     		pop	{r7, pc}
+ 440              	.L22:
+ 441 0086 00BF     		.align	2
+ 442              	.L21:
+ 443 0088 00000000 		.word	buffer_index
+ 444 008c 00000000 		.word	file_open
+ 445 0090 04000000 		.word	.LC1
+ 446 0094 00000000 		.word	fil
+ 447 0098 00000000 		.word	fres
+ 448 009c 00000000 		.word	packet_buffer
+ 449 00a0 00000000 		.word	flush_counter
+ 450              		.cfi_endproc
+ 451              	.LFE248:
+ 453              		.section	.text.force_flush_buffer,"ax",%progbits
+ 454              		.align	1
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s 			page 11
+
+
+ 455              		.global	force_flush_buffer
+ 456              		.syntax unified
+ 457              		.thumb
+ 458              		.thumb_func
+ 460              	force_flush_buffer:
+ 461              	.LFB249:
+ 124:Core/Src/data_logger.c **** 
+ 125:Core/Src/data_logger.c **** // Sistem kapanırken veya acil durumda buffer'ı boşalt
+ 126:Core/Src/data_logger.c **** void force_flush_buffer(void)
+ 127:Core/Src/data_logger.c **** {
+ 462              		.loc 1 127 1
+ 463              		.cfi_startproc
+ 464              		@ args = 0, pretend = 0, frame = 0
+ 465              		@ frame_needed = 1, uses_anonymous_args = 0
+ 466 0000 80B5     		push	{r7, lr}
+ 467              		.cfi_def_cfa_offset 8
+ 468              		.cfi_offset 7, -8
+ 469              		.cfi_offset 14, -4
+ 470 0002 00AF     		add	r7, sp, #0
+ 471              		.cfi_def_cfa_register 7
+ 128:Core/Src/data_logger.c **** 	flush_packet_buffer();
+ 472              		.loc 1 128 2
+ 473 0004 FFF7FEFF 		bl	flush_packet_buffer
+ 129:Core/Src/data_logger.c **** }
+ 474              		.loc 1 129 1
+ 475 0008 00BF     		nop
+ 476 000a 80BD     		pop	{r7, pc}
+ 477              		.cfi_endproc
+ 478              	.LFE249:
+ 480              		.text
+ 481              	.Letext0:
+ 482              		.file 2 "Middlewares/Third_Party/FatFs/src/integer.h"
+ 483              		.file 3 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 484              		.file 4 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 485              		.file 5 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 486              		.file 6 "Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h"
+ 487              		.file 7 "Middlewares/Third_Party/FatFs/src/ff.h"
+ 488              		.file 8 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s 			page 12
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 data_logger.c
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:21     .bss.packet_buffer:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:24     .bss.packet_buffer:00000000 packet_buffer
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:27     .bss.buffer_index:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:30     .bss.buffer_index:00000000 buffer_index
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:35     .bss.flush_counter:00000000 flush_counter
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:36     .bss.flush_counter:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:40     .bss.file_open:00000000 file_open
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:41     .bss.file_open:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:45     .data.sd_open:00000000 sd_open
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:52     .bss.FatFs:00000000 FatFs
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:49     .bss.FatFs:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:59     .bss.fil:00000000 fil
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:56     .bss.fil:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:65     .bss.fres:00000000 fres
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:66     .bss.fres:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:68     .rodata:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:75     .text.data_logger_init:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:81     .text.data_logger_init:00000000 data_logger_init
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:154    .text.data_logger_init:0000005c $d
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:167    .text.log_normal_packet_data:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:173    .text.log_normal_packet_data:00000000 log_normal_packet_data
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:319    .text.log_normal_packet_data:000000cc $d
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:331    .text.flush_packet_buffer:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:337    .text.flush_packet_buffer:00000000 flush_packet_buffer
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:443    .text.flush_packet_buffer:00000088 $d
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:454    .text.force_flush_buffer:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s:460    .text.force_flush_buffer:00000000 force_flush_buffer
+                           .group:00000000 wm4.0.fbeba72283fbbed79c5ed62adcf8946b
+                           .group:00000000 wm4.stm32f4xx_hal_conf.h.25.834fd89df99f7f3fe75169badeed02aa
+                           .group:00000000 wm4.stm32f4xx.h.38.63e3ea23bd63a94457417730025259b6
+                           .group:00000000 wm4.stm32f446xx.h.34.dd43cebd7192f96bce7a5ff975201274
+                           .group:00000000 wm4._newlib_version.h.4.6d111ab2e95434b664b53815e5c8ccba
+                           .group:00000000 wm4.features.h.33.3e67abe6fb64142d4f6fa9496796153c
+                           .group:00000000 wm4._default_types.h.15.247e5cd201eca3442cbf5404108c4935
+                           .group:00000000 wm4._intsup.h.10.48bafbb683905c4daa4565a85aeeb264
+                           .group:00000000 wm4._stdint.h.10.c24fa3af3bc1706662bb5593a907e841
+                           .group:00000000 wm4.stdint.h.23.d53047a68f4a85177f80b422d52785ed
+                           .group:00000000 wm4.cmsis_version.h.32.0ac195c83bb4537824e6ad1c47474b79
+                           .group:00000000 wm4.core_cm4.h.66.e4ff136c4a17abc46741866f64f8e729
+                           .group:00000000 wm4.cmsis_gcc.h.26.498d0ad17a45fc9ef20fdc01caf02259
+                           .group:00000000 wm4.core_cm4.h.174.62be9b4588d49bed18171771001331df
+                           .group:00000000 wm4.mpu_armv7.h.32.83326921a797fa9d6f70449916b4b839
+                           .group:00000000 wm4.stm32f446xx.h.917.13927c85cbbf4787955bc4173c54fa12
+                           .group:00000000 wm4.stm32f4xx.h.195.a4b8bf80f37cc96981498656ffe5f588
+                           .group:00000000 wm4.stm32_hal_legacy.h.22.8b7d303dc46a0b7ac6d3edf19ce2608d
+                           .group:00000000 wm4.stddef.h.39.3e0425629195acf083c9561151306b4d
+                           .group:00000000 wm4.stm32f4xx_hal_def.h.58.3cb484e92e5ccf2e55312a4714e27917
+                           .group:00000000 wm4.stm32f4xx_hal_rcc_ex.h.20.9b6e314009d4800dd71c0ec1c264a1ea
+                           .group:00000000 wm4.stm32f4xx_hal_rcc.h.106.0887cf5d985ae88e345b0aed0ceb4729
+                           .group:00000000 wm4.stm32f4xx_hal_gpio.h.21.22da6a14b6049d6ac156577be74df1d7
+                           .group:00000000 wm4.stm32f4xx_hal_gpio_ex.h.21.33ea7ea24fd170b1d3dce3d23330c9d3
+                           .group:00000000 wm4.stm32f4xx_hal_gpio.h.254.d7e07832f748fe8bcb575db0b8373592
+                           .group:00000000 wm4.stm32f4xx_hal_exti.h.21.4fc7f37c3cc97fb821b368ede79414b6
+                           .group:00000000 wm4.stm32f4xx_hal_dma.h.21.8e4b1421c914345c23be719e5e528779
+                           .group:00000000 wm4.stm32f4xx_hal_dma.h.720.ac2d7eef74792e4026acc4d2923c5da4
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s 			page 13
+
+
+                           .group:00000000 wm4.stm32f4xx_hal_cortex.h.20.03673e4f79386680bf73ba399c19306b
+                           .group:00000000 wm4.stm32f4xx_ll_adc.h.21.8ab9bf4d55f678506dbbe8102cb12bbc
+                           .group:00000000 wm4.stm32f4xx_hal_adc.h.159.62530d9b3382796f19493a9679ef426c
+                           .group:00000000 wm4.stm32f4xx_hal_adc_ex.h.21.94e87945640619cdd4cff40627e1380a
+                           .group:00000000 wm4.stm32f4xx_hal_adc.h.639.c30c49256117cbda0ada83149c65b3d8
+                           .group:00000000 wm4.stm32f4xx_hal_flash.h.20.2f1e0d1b7010b3a81a7980aaf712e7e5
+                           .group:00000000 wm4.stm32f4xx_hal_flash_ex.h.20.77cb3e5c0f1e426426a4cbc884a1eed8
+                           .group:00000000 wm4.stm32f4xx_hal_flash.h.361.23bc19b9eac79b0956d913651841ede8
+                           .group:00000000 wm4.stm32f4xx_hal_i2c.h.21.147e96a27b1f7b1f2f8ee22132703ee3
+                           .group:00000000 wm4.stm32f4xx_hal_i2c_ex.h.21.951ef5bfa13cf131d2015c338e82e461
+                           .group:00000000 wm4.stm32f4xx_hal_i2c.h.647.ade9c3447780b1cc0ece02f0ce83aedc
+                           .group:00000000 wm4.stm32f4xx_hal_pwr.h.20.1905a0783a9c83adefd7df0c4b501e40
+                           .group:00000000 wm4.stm32f4xx_hal_pwr_ex.h.20.9786dbd699c850465fa7b77273740267
+                           .group:00000000 wm4.stm32f4xx_hal_pwr.h.338.debc0a4a62ba54688e63ab53dd99c4ea
+                           .group:00000000 wm4.stm32f4xx_hal_spi.h.21.8b27a8d792c565f72ddd4cfad797986f
+                           .group:00000000 wm4.stm32f4xx_hal_tim.h.21.c31cbc03c25f07a932427770396c59d2
+                           .group:00000000 wm4.stm32f4xx_hal_tim_ex.h.21.3ff8ebb44e16ac9d5b95e2b3533221b9
+                           .group:00000000 wm4.stm32f4xx_hal_uart.h.21.ba8e24dd05c77faac3f3d48472e636ba
+                           .group:00000000 wm4.stm32f4xx_hal.h.71.02372bc31d47d29d3f67fbfe1429649e
+                           .group:00000000 wm4.main.h.61.69da45f81907557a0774729345d5d811
+                           .group:00000000 wm4.FreeRTOSConfig.h.32.bc6247a01309fb09d1c77b2aa8b243d2
+                           .group:00000000 wm4.stdarg.h.31.b55da1089056868966f25de5dbfc7d3c
+                           .group:00000000 wm4.Global.h.69.e0f48c7eb64cd3647ceacea2cc368f43
+                           .group:00000000 wm4.SEGGER.h.93.885d9d7ea302677e269465e6da347b9f
+                           .group:00000000 wm4.SEGGER_SYSVIEW.h.88.65dd41e8fc33fc8f03c978fd13231926
+                           .group:00000000 wm4.SEGGER_SYSVIEW_FreeRTOS.h.80.d232dda0d91b880546b63cc6970a0231
+                           .group:00000000 wm4.projdefs.h.29.3472c8470d131a5f474bc7437ea94609
+                           .group:00000000 wm4.portmacro.h.30.ebb5f3ce711e1dad21b3172c9bc8e19f
+                           .group:00000000 wm4.portable.h.64.742f2ce568820e866a7b541b4c77966f
+                           .group:00000000 wm4.mpu_wrappers.h.29.4f9aea82ee68d943d141825e5294de63
+                           .group:00000000 wm4.FreeRTOS.h.66.cc51f96fb61ed1e446bb6cea86adf7fa
+                           .group:00000000 wm4.list.h.61.5c5a38f6bc6687eed6d893e57dabd8e6
+                           .group:00000000 wm4.task.h.46.9fb92b2c1a30a52e436f6063552b709b
+                           .group:00000000 wm4.cmsis_os.h.129.5f4adf2a422dfa714f64051974ebee7a
+                           .group:00000000 wm4.cmsis_os2.h.151.57db232dfe421e4f781dd02c42ee4360
+                           .group:00000000 wm4.cmsis_os.h.179.c36f217fbf28f1f2e754518bfb5a2ae8
+                           .group:00000000 wm4.ffconf.h.33.4fdc704f7f2d35145fb27bd48d09f536
+                           .group:00000000 wm4.ff.h.63.4a71c48ce74f1325372be3373adc3c55
+                           .group:00000000 wm4.diskio.h.6.c336166bddd01dd89442a8f6b7755b72
+                           .group:00000000 wm4.newlib.h.7.f9f25f80f86429f653675286e7973cb9
+                           .group:00000000 wm4.ieeefp.h.77.9dc6728f2d488a554e7c0cabef1b6c33
+                           .group:00000000 wm4.config.h.224.10ee1ad185d877c6e334e6581faab44d
+                           .group:00000000 wm4._ansi.h.31.de524f58584151836e90d8620a16f8e8
+                           .group:00000000 wm4.stdio.h.31.7c0e28c411445f3f9c5b11accf882760
+                           .group:00000000 wm4.stddef.h.158.bfed30416c9480cd13bc4a25427d538f
+                           .group:00000000 wm4.cdefs.h.49.f93868eb904b9ca05b5c0257d31128ca
+                           .group:00000000 wm4._types.h.20.dd0d04dca3800a0d2a6129b87f3adbb2
+                           .group:00000000 wm4.stddef.h.158.5f30652bb2ea05b142c1bbee9108c999
+                           .group:00000000 wm4._types.h.127.3bdfe3ff8ea2d0985b03d9cbe93480e3
+                           .group:00000000 wm4.reent.h.17.e292bf8b0bec6c96e131a54347145a30
+                           .group:00000000 wm4.lock.h.2.1461d1fff82dffe8bfddc23307f6484f
+                           .group:00000000 wm4.reent.h.77.89f7dde66c62b1f1dee32bdb6ab2d544
+                           .group:00000000 wm4.stdio.h.67.0cf8a9c281ab0b348aef5c02e7e48825
+                           .group:00000000 wm4.stdio.h.2.4aa87247282eca6c8f36f9de33d8df1a
+                           .group:00000000 wm4.stdio.h.87.a1e20d2651f9bfb66e51bfbe849db00a
+                           .group:00000000 wm4.string.h.8.c4b8571ce60dff2817f43fec8b86aecd
+                           .group:00000000 wm4.string.h.177.59a005921fa78485abc80a0267de5752
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccVPK7id.s 			page 14
+
+
+
+UNDEFINED SYMBOLS
+f_mount
+f_open
+f_close
+memcpy
+f_lseek
+f_write

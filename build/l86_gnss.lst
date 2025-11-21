@@ -1,0 +1,1733 @@
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 6
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"l86_gnss.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Core/Src/l86_gnss.c"
+  20              		.global	huart_gnss
+  21              		.section	.bss.huart_gnss,"aw",%nobits
+  22              		.align	2
+  25              	huart_gnss:
+  26 0000 00000000 		.space	4
+  27              		.global	gnss_rx_buffer
+  28              		.section	.bss.gnss_rx_buffer,"aw",%nobits
+  29              		.align	2
+  32              	gnss_rx_buffer:
+  33 0000 00000000 		.space	2400
+  33      00000000 
+  33      00000000 
+  33      00000000 
+  33      00000000 
+  34              		.global	gps_buffer
+  35              		.section	.bss.gps_buffer,"aw",%nobits
+  36              		.align	2
+  39              	gps_buffer:
+  40 0000 00000000 		.space	1200
+  40      00000000 
+  40      00000000 
+  40      00000000 
+  40      00000000 
+  41              		.section	.bss.gps_GNRMC_start_point,"aw",%nobits
+  42              		.align	2
+  45              	gps_GNRMC_start_point:
+  46 0000 00000000 		.space	4
+  47              		.section	.bss.gps_GPGGA_start_point,"aw",%nobits
+  48              		.align	2
+  51              	gps_GPGGA_start_point:
+  52 0000 00000000 		.space	4
+  53              		.section	.bss.is_data_valid,"aw",%nobits
+  56              	is_data_valid:
+  57 0000 00       		.space	1
+  58              		.section	.bss.current_char,"aw",%nobits
+  59              		.align	2
+  62              	current_char:
+  63 0000 00000000 		.space	4
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 2
+
+
+  64              		.section	.bss.current_data,"aw",%nobits
+  65              		.align	2
+  68              	current_data:
+  69 0000 00000000 		.space	120
+  69      00000000 
+  69      00000000 
+  69      00000000 
+  69      00000000 
+  70              		.section	.bss.counter,"aw",%nobits
+  73              	counter:
+  74 0000 00       		.space	1
+  75              		.section	.bss.msg,"aw",%nobits
+  76              		.align	2
+  79              	msg:
+  80 0000 00000000 		.space	400
+  80      00000000 
+  80      00000000 
+  80      00000000 
+  80      00000000 
+  81              		.section	.bss.non_formatted_latitude,"aw",%nobits
+  82              		.align	2
+  85              	non_formatted_latitude:
+  86 0000 00000000 		.space	4
+  87              		.section	.bss.non_formatted_longitude,"aw",%nobits
+  88              		.align	2
+  91              	non_formatted_longitude:
+  92 0000 00000000 		.space	4
+  93              		.section	.bss.non_formatted_time,"aw",%nobits
+  94              		.align	2
+  97              	non_formatted_time:
+  98 0000 00000000 		.space	4
+  99              		.section	.bss.non_formatted_date,"aw",%nobits
+ 100              		.align	2
+ 103              	non_formatted_date:
+ 104 0000 00000000 		.space	4
+ 105              		.section	.text.L86_GNSS_Init,"ax",%progbits
+ 106              		.align	1
+ 107              		.global	L86_GNSS_Init
+ 108              		.syntax unified
+ 109              		.thumb
+ 110              		.thumb_func
+ 112              	L86_GNSS_Init:
+ 113              	.LFB242:
+   1:Core/Src/l86_gnss.c **** /*
+   2:Core/Src/l86_gnss.c ****  * l86_gnss.c
+   3:Core/Src/l86_gnss.c ****  *
+   4:Core/Src/l86_gnss.c ****  *  Created on: Jul 11, 2025
+   5:Core/Src/l86_gnss.c ****  *      Author: bilal
+   6:Core/Src/l86_gnss.c ****  */
+   7:Core/Src/l86_gnss.c **** 
+   8:Core/Src/l86_gnss.c **** #include "l86_gnss.h"
+   9:Core/Src/l86_gnss.c **** 
+  10:Core/Src/l86_gnss.c **** UART_HandleTypeDef *huart_gnss;
+  11:Core/Src/l86_gnss.c **** char gnss_rx_buffer[BUFFER_SIZE * 2];
+  12:Core/Src/l86_gnss.c **** char gps_buffer[BUFFER_SIZE];
+  13:Core/Src/l86_gnss.c **** 
+  14:Core/Src/l86_gnss.c **** static char *gps_GNRMC_start_point = NULL;
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 3
+
+
+  15:Core/Src/l86_gnss.c **** static char *gps_GPGGA_start_point = NULL;
+  16:Core/Src/l86_gnss.c **** static uint8_t is_data_valid;
+  17:Core/Src/l86_gnss.c **** static char *current_char;
+  18:Core/Src/l86_gnss.c **** static char current_data[DATA_SIZE];
+  19:Core/Src/l86_gnss.c **** static uint8_t counter;
+  20:Core/Src/l86_gnss.c **** static char msg[MSG_SIZE];
+  21:Core/Src/l86_gnss.c **** static float non_formatted_latitude;
+  22:Core/Src/l86_gnss.c **** static float non_formatted_longitude;
+  23:Core/Src/l86_gnss.c **** static float non_formatted_time;
+  24:Core/Src/l86_gnss.c **** static uint32_t non_formatted_date;
+  25:Core/Src/l86_gnss.c **** 
+  26:Core/Src/l86_gnss.c **** static void process_data(char *rx_buffer, uint16_t buffer_size);
+  27:Core/Src/l86_gnss.c **** static void get_GNRMC_data(gps_data_t *gps_data_);
+  28:Core/Src/l86_gnss.c **** static void get_GPGGA_data(gps_data_t *gps_data_);
+  29:Core/Src/l86_gnss.c **** static void format_data(gps_data_t *gps_data_);
+  30:Core/Src/l86_gnss.c **** 
+  31:Core/Src/l86_gnss.c **** void L86_GNSS_Init(UART_HandleTypeDef *huart_gnss_)
+  32:Core/Src/l86_gnss.c **** {
+ 114              		.loc 1 32 1
+ 115              		.cfi_startproc
+ 116              		@ args = 0, pretend = 0, frame = 8
+ 117              		@ frame_needed = 1, uses_anonymous_args = 0
+ 118 0000 80B5     		push	{r7, lr}
+ 119              		.cfi_def_cfa_offset 8
+ 120              		.cfi_offset 7, -8
+ 121              		.cfi_offset 14, -4
+ 122 0002 82B0     		sub	sp, sp, #8
+ 123              		.cfi_def_cfa_offset 16
+ 124 0004 00AF     		add	r7, sp, #0
+ 125              		.cfi_def_cfa_register 7
+ 126 0006 7860     		str	r0, [r7, #4]
+  33:Core/Src/l86_gnss.c **** 	huart_gnss = huart_gnss_;
+ 127              		.loc 1 33 13
+ 128 0008 074A     		ldr	r2, .L2
+ 129 000a 7B68     		ldr	r3, [r7, #4]
+ 130 000c 1360     		str	r3, [r2]
+  34:Core/Src/l86_gnss.c **** 	HAL_UART_Receive_DMA(huart_gnss, (uint8_t *)gnss_rx_buffer, BUFFER_SIZE * 2);
+ 131              		.loc 1 34 2
+ 132 000e 064B     		ldr	r3, .L2
+ 133 0010 1B68     		ldr	r3, [r3]
+ 134 0012 4FF41662 		mov	r2, #2400
+ 135 0016 0549     		ldr	r1, .L2+4
+ 136 0018 1846     		mov	r0, r3
+ 137 001a FFF7FEFF 		bl	HAL_UART_Receive_DMA
+  35:Core/Src/l86_gnss.c **** }
+ 138              		.loc 1 35 1
+ 139 001e 00BF     		nop
+ 140 0020 0837     		adds	r7, r7, #8
+ 141              		.cfi_def_cfa_offset 8
+ 142 0022 BD46     		mov	sp, r7
+ 143              		.cfi_def_cfa_register 13
+ 144              		@ sp needed
+ 145 0024 80BD     		pop	{r7, pc}
+ 146              	.L3:
+ 147 0026 00BF     		.align	2
+ 148              	.L2:
+ 149 0028 00000000 		.word	huart_gnss
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 4
+
+
+ 150 002c 00000000 		.word	gnss_rx_buffer
+ 151              		.cfi_endproc
+ 152              	.LFE242:
+ 154              		.section	.text.HAL_UART_RxHalfCpltCallback,"ax",%progbits
+ 155              		.align	1
+ 156              		.global	HAL_UART_RxHalfCpltCallback
+ 157              		.syntax unified
+ 158              		.thumb
+ 159              		.thumb_func
+ 161              	HAL_UART_RxHalfCpltCallback:
+ 162              	.LFB243:
+  36:Core/Src/l86_gnss.c **** 
+  37:Core/Src/l86_gnss.c **** void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
+  38:Core/Src/l86_gnss.c **** {
+ 163              		.loc 1 38 1
+ 164              		.cfi_startproc
+ 165              		@ args = 0, pretend = 0, frame = 8
+ 166              		@ frame_needed = 1, uses_anonymous_args = 0
+ 167 0000 80B5     		push	{r7, lr}
+ 168              		.cfi_def_cfa_offset 8
+ 169              		.cfi_offset 7, -8
+ 170              		.cfi_offset 14, -4
+ 171 0002 82B0     		sub	sp, sp, #8
+ 172              		.cfi_def_cfa_offset 16
+ 173 0004 00AF     		add	r7, sp, #0
+ 174              		.cfi_def_cfa_register 7
+ 175 0006 7860     		str	r0, [r7, #4]
+  39:Core/Src/l86_gnss.c **** 	if(huart == huart_gnss)
+ 176              		.loc 1 39 11
+ 177 0008 064B     		ldr	r3, .L7
+ 178 000a 1B68     		ldr	r3, [r3]
+ 179              		.loc 1 39 4
+ 180 000c 7A68     		ldr	r2, [r7, #4]
+ 181 000e 9A42     		cmp	r2, r3
+ 182 0010 04D1     		bne	.L6
+  40:Core/Src/l86_gnss.c **** 	{
+  41:Core/Src/l86_gnss.c **** 		process_data(gnss_rx_buffer, BUFFER_SIZE);
+ 183              		.loc 1 41 3
+ 184 0012 4FF49661 		mov	r1, #1200
+ 185 0016 0448     		ldr	r0, .L7+4
+ 186 0018 FFF7FEFF 		bl	process_data
+ 187              	.L6:
+  42:Core/Src/l86_gnss.c **** 	}
+  43:Core/Src/l86_gnss.c **** }
+ 188              		.loc 1 43 1
+ 189 001c 00BF     		nop
+ 190 001e 0837     		adds	r7, r7, #8
+ 191              		.cfi_def_cfa_offset 8
+ 192 0020 BD46     		mov	sp, r7
+ 193              		.cfi_def_cfa_register 13
+ 194              		@ sp needed
+ 195 0022 80BD     		pop	{r7, pc}
+ 196              	.L8:
+ 197              		.align	2
+ 198              	.L7:
+ 199 0024 00000000 		.word	huart_gnss
+ 200 0028 00000000 		.word	gnss_rx_buffer
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 5
+
+
+ 201              		.cfi_endproc
+ 202              	.LFE243:
+ 204              		.section	.text.HAL_UART_RxCpltCallback,"ax",%progbits
+ 205              		.align	1
+ 206              		.global	HAL_UART_RxCpltCallback
+ 207              		.syntax unified
+ 208              		.thumb
+ 209              		.thumb_func
+ 211              	HAL_UART_RxCpltCallback:
+ 212              	.LFB244:
+  44:Core/Src/l86_gnss.c **** 
+  45:Core/Src/l86_gnss.c **** void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+  46:Core/Src/l86_gnss.c **** {
+ 213              		.loc 1 46 1
+ 214              		.cfi_startproc
+ 215              		@ args = 0, pretend = 0, frame = 8
+ 216              		@ frame_needed = 1, uses_anonymous_args = 0
+ 217 0000 80B5     		push	{r7, lr}
+ 218              		.cfi_def_cfa_offset 8
+ 219              		.cfi_offset 7, -8
+ 220              		.cfi_offset 14, -4
+ 221 0002 82B0     		sub	sp, sp, #8
+ 222              		.cfi_def_cfa_offset 16
+ 223 0004 00AF     		add	r7, sp, #0
+ 224              		.cfi_def_cfa_register 7
+ 225 0006 7860     		str	r0, [r7, #4]
+  47:Core/Src/l86_gnss.c **** 	if(huart == huart_gnss)
+ 226              		.loc 1 47 11
+ 227 0008 064B     		ldr	r3, .L12
+ 228 000a 1B68     		ldr	r3, [r3]
+ 229              		.loc 1 47 4
+ 230 000c 7A68     		ldr	r2, [r7, #4]
+ 231 000e 9A42     		cmp	r2, r3
+ 232 0010 04D1     		bne	.L11
+  48:Core/Src/l86_gnss.c **** 	{
+  49:Core/Src/l86_gnss.c **** 		process_data(&gnss_rx_buffer[BUFFER_SIZE], BUFFER_SIZE);
+ 233              		.loc 1 49 3
+ 234 0012 4FF49661 		mov	r1, #1200
+ 235 0016 0448     		ldr	r0, .L12+4
+ 236 0018 FFF7FEFF 		bl	process_data
+ 237              	.L11:
+  50:Core/Src/l86_gnss.c **** 	}
+  51:Core/Src/l86_gnss.c **** }
+ 238              		.loc 1 51 1
+ 239 001c 00BF     		nop
+ 240 001e 0837     		adds	r7, r7, #8
+ 241              		.cfi_def_cfa_offset 8
+ 242 0020 BD46     		mov	sp, r7
+ 243              		.cfi_def_cfa_register 13
+ 244              		@ sp needed
+ 245 0022 80BD     		pop	{r7, pc}
+ 246              	.L13:
+ 247              		.align	2
+ 248              	.L12:
+ 249 0024 00000000 		.word	huart_gnss
+ 250 0028 B0040000 		.word	gnss_rx_buffer+1200
+ 251              		.cfi_endproc
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 6
+
+
+ 252              	.LFE244:
+ 254              		.section	.text.L86_GNSS_Update,"ax",%progbits
+ 255              		.align	1
+ 256              		.global	L86_GNSS_Update
+ 257              		.syntax unified
+ 258              		.thumb
+ 259              		.thumb_func
+ 261              	L86_GNSS_Update:
+ 262              	.LFB245:
+  52:Core/Src/l86_gnss.c **** 
+  53:Core/Src/l86_gnss.c **** void L86_GNSS_Update(gps_data_t *gps_data_)
+  54:Core/Src/l86_gnss.c **** {
+ 263              		.loc 1 54 1
+ 264              		.cfi_startproc
+ 265              		@ args = 0, pretend = 0, frame = 8
+ 266              		@ frame_needed = 1, uses_anonymous_args = 0
+ 267 0000 80B5     		push	{r7, lr}
+ 268              		.cfi_def_cfa_offset 8
+ 269              		.cfi_offset 7, -8
+ 270              		.cfi_offset 14, -4
+ 271 0002 82B0     		sub	sp, sp, #8
+ 272              		.cfi_def_cfa_offset 16
+ 273 0004 00AF     		add	r7, sp, #0
+ 274              		.cfi_def_cfa_register 7
+ 275 0006 7860     		str	r0, [r7, #4]
+  55:Core/Src/l86_gnss.c **** 	get_GNRMC_data(gps_data_);
+ 276              		.loc 1 55 2
+ 277 0008 7868     		ldr	r0, [r7, #4]
+ 278 000a FFF7FEFF 		bl	get_GNRMC_data
+  56:Core/Src/l86_gnss.c **** 	get_GPGGA_data(gps_data_);
+ 279              		.loc 1 56 2
+ 280 000e 7868     		ldr	r0, [r7, #4]
+ 281 0010 FFF7FEFF 		bl	get_GPGGA_data
+  57:Core/Src/l86_gnss.c **** 	format_data(gps_data_);
+ 282              		.loc 1 57 2
+ 283 0014 7868     		ldr	r0, [r7, #4]
+ 284 0016 FFF7FEFF 		bl	format_data
+  58:Core/Src/l86_gnss.c **** }
+ 285              		.loc 1 58 1
+ 286 001a 00BF     		nop
+ 287 001c 0837     		adds	r7, r7, #8
+ 288              		.cfi_def_cfa_offset 8
+ 289 001e BD46     		mov	sp, r7
+ 290              		.cfi_def_cfa_register 13
+ 291              		@ sp needed
+ 292 0020 80BD     		pop	{r7, pc}
+ 293              		.cfi_endproc
+ 294              	.LFE245:
+ 296              		.global	__aeabi_f2d
+ 297              		.section	.rodata
+ 298              		.align	2
+ 299              	.LC0:
+ 300 0000 4C617469 		.ascii	"Latitude: %f %c, Longitude: %f %c, Time: %u.%u.%u, "
+ 300      74756465 
+ 300      3A202566 
+ 300      2025632C 
+ 300      204C6F6E 
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 7
+
+
+ 301 0033 44617465 		.ascii	"Date: %u/%u/%u\015\012Speed: %f, Course: %f, Satell"
+ 301      3A202575 
+ 301      2F25752F 
+ 301      25750D0A 
+ 301      53706565 
+ 302 0060 69746573 		.ascii	"ites in use: %u, HDOP: %f, Altitude: %f, Geoid heig"
+ 302      20696E20 
+ 302      7573653A 
+ 302      2025752C 
+ 302      2048444F 
+ 303 0093 68743A20 		.ascii	"ht: %f, Orthometric height: %f\015\012\000"
+ 303      25662C20 
+ 303      4F727468 
+ 303      6F6D6574 
+ 303      72696320 
+ 304              		.align	2
+ 305              	.LC1:
+ 306 00b4 496E7661 		.ascii	"Invalid Data!\015\012\000"
+ 306      6C696420 
+ 306      44617461 
+ 306      210D0A00 
+ 307              		.section	.text.L86_GNSS_Print_Info,"ax",%progbits
+ 308              		.align	1
+ 309              		.global	L86_GNSS_Print_Info
+ 310              		.syntax unified
+ 311              		.thumb
+ 312              		.thumb_func
+ 314              	L86_GNSS_Print_Info:
+ 315              	.LFB246:
+  59:Core/Src/l86_gnss.c **** 
+  60:Core/Src/l86_gnss.c **** void L86_GNSS_Print_Info(gps_data_t *gps_data_, UART_HandleTypeDef *huart_Seri_Port)
+  61:Core/Src/l86_gnss.c **** {
+ 316              		.loc 1 61 1
+ 317              		.cfi_startproc
+ 318              		@ args = 0, pretend = 0, frame = 72
+ 319              		@ frame_needed = 1, uses_anonymous_args = 0
+ 320 0000 2DE9F04F 		push	{r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 321              		.cfi_def_cfa_offset 36
+ 322              		.cfi_offset 4, -36
+ 323              		.cfi_offset 5, -32
+ 324              		.cfi_offset 6, -28
+ 325              		.cfi_offset 7, -24
+ 326              		.cfi_offset 8, -20
+ 327              		.cfi_offset 9, -16
+ 328              		.cfi_offset 10, -12
+ 329              		.cfi_offset 11, -8
+ 330              		.cfi_offset 14, -4
+ 331 0004 AFB0     		sub	sp, sp, #188
+ 332              		.cfi_def_cfa_offset 224
+ 333 0006 1CAF     		add	r7, sp, #112
+ 334              		.cfi_def_cfa 7, 112
+ 335 0008 7864     		str	r0, [r7, #68]
+ 336 000a 3964     		str	r1, [r7, #64]
+  62:Core/Src/l86_gnss.c **** 	memset(msg, 0, MSG_SIZE);
+ 337              		.loc 1 62 2
+ 338 000c 4FF4C872 		mov	r2, #400
+ 339 0010 0021     		movs	r1, #0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 8
+
+
+ 340 0012 5348     		ldr	r0, .L18
+ 341 0014 FFF7FEFF 		bl	memset
+  63:Core/Src/l86_gnss.c **** 
+  64:Core/Src/l86_gnss.c **** 	if(gps_data_->is_valid == VALID)
+ 342              		.loc 1 64 14
+ 343 0018 7B6C     		ldr	r3, [r7, #68]
+ 344 001a 1B79     		ldrb	r3, [r3, #4]	@ zero_extendqisi2
+ 345              		.loc 1 64 4
+ 346 001c 412B     		cmp	r3, #65
+ 347 001e 40F08A80 		bne	.L16
+  65:Core/Src/l86_gnss.c **** 	{
+  66:Core/Src/l86_gnss.c **** 		snprintf(msg, MSG_SIZE, "Latitude: %f %c, Longitude: %f %c, Time: %u.%u.%u, Date: %u/%u/%u\r\n"
+  67:Core/Src/l86_gnss.c **** 					"Speed: %f, Course: %f, Satellites in use: %u, HDOP: %f, Altitude: %f, Geoid height: %f, Ortho
+  68:Core/Src/l86_gnss.c **** 					gps_data_->latitude, gps_data_->N_S, gps_data_->longitude, gps_data_->E_W,
+ 348              		.loc 1 68 15
+ 349 0022 7B6C     		ldr	r3, [r7, #68]
+ 350 0024 5B6B     		ldr	r3, [r3, #52]	@ float
+  66:Core/Src/l86_gnss.c **** 					"Speed: %f, Course: %f, Satellites in use: %u, HDOP: %f, Altitude: %f, Geoid height: %f, Ortho
+ 351              		.loc 1 66 3
+ 352 0026 1846     		mov	r0, r3	@ float
+ 353 0028 FFF7FEFF 		bl	__aeabi_f2d
+ 354 002c C7E90E01 		strd	r0, [r7, #56]
+ 355              		.loc 1 68 36
+ 356 0030 7B6C     		ldr	r3, [r7, #68]
+ 357 0032 1B7B     		ldrb	r3, [r3, #12]	@ zero_extendqisi2
+  66:Core/Src/l86_gnss.c **** 					"Speed: %f, Course: %f, Satellites in use: %u, HDOP: %f, Altitude: %f, Geoid height: %f, Ortho
+ 358              		.loc 1 66 3
+ 359 0034 7B63     		str	r3, [r7, #52]
+ 360              		.loc 1 68 52
+ 361 0036 7B6C     		ldr	r3, [r7, #68]
+ 362 0038 9B6B     		ldr	r3, [r3, #56]	@ float
+  66:Core/Src/l86_gnss.c **** 					"Speed: %f, Course: %f, Satellites in use: %u, HDOP: %f, Altitude: %f, Geoid height: %f, Ortho
+ 363              		.loc 1 66 3
+ 364 003a 1846     		mov	r0, r3	@ float
+ 365 003c FFF7FEFF 		bl	__aeabi_f2d
+ 366 0040 C7E90A01 		strd	r0, [r7, #40]
+ 367              		.loc 1 68 74
+ 368 0044 7B6C     		ldr	r3, [r7, #68]
+ 369 0046 1B7D     		ldrb	r3, [r3, #20]	@ zero_extendqisi2
+  66:Core/Src/l86_gnss.c **** 					"Speed: %f, Course: %f, Satellites in use: %u, HDOP: %f, Altitude: %f, Geoid height: %f, Ortho
+ 370              		.loc 1 66 3
+ 371 0048 3B63     		str	r3, [r7, #48]
+  69:Core/Src/l86_gnss.c **** 					gps_data_->time[0], gps_data_->time[1], gps_data_->time[2], gps_data_->date[0], gps_data_->dat
+ 372              		.loc 1 69 21
+ 373 004a 7B6C     		ldr	r3, [r7, #68]
+ 374 004c 93F83C30 		ldrb	r3, [r3, #60]	@ zero_extendqisi2
+  66:Core/Src/l86_gnss.c **** 					"Speed: %f, Course: %f, Satellites in use: %u, HDOP: %f, Altitude: %f, Geoid height: %f, Ortho
+ 375              		.loc 1 66 3
+ 376 0050 7B62     		str	r3, [r7, #36]
+ 377              		.loc 1 69 41
+ 378 0052 7B6C     		ldr	r3, [r7, #68]
+ 379 0054 93F83D30 		ldrb	r3, [r3, #61]	@ zero_extendqisi2
+  66:Core/Src/l86_gnss.c **** 					"Speed: %f, Course: %f, Satellites in use: %u, HDOP: %f, Altitude: %f, Geoid height: %f, Ortho
+ 380              		.loc 1 66 3
+ 381 0058 3B62     		str	r3, [r7, #32]
+ 382              		.loc 1 69 61
+ 383 005a 7B6C     		ldr	r3, [r7, #68]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 9
+
+
+ 384 005c 93F83E30 		ldrb	r3, [r3, #62]	@ zero_extendqisi2
+  66:Core/Src/l86_gnss.c **** 					"Speed: %f, Course: %f, Satellites in use: %u, HDOP: %f, Altitude: %f, Geoid height: %f, Ortho
+ 385              		.loc 1 66 3
+ 386 0060 FB61     		str	r3, [r7, #28]
+ 387              		.loc 1 69 81
+ 388 0062 7B6C     		ldr	r3, [r7, #68]
+ 389 0064 93F83F30 		ldrb	r3, [r3, #63]	@ zero_extendqisi2
+  66:Core/Src/l86_gnss.c **** 					"Speed: %f, Course: %f, Satellites in use: %u, HDOP: %f, Altitude: %f, Geoid height: %f, Ortho
+ 390              		.loc 1 66 3
+ 391 0068 BB61     		str	r3, [r7, #24]
+ 392              		.loc 1 69 101
+ 393 006a 7B6C     		ldr	r3, [r7, #68]
+ 394 006c 93F84030 		ldrb	r3, [r3, #64]	@ zero_extendqisi2
+  66:Core/Src/l86_gnss.c **** 					"Speed: %f, Course: %f, Satellites in use: %u, HDOP: %f, Altitude: %f, Geoid height: %f, Ortho
+ 395              		.loc 1 66 3
+ 396 0070 7B61     		str	r3, [r7, #20]
+ 397              		.loc 1 69 121
+ 398 0072 7B6C     		ldr	r3, [r7, #68]
+ 399 0074 93F84130 		ldrb	r3, [r3, #65]	@ zero_extendqisi2
+  66:Core/Src/l86_gnss.c **** 					"Speed: %f, Course: %f, Satellites in use: %u, HDOP: %f, Altitude: %f, Geoid height: %f, Ortho
+ 400              		.loc 1 66 3
+ 401 0078 3B61     		str	r3, [r7, #16]
+  70:Core/Src/l86_gnss.c **** 					gps_data_->speed_over_ground, gps_data_->course_over_ground, gps_data_->satellites_in_use, gps
+ 402              		.loc 1 70 15
+ 403 007a 7B6C     		ldr	r3, [r7, #68]
+ 404 007c 9B69     		ldr	r3, [r3, #24]	@ float
+  66:Core/Src/l86_gnss.c **** 					"Speed: %f, Course: %f, Satellites in use: %u, HDOP: %f, Altitude: %f, Geoid height: %f, Ortho
+ 405              		.loc 1 66 3
+ 406 007e 1846     		mov	r0, r3	@ float
+ 407 0080 FFF7FEFF 		bl	__aeabi_f2d
+ 408 0084 C7E90201 		strd	r0, [r7, #8]
+ 409              		.loc 1 70 45
+ 410 0088 7B6C     		ldr	r3, [r7, #68]
+ 411 008a DB69     		ldr	r3, [r3, #28]	@ float
+  66:Core/Src/l86_gnss.c **** 					"Speed: %f, Course: %f, Satellites in use: %u, HDOP: %f, Altitude: %f, Geoid height: %f, Ortho
+ 412              		.loc 1 66 3
+ 413 008c 1846     		mov	r0, r3	@ float
+ 414 008e FFF7FEFF 		bl	__aeabi_f2d
+ 415 0092 C7E90001 		strd	r0, [r7]
+ 416              		.loc 1 70 76
+ 417 0096 7B6C     		ldr	r3, [r7, #68]
+ 418 0098 93F82630 		ldrb	r3, [r3, #38]	@ zero_extendqisi2
+  66:Core/Src/l86_gnss.c **** 					"Speed: %f, Course: %f, Satellites in use: %u, HDOP: %f, Altitude: %f, Geoid height: %f, Ortho
+ 419              		.loc 1 66 3
+ 420 009c 1E46     		mov	r6, r3
+ 421              		.loc 1 70 106
+ 422 009e 7B6C     		ldr	r3, [r7, #68]
+ 423 00a0 9B6A     		ldr	r3, [r3, #40]	@ float
+  66:Core/Src/l86_gnss.c **** 					"Speed: %f, Course: %f, Satellites in use: %u, HDOP: %f, Altitude: %f, Geoid height: %f, Ortho
+ 424              		.loc 1 66 3
+ 425 00a2 1846     		mov	r0, r3	@ float
+ 426 00a4 FFF7FEFF 		bl	__aeabi_f2d
+ 427 00a8 8246     		mov	r10, r0
+ 428 00aa 8B46     		mov	fp, r1
+  71:Core/Src/l86_gnss.c **** 					gps_data_->altitude, gps_data_->geoid_height, gps_data_->orthometric_height);
+ 429              		.loc 1 71 15
+ 430 00ac 7B6C     		ldr	r3, [r7, #68]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 10
+
+
+ 431 00ae DB6A     		ldr	r3, [r3, #44]	@ float
+  66:Core/Src/l86_gnss.c **** 					"Speed: %f, Course: %f, Satellites in use: %u, HDOP: %f, Altitude: %f, Geoid height: %f, Ortho
+ 432              		.loc 1 66 3
+ 433 00b0 1846     		mov	r0, r3	@ float
+ 434 00b2 FFF7FEFF 		bl	__aeabi_f2d
+ 435 00b6 8046     		mov	r8, r0
+ 436 00b8 8946     		mov	r9, r1
+ 437              		.loc 1 71 36
+ 438 00ba 7B6C     		ldr	r3, [r7, #68]
+ 439 00bc 1B6B     		ldr	r3, [r3, #48]	@ float
+  66:Core/Src/l86_gnss.c **** 					"Speed: %f, Course: %f, Satellites in use: %u, HDOP: %f, Altitude: %f, Geoid height: %f, Ortho
+ 440              		.loc 1 66 3
+ 441 00be 1846     		mov	r0, r3	@ float
+ 442 00c0 FFF7FEFF 		bl	__aeabi_f2d
+ 443 00c4 0446     		mov	r4, r0
+ 444 00c6 0D46     		mov	r5, r1
+ 445              		.loc 1 71 61
+ 446 00c8 7B6C     		ldr	r3, [r7, #68]
+ 447 00ca 5B6C     		ldr	r3, [r3, #68]	@ float
+  66:Core/Src/l86_gnss.c **** 					"Speed: %f, Course: %f, Satellites in use: %u, HDOP: %f, Altitude: %f, Geoid height: %f, Ortho
+ 448              		.loc 1 66 3
+ 449 00cc 1846     		mov	r0, r3	@ float
+ 450 00ce FFF7FEFF 		bl	__aeabi_f2d
+ 451 00d2 0246     		mov	r2, r0
+ 452 00d4 0B46     		mov	r3, r1
+ 453 00d6 CDE91A23 		strd	r2, [sp, #104]
+ 454 00da CDE91845 		strd	r4, [sp, #96]
+ 455 00de CDE91689 		strd	r8, [sp, #88]
+ 456 00e2 CDE914AB 		strd	r10, [sp, #80]
+ 457 00e6 1296     		str	r6, [sp, #72]
+ 458 00e8 97ED007B 		vldr.64	d7, [r7]
+ 459 00ec 8DED107B 		vstr.64	d7, [sp, #64]
+ 460 00f0 97ED027B 		vldr.64	d7, [r7, #8]
+ 461 00f4 8DED0E7B 		vstr.64	d7, [sp, #56]
+ 462 00f8 3A69     		ldr	r2, [r7, #16]
+ 463 00fa 0C92     		str	r2, [sp, #48]
+ 464 00fc 7A69     		ldr	r2, [r7, #20]
+ 465 00fe 0B92     		str	r2, [sp, #44]
+ 466 0100 BA69     		ldr	r2, [r7, #24]
+ 467 0102 0A92     		str	r2, [sp, #40]
+ 468 0104 FA69     		ldr	r2, [r7, #28]
+ 469 0106 0992     		str	r2, [sp, #36]
+ 470 0108 3A6A     		ldr	r2, [r7, #32]
+ 471 010a 0892     		str	r2, [sp, #32]
+ 472 010c 7A6A     		ldr	r2, [r7, #36]
+ 473 010e 0792     		str	r2, [sp, #28]
+ 474 0110 3A6B     		ldr	r2, [r7, #48]
+ 475 0112 0692     		str	r2, [sp, #24]
+ 476 0114 97ED0A7B 		vldr.64	d7, [r7, #40]
+ 477 0118 8DED047B 		vstr.64	d7, [sp, #16]
+ 478 011c 7B6B     		ldr	r3, [r7, #52]
+ 479 011e 0293     		str	r3, [sp, #8]
+ 480 0120 97ED0E7B 		vldr.64	d7, [r7, #56]
+ 481 0124 8DED007B 		vstr.64	d7, [sp]
+ 482 0128 0E4A     		ldr	r2, .L18+4
+ 483 012a 4FF4C871 		mov	r1, #400
+ 484 012e 0C48     		ldr	r0, .L18
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 11
+
+
+ 485 0130 FFF7FEFF 		bl	snprintf
+ 486 0134 04E0     		b	.L17
+ 487              	.L16:
+  72:Core/Src/l86_gnss.c **** 	}
+  73:Core/Src/l86_gnss.c **** 	else
+  74:Core/Src/l86_gnss.c **** 	{
+  75:Core/Src/l86_gnss.c **** 		memcpy(msg, "Invalid Data!\r\n", 15);
+ 488              		.loc 1 75 3
+ 489 0136 0F22     		movs	r2, #15
+ 490 0138 0B49     		ldr	r1, .L18+8
+ 491 013a 0948     		ldr	r0, .L18
+ 492 013c FFF7FEFF 		bl	memcpy
+ 493              	.L17:
+  76:Core/Src/l86_gnss.c **** 	}
+  77:Core/Src/l86_gnss.c **** 
+  78:Core/Src/l86_gnss.c **** 	HAL_UART_Transmit(huart_Seri_Port, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
+ 494              		.loc 1 78 53
+ 495 0140 0748     		ldr	r0, .L18
+ 496 0142 FFF7FEFF 		bl	strlen
+ 497 0146 0346     		mov	r3, r0
+ 498              		.loc 1 78 2
+ 499 0148 9AB2     		uxth	r2, r3
+ 500 014a 4FF0FF33 		mov	r3, #-1
+ 501 014e 0449     		ldr	r1, .L18
+ 502 0150 386C     		ldr	r0, [r7, #64]
+ 503 0152 FFF7FEFF 		bl	HAL_UART_Transmit
+  79:Core/Src/l86_gnss.c **** }
+ 504              		.loc 1 79 1
+ 505 0156 00BF     		nop
+ 506 0158 4C37     		adds	r7, r7, #76
+ 507              		.cfi_def_cfa_offset 36
+ 508 015a BD46     		mov	sp, r7
+ 509              		.cfi_def_cfa_register 13
+ 510              		@ sp needed
+ 511 015c BDE8F08F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 512              	.L19:
+ 513              		.align	2
+ 514              	.L18:
+ 515 0160 00000000 		.word	msg
+ 516 0164 00000000 		.word	.LC0
+ 517 0168 B4000000 		.word	.LC1
+ 518              		.cfi_endproc
+ 519              	.LFE246:
+ 521              		.section	.text.process_data,"ax",%progbits
+ 522              		.align	1
+ 523              		.syntax unified
+ 524              		.thumb
+ 525              		.thumb_func
+ 527              	process_data:
+ 528              	.LFB247:
+  80:Core/Src/l86_gnss.c **** 
+  81:Core/Src/l86_gnss.c **** static void process_data(char *rx_buffer, uint16_t buffer_size)
+  82:Core/Src/l86_gnss.c **** {
+ 529              		.loc 1 82 1
+ 530              		.cfi_startproc
+ 531              		@ args = 0, pretend = 0, frame = 8
+ 532              		@ frame_needed = 1, uses_anonymous_args = 0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 12
+
+
+ 533 0000 80B5     		push	{r7, lr}
+ 534              		.cfi_def_cfa_offset 8
+ 535              		.cfi_offset 7, -8
+ 536              		.cfi_offset 14, -4
+ 537 0002 82B0     		sub	sp, sp, #8
+ 538              		.cfi_def_cfa_offset 16
+ 539 0004 00AF     		add	r7, sp, #0
+ 540              		.cfi_def_cfa_register 7
+ 541 0006 7860     		str	r0, [r7, #4]
+ 542 0008 0B46     		mov	r3, r1
+ 543 000a 7B80     		strh	r3, [r7, #2]	@ movhi
+  83:Core/Src/l86_gnss.c **** 	memcpy(gps_buffer, rx_buffer, buffer_size);
+ 544              		.loc 1 83 2
+ 545 000c 7B88     		ldrh	r3, [r7, #2]
+ 546 000e 1A46     		mov	r2, r3
+ 547 0010 7968     		ldr	r1, [r7, #4]
+ 548 0012 0348     		ldr	r0, .L21
+ 549 0014 FFF7FEFF 		bl	memcpy
+  84:Core/Src/l86_gnss.c **** }
+ 550              		.loc 1 84 1
+ 551 0018 00BF     		nop
+ 552 001a 0837     		adds	r7, r7, #8
+ 553              		.cfi_def_cfa_offset 8
+ 554 001c BD46     		mov	sp, r7
+ 555              		.cfi_def_cfa_register 13
+ 556              		@ sp needed
+ 557 001e 80BD     		pop	{r7, pc}
+ 558              	.L22:
+ 559              		.align	2
+ 560              	.L21:
+ 561 0020 00000000 		.word	gps_buffer
+ 562              		.cfi_endproc
+ 563              	.LFE247:
+ 565              		.section	.rodata
+ 566              		.align	2
+ 567              	.LC2:
+ 568 00c4 474E524D 		.ascii	"GNRMC\000"
+ 568      4300
+ 569 00ca 0000     		.align	2
+ 570              	.LC3:
+ 571 00cc 474E524D 		.ascii	"GNRMC,%f,%c,%f,%c,%f,%c,%f,%f,%lu,,,%c\000"
+ 571      432C2566 
+ 571      2C25632C 
+ 571      25662C25 
+ 571      632C2566 
+ 572              		.section	.text.get_GNRMC_data,"ax",%progbits
+ 573              		.align	1
+ 574              		.syntax unified
+ 575              		.thumb
+ 576              		.thumb_func
+ 578              	get_GNRMC_data:
+ 579              	.LFB248:
+  85:Core/Src/l86_gnss.c **** 
+  86:Core/Src/l86_gnss.c **** static void get_GNRMC_data(gps_data_t *gps_data_)
+  87:Core/Src/l86_gnss.c **** {
+ 580              		.loc 1 87 1
+ 581              		.cfi_startproc
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 13
+
+
+ 582              		@ args = 0, pretend = 0, frame = 16
+ 583              		@ frame_needed = 1, uses_anonymous_args = 0
+ 584 0000 F0B5     		push	{r4, r5, r6, r7, lr}
+ 585              		.cfi_def_cfa_offset 20
+ 586              		.cfi_offset 4, -20
+ 587              		.cfi_offset 5, -16
+ 588              		.cfi_offset 6, -12
+ 589              		.cfi_offset 7, -8
+ 590              		.cfi_offset 14, -4
+ 591 0002 8DB0     		sub	sp, sp, #52
+ 592              		.cfi_def_cfa_offset 72
+ 593 0004 08AF     		add	r7, sp, #32
+ 594              		.cfi_def_cfa 7, 40
+ 595 0006 F860     		str	r0, [r7, #12]
+  88:Core/Src/l86_gnss.c **** 	gps_GNRMC_start_point = strstr(gps_buffer, "GNRMC");
+ 596              		.loc 1 88 26
+ 597 0008 3749     		ldr	r1, .L29
+ 598 000a 3848     		ldr	r0, .L29+4
+ 599 000c FFF7FEFF 		bl	strstr
+ 600 0010 0346     		mov	r3, r0
+ 601              		.loc 1 88 24
+ 602 0012 374A     		ldr	r2, .L29+8
+ 603 0014 1360     		str	r3, [r2]
+  89:Core/Src/l86_gnss.c **** 
+  90:Core/Src/l86_gnss.c **** 	if(gps_GNRMC_start_point != NULL && *(gps_GNRMC_start_point + 17) == VALID)
+ 604              		.loc 1 90 27
+ 605 0016 364B     		ldr	r3, .L29+8
+ 606 0018 1B68     		ldr	r3, [r3]
+ 607              		.loc 1 90 4
+ 608 001a 002B     		cmp	r3, #0
+ 609 001c 09D0     		beq	.L24
+ 610              		.loc 1 90 62 discriminator 1
+ 611 001e 344B     		ldr	r3, .L29+8
+ 612 0020 1B68     		ldr	r3, [r3]
+ 613 0022 1133     		adds	r3, r3, #17
+ 614              		.loc 1 90 38 discriminator 1
+ 615 0024 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 616              		.loc 1 90 35 discriminator 1
+ 617 0026 412B     		cmp	r3, #65
+ 618 0028 03D1     		bne	.L24
+  91:Core/Src/l86_gnss.c **** 	{
+  92:Core/Src/l86_gnss.c **** 		is_data_valid = 1;
+ 619              		.loc 1 92 17
+ 620 002a 324B     		ldr	r3, .L29+12
+ 621 002c 0122     		movs	r2, #1
+ 622 002e 1A70     		strb	r2, [r3]
+ 623 0030 05E0     		b	.L25
+ 624              	.L24:
+  93:Core/Src/l86_gnss.c **** 	}
+  94:Core/Src/l86_gnss.c **** 	else
+  95:Core/Src/l86_gnss.c **** 	{
+  96:Core/Src/l86_gnss.c **** 		is_data_valid = 0;
+ 625              		.loc 1 96 17
+ 626 0032 304B     		ldr	r3, .L29+12
+ 627 0034 0022     		movs	r2, #0
+ 628 0036 1A70     		strb	r2, [r3]
+  97:Core/Src/l86_gnss.c **** 		gps_data_->is_valid = INVALID;
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 14
+
+
+ 629              		.loc 1 97 23
+ 630 0038 FB68     		ldr	r3, [r7, #12]
+ 631 003a 5622     		movs	r2, #86
+ 632 003c 1A71     		strb	r2, [r3, #4]
+ 633              	.L25:
+  98:Core/Src/l86_gnss.c **** 	}
+  99:Core/Src/l86_gnss.c **** 
+ 100:Core/Src/l86_gnss.c **** 	if(is_data_valid == 1)
+ 634              		.loc 1 100 19
+ 635 003e 2D4B     		ldr	r3, .L29+12
+ 636 0040 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 637              		.loc 1 100 4
+ 638 0042 012B     		cmp	r3, #1
+ 639 0044 48D1     		bne	.L26
+ 101:Core/Src/l86_gnss.c **** 	{
+ 102:Core/Src/l86_gnss.c **** 		memset(current_data, 0, DATA_SIZE);
+ 640              		.loc 1 102 3
+ 641 0046 7822     		movs	r2, #120
+ 642 0048 0021     		movs	r1, #0
+ 643 004a 2B48     		ldr	r0, .L29+16
+ 644 004c FFF7FEFF 		bl	memset
+ 103:Core/Src/l86_gnss.c **** 		counter = 0;
+ 645              		.loc 1 103 11
+ 646 0050 2A4B     		ldr	r3, .L29+20
+ 647 0052 0022     		movs	r2, #0
+ 648 0054 1A70     		strb	r2, [r3]
+ 104:Core/Src/l86_gnss.c **** 		current_char = gps_GNRMC_start_point;
+ 649              		.loc 1 104 16
+ 650 0056 264B     		ldr	r3, .L29+8
+ 651 0058 1B68     		ldr	r3, [r3]
+ 652 005a 294A     		ldr	r2, .L29+24
+ 653 005c 1360     		str	r3, [r2]
+ 105:Core/Src/l86_gnss.c **** 		while(*current_char != '*')
+ 654              		.loc 1 105 8
+ 655 005e 11E0     		b	.L27
+ 656              	.L28:
+ 106:Core/Src/l86_gnss.c **** 		{
+ 107:Core/Src/l86_gnss.c **** 			current_data[counter] = *current_char;
+ 657              		.loc 1 107 28
+ 658 0060 274B     		ldr	r3, .L29+24
+ 659 0062 1B68     		ldr	r3, [r3]
+ 660              		.loc 1 107 16
+ 661 0064 254A     		ldr	r2, .L29+20
+ 662 0066 1278     		ldrb	r2, [r2]	@ zero_extendqisi2
+ 663              		.loc 1 107 28
+ 664 0068 1978     		ldrb	r1, [r3]	@ zero_extendqisi2
+ 665              		.loc 1 107 26
+ 666 006a 234B     		ldr	r3, .L29+16
+ 667 006c 9954     		strb	r1, [r3, r2]
+ 108:Core/Src/l86_gnss.c **** 			counter++;
+ 668              		.loc 1 108 11
+ 669 006e 234B     		ldr	r3, .L29+20
+ 670 0070 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 671 0072 0133     		adds	r3, r3, #1
+ 672 0074 DAB2     		uxtb	r2, r3
+ 673 0076 214B     		ldr	r3, .L29+20
+ 674 0078 1A70     		strb	r2, [r3]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 15
+
+
+ 109:Core/Src/l86_gnss.c **** 			current_char++;
+ 675              		.loc 1 109 16
+ 676 007a 214B     		ldr	r3, .L29+24
+ 677 007c 1B68     		ldr	r3, [r3]
+ 678 007e 0133     		adds	r3, r3, #1
+ 679 0080 1F4A     		ldr	r2, .L29+24
+ 680 0082 1360     		str	r3, [r2]
+ 681              	.L27:
+ 105:Core/Src/l86_gnss.c **** 		{
+ 682              		.loc 1 105 9
+ 683 0084 1E4B     		ldr	r3, .L29+24
+ 684 0086 1B68     		ldr	r3, [r3]
+ 685 0088 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 105:Core/Src/l86_gnss.c **** 		{
+ 686              		.loc 1 105 23
+ 687 008a 2A2B     		cmp	r3, #42
+ 688 008c E8D1     		bne	.L28
+ 110:Core/Src/l86_gnss.c **** 		}
+ 111:Core/Src/l86_gnss.c **** 
+ 112:Core/Src/l86_gnss.c **** 		sscanf(current_data, "GNRMC,%f,%c,%f,%c,%f,%c,%f,%f,%lu,,,%c",
+ 689              		.loc 1 112 3
+ 690 008e FB68     		ldr	r3, [r7, #12]
+ 691 0090 BB60     		str	r3, [r7, #8]
+ 692 0092 FB68     		ldr	r3, [r7, #12]
+ 693 0094 03F1040C 		add	ip, r3, #4
+ 694 0098 FB68     		ldr	r3, [r7, #12]
+ 695 009a 0833     		adds	r3, r3, #8
+ 696 009c FA68     		ldr	r2, [r7, #12]
+ 697 009e 0C32     		adds	r2, r2, #12
+ 698 00a0 F968     		ldr	r1, [r7, #12]
+ 699 00a2 1031     		adds	r1, r1, #16
+ 700 00a4 7960     		str	r1, [r7, #4]
+ 701 00a6 F868     		ldr	r0, [r7, #12]
+ 702 00a8 1430     		adds	r0, r0, #20
+ 703 00aa FC68     		ldr	r4, [r7, #12]
+ 704 00ac 1834     		adds	r4, r4, #24
+ 705 00ae FD68     		ldr	r5, [r7, #12]
+ 706 00b0 1C35     		adds	r5, r5, #28
+ 707 00b2 FE68     		ldr	r6, [r7, #12]
+ 708 00b4 2036     		adds	r6, r6, #32
+ 709 00b6 F968     		ldr	r1, [r7, #12]
+ 710 00b8 2431     		adds	r1, r1, #36
+ 711 00ba 0791     		str	r1, [sp, #28]
+ 712 00bc 0696     		str	r6, [sp, #24]
+ 713 00be 0595     		str	r5, [sp, #20]
+ 714 00c0 0494     		str	r4, [sp, #16]
+ 715 00c2 0390     		str	r0, [sp, #12]
+ 716 00c4 7968     		ldr	r1, [r7, #4]
+ 717 00c6 0291     		str	r1, [sp, #8]
+ 718 00c8 0192     		str	r2, [sp, #4]
+ 719 00ca 0093     		str	r3, [sp]
+ 720 00cc 6346     		mov	r3, ip
+ 721 00ce BA68     		ldr	r2, [r7, #8]
+ 722 00d0 0C49     		ldr	r1, .L29+28
+ 723 00d2 0948     		ldr	r0, .L29+16
+ 724 00d4 FFF7FEFF 		bl	sscanf
+ 725              	.L26:
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 16
+
+
+ 113:Core/Src/l86_gnss.c **** 				&gps_data_->non_fixed_time, &gps_data_->is_valid, &gps_data_->non_fixed_latitude, &gps_data_->N
+ 114:Core/Src/l86_gnss.c **** 				&gps_data_->non_fixed_longitude, &gps_data_->E_W, &gps_data_->speed_over_ground, &gps_data_->co
+ 115:Core/Src/l86_gnss.c **** 				&gps_data_->non_fixed_date ,&gps_data_->positioning_mode);
+ 116:Core/Src/l86_gnss.c **** 	}
+ 117:Core/Src/l86_gnss.c **** 
+ 118:Core/Src/l86_gnss.c **** 	gps_GNRMC_start_point = NULL;
+ 726              		.loc 1 118 24
+ 727 00d8 054B     		ldr	r3, .L29+8
+ 728 00da 0022     		movs	r2, #0
+ 729 00dc 1A60     		str	r2, [r3]
+ 119:Core/Src/l86_gnss.c **** }
+ 730              		.loc 1 119 1
+ 731 00de 00BF     		nop
+ 732 00e0 1437     		adds	r7, r7, #20
+ 733              		.cfi_def_cfa_offset 20
+ 734 00e2 BD46     		mov	sp, r7
+ 735              		.cfi_def_cfa_register 13
+ 736              		@ sp needed
+ 737 00e4 F0BD     		pop	{r4, r5, r6, r7, pc}
+ 738              	.L30:
+ 739 00e6 00BF     		.align	2
+ 740              	.L29:
+ 741 00e8 C4000000 		.word	.LC2
+ 742 00ec 00000000 		.word	gps_buffer
+ 743 00f0 00000000 		.word	gps_GNRMC_start_point
+ 744 00f4 00000000 		.word	is_data_valid
+ 745 00f8 00000000 		.word	current_data
+ 746 00fc 00000000 		.word	counter
+ 747 0100 00000000 		.word	current_char
+ 748 0104 CC000000 		.word	.LC3
+ 749              		.cfi_endproc
+ 750              	.LFE248:
+ 752              		.section	.rodata
+ 753 00f3 00       		.align	2
+ 754              	.LC4:
+ 755 00f4 47504747 		.ascii	"GPGGA\000"
+ 755      4100
+ 756 00fa 0000     		.align	2
+ 757              	.LC5:
+ 758 00fc 47504747 		.ascii	"GPGGA,%f,%f,%c,%f,%c,%u,%u,%f,%f,M,%f,M,,\000"
+ 758      412C2566 
+ 758      2C25662C 
+ 758      25632C25 
+ 758      662C2563 
+ 759              		.section	.text.get_GPGGA_data,"ax",%progbits
+ 760              		.align	1
+ 761              		.syntax unified
+ 762              		.thumb
+ 763              		.thumb_func
+ 765              	get_GPGGA_data:
+ 766              	.LFB249:
+ 120:Core/Src/l86_gnss.c **** 
+ 121:Core/Src/l86_gnss.c **** static void get_GPGGA_data(gps_data_t *gps_data_)
+ 122:Core/Src/l86_gnss.c **** {
+ 767              		.loc 1 122 1
+ 768              		.cfi_startproc
+ 769              		@ args = 0, pretend = 0, frame = 16
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 17
+
+
+ 770              		@ frame_needed = 1, uses_anonymous_args = 0
+ 771 0000 F0B5     		push	{r4, r5, r6, r7, lr}
+ 772              		.cfi_def_cfa_offset 20
+ 773              		.cfi_offset 4, -20
+ 774              		.cfi_offset 5, -16
+ 775              		.cfi_offset 6, -12
+ 776              		.cfi_offset 7, -8
+ 777              		.cfi_offset 14, -4
+ 778 0002 8DB0     		sub	sp, sp, #52
+ 779              		.cfi_def_cfa_offset 72
+ 780 0004 08AF     		add	r7, sp, #32
+ 781              		.cfi_def_cfa 7, 40
+ 782 0006 F860     		str	r0, [r7, #12]
+ 123:Core/Src/l86_gnss.c **** 	gps_GPGGA_start_point = strstr(gps_buffer, "GPGGA");
+ 783              		.loc 1 123 26
+ 784 0008 2F49     		ldr	r1, .L37
+ 785 000a 3048     		ldr	r0, .L37+4
+ 786 000c FFF7FEFF 		bl	strstr
+ 787 0010 0346     		mov	r3, r0
+ 788              		.loc 1 123 24
+ 789 0012 2F4A     		ldr	r2, .L37+8
+ 790 0014 1360     		str	r3, [r2]
+ 124:Core/Src/l86_gnss.c **** 
+ 125:Core/Src/l86_gnss.c **** 	if(gps_GPGGA_start_point != NULL)
+ 791              		.loc 1 125 27
+ 792 0016 2E4B     		ldr	r3, .L37+8
+ 793 0018 1B68     		ldr	r3, [r3]
+ 794              		.loc 1 125 4
+ 795 001a 002B     		cmp	r3, #0
+ 796 001c 4FD0     		beq	.L36
+ 126:Core/Src/l86_gnss.c **** 	{
+ 127:Core/Src/l86_gnss.c **** 		if(gps_data_->is_valid == VALID)
+ 797              		.loc 1 127 15
+ 798 001e FB68     		ldr	r3, [r7, #12]
+ 799 0020 1B79     		ldrb	r3, [r3, #4]	@ zero_extendqisi2
+ 800              		.loc 1 127 5
+ 801 0022 412B     		cmp	r3, #65
+ 802 0024 48D1     		bne	.L33
+ 128:Core/Src/l86_gnss.c **** 		{
+ 129:Core/Src/l86_gnss.c **** 			memset(current_data, 0, DATA_SIZE);
+ 803              		.loc 1 129 4
+ 804 0026 7822     		movs	r2, #120
+ 805 0028 0021     		movs	r1, #0
+ 806 002a 2A48     		ldr	r0, .L37+12
+ 807 002c FFF7FEFF 		bl	memset
+ 130:Core/Src/l86_gnss.c **** 			counter = 0;
+ 808              		.loc 1 130 12
+ 809 0030 294B     		ldr	r3, .L37+16
+ 810 0032 0022     		movs	r2, #0
+ 811 0034 1A70     		strb	r2, [r3]
+ 131:Core/Src/l86_gnss.c **** 			current_char = gps_GPGGA_start_point;
+ 812              		.loc 1 131 17
+ 813 0036 264B     		ldr	r3, .L37+8
+ 814 0038 1B68     		ldr	r3, [r3]
+ 815 003a 284A     		ldr	r2, .L37+20
+ 816 003c 1360     		str	r3, [r2]
+ 132:Core/Src/l86_gnss.c **** 			while(*(current_char) != '*')
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 18
+
+
+ 817              		.loc 1 132 9
+ 818 003e 11E0     		b	.L34
+ 819              	.L35:
+ 133:Core/Src/l86_gnss.c **** 			{
+ 134:Core/Src/l86_gnss.c **** 				current_data[counter] = *current_char;
+ 820              		.loc 1 134 29
+ 821 0040 264B     		ldr	r3, .L37+20
+ 822 0042 1B68     		ldr	r3, [r3]
+ 823              		.loc 1 134 17
+ 824 0044 244A     		ldr	r2, .L37+16
+ 825 0046 1278     		ldrb	r2, [r2]	@ zero_extendqisi2
+ 826              		.loc 1 134 29
+ 827 0048 1978     		ldrb	r1, [r3]	@ zero_extendqisi2
+ 828              		.loc 1 134 27
+ 829 004a 224B     		ldr	r3, .L37+12
+ 830 004c 9954     		strb	r1, [r3, r2]
+ 135:Core/Src/l86_gnss.c **** 				counter++;
+ 831              		.loc 1 135 12
+ 832 004e 224B     		ldr	r3, .L37+16
+ 833 0050 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 834 0052 0133     		adds	r3, r3, #1
+ 835 0054 DAB2     		uxtb	r2, r3
+ 836 0056 204B     		ldr	r3, .L37+16
+ 837 0058 1A70     		strb	r2, [r3]
+ 136:Core/Src/l86_gnss.c **** 				current_char++;
+ 838              		.loc 1 136 17
+ 839 005a 204B     		ldr	r3, .L37+20
+ 840 005c 1B68     		ldr	r3, [r3]
+ 841 005e 0133     		adds	r3, r3, #1
+ 842 0060 1E4A     		ldr	r2, .L37+20
+ 843 0062 1360     		str	r3, [r2]
+ 844              	.L34:
+ 132:Core/Src/l86_gnss.c **** 			{
+ 845              		.loc 1 132 10
+ 846 0064 1D4B     		ldr	r3, .L37+20
+ 847 0066 1B68     		ldr	r3, [r3]
+ 848 0068 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 132:Core/Src/l86_gnss.c **** 			{
+ 849              		.loc 1 132 26
+ 850 006a 2A2B     		cmp	r3, #42
+ 851 006c E8D1     		bne	.L35
+ 137:Core/Src/l86_gnss.c **** 			}
+ 138:Core/Src/l86_gnss.c **** 
+ 139:Core/Src/l86_gnss.c **** 			sscanf(current_data, "GPGGA,%f,%f,%c,%f,%c,%u,%u,%f,%f,M,%f,M,,",
+ 852              		.loc 1 139 4
+ 853 006e FB68     		ldr	r3, [r7, #12]
+ 854 0070 BB60     		str	r3, [r7, #8]
+ 855 0072 FB68     		ldr	r3, [r7, #12]
+ 856 0074 03F1080C 		add	ip, r3, #8
+ 857 0078 FB68     		ldr	r3, [r7, #12]
+ 858 007a 0C33     		adds	r3, r3, #12
+ 859 007c FA68     		ldr	r2, [r7, #12]
+ 860 007e 1032     		adds	r2, r2, #16
+ 861 0080 F968     		ldr	r1, [r7, #12]
+ 862 0082 1431     		adds	r1, r1, #20
+ 863 0084 7960     		str	r1, [r7, #4]
+ 864 0086 F868     		ldr	r0, [r7, #12]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 19
+
+
+ 865 0088 2530     		adds	r0, r0, #37
+ 866 008a FC68     		ldr	r4, [r7, #12]
+ 867 008c 2634     		adds	r4, r4, #38
+ 868 008e FD68     		ldr	r5, [r7, #12]
+ 869 0090 2835     		adds	r5, r5, #40
+ 870 0092 FE68     		ldr	r6, [r7, #12]
+ 871 0094 2C36     		adds	r6, r6, #44
+ 872 0096 F968     		ldr	r1, [r7, #12]
+ 873 0098 3031     		adds	r1, r1, #48
+ 874 009a 0791     		str	r1, [sp, #28]
+ 875 009c 0696     		str	r6, [sp, #24]
+ 876 009e 0595     		str	r5, [sp, #20]
+ 877 00a0 0494     		str	r4, [sp, #16]
+ 878 00a2 0390     		str	r0, [sp, #12]
+ 879 00a4 7968     		ldr	r1, [r7, #4]
+ 880 00a6 0291     		str	r1, [sp, #8]
+ 881 00a8 0192     		str	r2, [sp, #4]
+ 882 00aa 0093     		str	r3, [sp]
+ 883 00ac 6346     		mov	r3, ip
+ 884 00ae BA68     		ldr	r2, [r7, #8]
+ 885 00b0 0B49     		ldr	r1, .L37+24
+ 886 00b2 0848     		ldr	r0, .L37+12
+ 887 00b4 FFF7FEFF 		bl	sscanf
+ 888              	.L33:
+ 140:Core/Src/l86_gnss.c **** 					&gps_data_->non_fixed_time, &gps_data_->non_fixed_latitude, &gps_data_->N_S,
+ 141:Core/Src/l86_gnss.c **** 					&gps_data_->non_fixed_longitude, &gps_data_->E_W, &gps_data_->fix_status, &gps_data_->satellit
+ 142:Core/Src/l86_gnss.c **** 					&gps_data_->HDOP, &gps_data_->altitude, &gps_data_->geoid_height);
+ 143:Core/Src/l86_gnss.c **** 		}
+ 144:Core/Src/l86_gnss.c **** 
+ 145:Core/Src/l86_gnss.c **** 		gps_GPGGA_start_point = NULL;
+ 889              		.loc 1 145 25
+ 890 00b8 054B     		ldr	r3, .L37+8
+ 891 00ba 0022     		movs	r2, #0
+ 892 00bc 1A60     		str	r2, [r3]
+ 893              	.L36:
+ 146:Core/Src/l86_gnss.c **** 	}
+ 147:Core/Src/l86_gnss.c **** }
+ 894              		.loc 1 147 1
+ 895 00be 00BF     		nop
+ 896 00c0 1437     		adds	r7, r7, #20
+ 897              		.cfi_def_cfa_offset 20
+ 898 00c2 BD46     		mov	sp, r7
+ 899              		.cfi_def_cfa_register 13
+ 900              		@ sp needed
+ 901 00c4 F0BD     		pop	{r4, r5, r6, r7, pc}
+ 902              	.L38:
+ 903 00c6 00BF     		.align	2
+ 904              	.L37:
+ 905 00c8 F4000000 		.word	.LC4
+ 906 00cc 00000000 		.word	gps_buffer
+ 907 00d0 00000000 		.word	gps_GPGGA_start_point
+ 908 00d4 00000000 		.word	current_data
+ 909 00d8 00000000 		.word	counter
+ 910 00dc 00000000 		.word	current_char
+ 911 00e0 FC000000 		.word	.LC5
+ 912              		.cfi_endproc
+ 913              	.LFE249:
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 20
+
+
+ 915              		.global	__aeabi_d2f
+ 916              		.global	__aeabi_d2uiz
+ 917              		.section	.text.format_data,"ax",%progbits
+ 918              		.align	1
+ 919              		.syntax unified
+ 920              		.thumb
+ 921              		.thumb_func
+ 923              	format_data:
+ 924              	.LFB250:
+ 148:Core/Src/l86_gnss.c **** 
+ 149:Core/Src/l86_gnss.c **** static void format_data(gps_data_t *gps_data_)
+ 150:Core/Src/l86_gnss.c **** {
+ 925              		.loc 1 150 1
+ 926              		.cfi_startproc
+ 927              		@ args = 0, pretend = 0, frame = 8
+ 928              		@ frame_needed = 1, uses_anonymous_args = 0
+ 929 0000 80B5     		push	{r7, lr}
+ 930              		.cfi_def_cfa_offset 8
+ 931              		.cfi_offset 7, -8
+ 932              		.cfi_offset 14, -4
+ 933 0002 82B0     		sub	sp, sp, #8
+ 934              		.cfi_def_cfa_offset 16
+ 935 0004 00AF     		add	r7, sp, #0
+ 936              		.cfi_def_cfa_register 7
+ 937 0006 7860     		str	r0, [r7, #4]
+ 151:Core/Src/l86_gnss.c **** 	if(gps_data_->is_valid == VALID)
+ 938              		.loc 1 151 14
+ 939 0008 7B68     		ldr	r3, [r7, #4]
+ 940 000a 1B79     		ldrb	r3, [r3, #4]	@ zero_extendqisi2
+ 941              		.loc 1 151 4
+ 942 000c 412B     		cmp	r3, #65
+ 943 000e 40F05481 		bne	.L42
+ 152:Core/Src/l86_gnss.c **** 	{
+ 153:Core/Src/l86_gnss.c **** 		// format latitude
+ 154:Core/Src/l86_gnss.c **** 		non_formatted_latitude = gps_data_->non_fixed_latitude;
+ 944              		.loc 1 154 37
+ 945 0012 7B68     		ldr	r3, [r7, #4]
+ 946 0014 9B68     		ldr	r3, [r3, #8]	@ float
+ 947              		.loc 1 154 26
+ 948 0016 AB4A     		ldr	r2, .L43
+ 949 0018 1360     		str	r3, [r2]	@ float
+ 155:Core/Src/l86_gnss.c **** 		gps_data_->latitude = (float)floor(non_formatted_latitude / 100);
+ 950              		.loc 1 155 61
+ 951 001a AA4B     		ldr	r3, .L43
+ 952 001c D3ED007A 		vldr.32	s15, [r3]
+ 953 0020 9FEDA97A 		vldr.32	s14, .L43+4
+ 954 0024 C7EE876A 		vdiv.f32	s13, s15, s14
+ 955              		.loc 1 155 32
+ 956 0028 16EE900A 		vmov	r0, s13
+ 957 002c FFF7FEFF 		bl	__aeabi_f2d
+ 958 0030 0246     		mov	r2, r0
+ 959 0032 0B46     		mov	r3, r1
+ 960 0034 43EC102B 		vmov	d0, r2, r3
+ 961 0038 FFF7FEFF 		bl	floor
+ 962 003c 53EC102B 		vmov	r2, r3, d0
+ 963              		.loc 1 155 25
+ 964 0040 1046     		mov	r0, r2
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 21
+
+
+ 965 0042 1946     		mov	r1, r3
+ 966 0044 FFF7FEFF 		bl	__aeabi_d2f
+ 967 0048 0246     		mov	r2, r0	@ float
+ 968              		.loc 1 155 23
+ 969 004a 7B68     		ldr	r3, [r7, #4]
+ 970 004c 5A63     		str	r2, [r3, #52]	@ float
+ 156:Core/Src/l86_gnss.c **** 		non_formatted_latitude -= gps_data_->latitude * 100;
+ 971              		.loc 1 156 26
+ 972 004e 9D4B     		ldr	r3, .L43
+ 973 0050 93ED007A 		vldr.32	s14, [r3]
+ 974              		.loc 1 156 38
+ 975 0054 7B68     		ldr	r3, [r7, #4]
+ 976 0056 D3ED0D7A 		vldr.32	s15, [r3, #52]
+ 977              		.loc 1 156 49
+ 978 005a DFED9B6A 		vldr.32	s13, .L43+4
+ 979 005e 67EEA67A 		vmul.f32	s15, s15, s13
+ 980              		.loc 1 156 26
+ 981 0062 77EE677A 		vsub.f32	s15, s14, s15
+ 982 0066 974B     		ldr	r3, .L43
+ 983 0068 C3ED007A 		vstr.32	s15, [r3]
+ 157:Core/Src/l86_gnss.c **** 		non_formatted_latitude /= 60;
+ 984              		.loc 1 157 26
+ 985 006c 954B     		ldr	r3, .L43
+ 986 006e 93ED007A 		vldr.32	s14, [r3]
+ 987 0072 DFED966A 		vldr.32	s13, .L43+8
+ 988 0076 C7EE267A 		vdiv.f32	s15, s14, s13
+ 989 007a 924B     		ldr	r3, .L43
+ 990 007c C3ED007A 		vstr.32	s15, [r3]
+ 158:Core/Src/l86_gnss.c **** 		gps_data_->latitude += non_formatted_latitude;
+ 991              		.loc 1 158 12
+ 992 0080 7B68     		ldr	r3, [r7, #4]
+ 993 0082 93ED0D7A 		vldr.32	s14, [r3, #52]
+ 994              		.loc 1 158 23
+ 995 0086 8F4B     		ldr	r3, .L43
+ 996 0088 D3ED007A 		vldr.32	s15, [r3]
+ 997 008c 77EE277A 		vadd.f32	s15, s14, s15
+ 998 0090 7B68     		ldr	r3, [r7, #4]
+ 999 0092 C3ED0D7A 		vstr.32	s15, [r3, #52]
+ 159:Core/Src/l86_gnss.c **** 
+ 160:Core/Src/l86_gnss.c **** 		// format langitude
+ 161:Core/Src/l86_gnss.c **** 		non_formatted_longitude = gps_data_->non_fixed_longitude;
+ 1000              		.loc 1 161 38
+ 1001 0096 7B68     		ldr	r3, [r7, #4]
+ 1002 0098 1B69     		ldr	r3, [r3, #16]	@ float
+ 1003              		.loc 1 161 27
+ 1004 009a 8D4A     		ldr	r2, .L43+12
+ 1005 009c 1360     		str	r3, [r2]	@ float
+ 162:Core/Src/l86_gnss.c **** 		gps_data_->longitude = (float)floor(non_formatted_longitude / 100);
+ 1006              		.loc 1 162 63
+ 1007 009e 8C4B     		ldr	r3, .L43+12
+ 1008 00a0 D3ED007A 		vldr.32	s15, [r3]
+ 1009 00a4 9FED887A 		vldr.32	s14, .L43+4
+ 1010 00a8 C7EE876A 		vdiv.f32	s13, s15, s14
+ 1011              		.loc 1 162 33
+ 1012 00ac 16EE900A 		vmov	r0, s13
+ 1013 00b0 FFF7FEFF 		bl	__aeabi_f2d
+ 1014 00b4 0246     		mov	r2, r0
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 22
+
+
+ 1015 00b6 0B46     		mov	r3, r1
+ 1016 00b8 43EC102B 		vmov	d0, r2, r3
+ 1017 00bc FFF7FEFF 		bl	floor
+ 1018 00c0 53EC102B 		vmov	r2, r3, d0
+ 1019              		.loc 1 162 26
+ 1020 00c4 1046     		mov	r0, r2
+ 1021 00c6 1946     		mov	r1, r3
+ 1022 00c8 FFF7FEFF 		bl	__aeabi_d2f
+ 1023 00cc 0246     		mov	r2, r0	@ float
+ 1024              		.loc 1 162 24
+ 1025 00ce 7B68     		ldr	r3, [r7, #4]
+ 1026 00d0 9A63     		str	r2, [r3, #56]	@ float
+ 163:Core/Src/l86_gnss.c **** 		non_formatted_longitude -= gps_data_->longitude * 100;
+ 1027              		.loc 1 163 27
+ 1028 00d2 7F4B     		ldr	r3, .L43+12
+ 1029 00d4 93ED007A 		vldr.32	s14, [r3]
+ 1030              		.loc 1 163 39
+ 1031 00d8 7B68     		ldr	r3, [r7, #4]
+ 1032 00da D3ED0E7A 		vldr.32	s15, [r3, #56]
+ 1033              		.loc 1 163 51
+ 1034 00de DFED7A6A 		vldr.32	s13, .L43+4
+ 1035 00e2 67EEA67A 		vmul.f32	s15, s15, s13
+ 1036              		.loc 1 163 27
+ 1037 00e6 77EE677A 		vsub.f32	s15, s14, s15
+ 1038 00ea 794B     		ldr	r3, .L43+12
+ 1039 00ec C3ED007A 		vstr.32	s15, [r3]
+ 164:Core/Src/l86_gnss.c **** 		non_formatted_longitude /= 60;
+ 1040              		.loc 1 164 27
+ 1041 00f0 774B     		ldr	r3, .L43+12
+ 1042 00f2 93ED007A 		vldr.32	s14, [r3]
+ 1043 00f6 DFED756A 		vldr.32	s13, .L43+8
+ 1044 00fa C7EE267A 		vdiv.f32	s15, s14, s13
+ 1045 00fe 744B     		ldr	r3, .L43+12
+ 1046 0100 C3ED007A 		vstr.32	s15, [r3]
+ 165:Core/Src/l86_gnss.c **** 		gps_data_->longitude += non_formatted_longitude;
+ 1047              		.loc 1 165 12
+ 1048 0104 7B68     		ldr	r3, [r7, #4]
+ 1049 0106 93ED0E7A 		vldr.32	s14, [r3, #56]
+ 1050              		.loc 1 165 24
+ 1051 010a 714B     		ldr	r3, .L43+12
+ 1052 010c D3ED007A 		vldr.32	s15, [r3]
+ 1053 0110 77EE277A 		vadd.f32	s15, s14, s15
+ 1054 0114 7B68     		ldr	r3, [r7, #4]
+ 1055 0116 C3ED0E7A 		vstr.32	s15, [r3, #56]
+ 166:Core/Src/l86_gnss.c **** 
+ 167:Core/Src/l86_gnss.c **** 		// format time
+ 168:Core/Src/l86_gnss.c **** 		non_formatted_time = gps_data_->non_fixed_time;
+ 1056              		.loc 1 168 33
+ 1057 011a 7B68     		ldr	r3, [r7, #4]
+ 1058 011c 1B68     		ldr	r3, [r3]	@ float
+ 1059              		.loc 1 168 22
+ 1060 011e 6D4A     		ldr	r2, .L43+16
+ 1061 0120 1360     		str	r3, [r2]	@ float
+ 169:Core/Src/l86_gnss.c **** 		gps_data_->time[0] = (uint8_t)floor(non_formatted_time / 10000);
+ 1062              		.loc 1 169 58
+ 1063 0122 6C4B     		ldr	r3, .L43+16
+ 1064 0124 D3ED007A 		vldr.32	s15, [r3]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 23
+
+
+ 1065 0128 9FED6B7A 		vldr.32	s14, .L43+20
+ 1066 012c C7EE876A 		vdiv.f32	s13, s15, s14
+ 1067              		.loc 1 169 33
+ 1068 0130 16EE900A 		vmov	r0, s13
+ 1069 0134 FFF7FEFF 		bl	__aeabi_f2d
+ 1070 0138 0246     		mov	r2, r0
+ 1071 013a 0B46     		mov	r3, r1
+ 1072 013c 43EC102B 		vmov	d0, r2, r3
+ 1073 0140 FFF7FEFF 		bl	floor
+ 1074 0144 53EC102B 		vmov	r2, r3, d0
+ 1075              		.loc 1 169 24
+ 1076 0148 1046     		mov	r0, r2
+ 1077 014a 1946     		mov	r1, r3
+ 1078 014c FFF7FEFF 		bl	__aeabi_d2uiz
+ 1079 0150 0346     		mov	r3, r0
+ 1080 0152 DAB2     		uxtb	r2, r3
+ 1081              		.loc 1 169 22
+ 1082 0154 7B68     		ldr	r3, [r7, #4]
+ 1083 0156 83F83C20 		strb	r2, [r3, #60]
+ 170:Core/Src/l86_gnss.c **** 		non_formatted_time -= gps_data_->time[0] * 10000;
+ 1084              		.loc 1 170 22
+ 1085 015a 5E4B     		ldr	r3, .L43+16
+ 1086 015c 93ED007A 		vldr.32	s14, [r3]
+ 1087              		.loc 1 170 40
+ 1088 0160 7B68     		ldr	r3, [r7, #4]
+ 1089 0162 93F83C30 		ldrb	r3, [r3, #60]	@ zero_extendqisi2
+ 1090 0166 1A46     		mov	r2, r3
+ 1091              		.loc 1 170 44
+ 1092 0168 42F21073 		movw	r3, #10000
+ 1093 016c 02FB03F3 		mul	r3, r2, r3
+ 1094              		.loc 1 170 22
+ 1095 0170 07EE903A 		vmov	s15, r3	@ int
+ 1096 0174 F8EEE77A 		vcvt.f32.s32	s15, s15
+ 1097 0178 77EE677A 		vsub.f32	s15, s14, s15
+ 1098 017c 554B     		ldr	r3, .L43+16
+ 1099 017e C3ED007A 		vstr.32	s15, [r3]
+ 171:Core/Src/l86_gnss.c **** 		gps_data_->time[0] += 3;
+ 1100              		.loc 1 171 18
+ 1101 0182 7B68     		ldr	r3, [r7, #4]
+ 1102 0184 93F83C30 		ldrb	r3, [r3, #60]	@ zero_extendqisi2
+ 1103              		.loc 1 171 22
+ 1104 0188 0333     		adds	r3, r3, #3
+ 1105 018a DAB2     		uxtb	r2, r3
+ 1106 018c 7B68     		ldr	r3, [r7, #4]
+ 1107 018e 83F83C20 		strb	r2, [r3, #60]
+ 172:Core/Src/l86_gnss.c **** 		if(gps_data_->time[0] >= 24)
+ 1108              		.loc 1 172 21
+ 1109 0192 7B68     		ldr	r3, [r7, #4]
+ 1110 0194 93F83C30 		ldrb	r3, [r3, #60]	@ zero_extendqisi2
+ 1111              		.loc 1 172 5
+ 1112 0198 172B     		cmp	r3, #23
+ 1113 019a 07D9     		bls	.L41
+ 173:Core/Src/l86_gnss.c **** 		{
+ 174:Core/Src/l86_gnss.c **** 			gps_data_->time[0] -= 24;
+ 1114              		.loc 1 174 19
+ 1115 019c 7B68     		ldr	r3, [r7, #4]
+ 1116 019e 93F83C30 		ldrb	r3, [r3, #60]	@ zero_extendqisi2
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 24
+
+
+ 1117              		.loc 1 174 23
+ 1118 01a2 183B     		subs	r3, r3, #24
+ 1119 01a4 DAB2     		uxtb	r2, r3
+ 1120 01a6 7B68     		ldr	r3, [r7, #4]
+ 1121 01a8 83F83C20 		strb	r2, [r3, #60]
+ 1122              	.L41:
+ 175:Core/Src/l86_gnss.c **** 		}
+ 176:Core/Src/l86_gnss.c **** 		gps_data_->time[1] = (uint8_t)floor(non_formatted_time / 100);
+ 1123              		.loc 1 176 58
+ 1124 01ac 494B     		ldr	r3, .L43+16
+ 1125 01ae D3ED007A 		vldr.32	s15, [r3]
+ 1126 01b2 9FED457A 		vldr.32	s14, .L43+4
+ 1127 01b6 C7EE876A 		vdiv.f32	s13, s15, s14
+ 1128              		.loc 1 176 33
+ 1129 01ba 16EE900A 		vmov	r0, s13
+ 1130 01be FFF7FEFF 		bl	__aeabi_f2d
+ 1131 01c2 0246     		mov	r2, r0
+ 1132 01c4 0B46     		mov	r3, r1
+ 1133 01c6 43EC102B 		vmov	d0, r2, r3
+ 1134 01ca FFF7FEFF 		bl	floor
+ 1135 01ce 53EC102B 		vmov	r2, r3, d0
+ 1136              		.loc 1 176 24
+ 1137 01d2 1046     		mov	r0, r2
+ 1138 01d4 1946     		mov	r1, r3
+ 1139 01d6 FFF7FEFF 		bl	__aeabi_d2uiz
+ 1140 01da 0346     		mov	r3, r0
+ 1141 01dc DAB2     		uxtb	r2, r3
+ 1142              		.loc 1 176 22
+ 1143 01de 7B68     		ldr	r3, [r7, #4]
+ 1144 01e0 83F83D20 		strb	r2, [r3, #61]
+ 177:Core/Src/l86_gnss.c **** 		non_formatted_time-= gps_data_->time[1] * 100;
+ 1145              		.loc 1 177 21
+ 1146 01e4 3B4B     		ldr	r3, .L43+16
+ 1147 01e6 93ED007A 		vldr.32	s14, [r3]
+ 1148              		.loc 1 177 39
+ 1149 01ea 7B68     		ldr	r3, [r7, #4]
+ 1150 01ec 93F83D30 		ldrb	r3, [r3, #61]	@ zero_extendqisi2
+ 1151 01f0 1A46     		mov	r2, r3
+ 1152              		.loc 1 177 43
+ 1153 01f2 6423     		movs	r3, #100
+ 1154 01f4 02FB03F3 		mul	r3, r2, r3
+ 1155              		.loc 1 177 21
+ 1156 01f8 07EE903A 		vmov	s15, r3	@ int
+ 1157 01fc F8EEE77A 		vcvt.f32.s32	s15, s15
+ 1158 0200 77EE677A 		vsub.f32	s15, s14, s15
+ 1159 0204 334B     		ldr	r3, .L43+16
+ 1160 0206 C3ED007A 		vstr.32	s15, [r3]
+ 178:Core/Src/l86_gnss.c **** 		gps_data_->time[2] = (uint8_t)floor(non_formatted_time);
+ 1161              		.loc 1 178 33
+ 1162 020a 324B     		ldr	r3, .L43+16
+ 1163 020c 1B68     		ldr	r3, [r3]	@ float
+ 1164 020e 1846     		mov	r0, r3	@ float
+ 1165 0210 FFF7FEFF 		bl	__aeabi_f2d
+ 1166 0214 0246     		mov	r2, r0
+ 1167 0216 0B46     		mov	r3, r1
+ 1168 0218 43EC102B 		vmov	d0, r2, r3
+ 1169 021c FFF7FEFF 		bl	floor
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 25
+
+
+ 1170 0220 53EC102B 		vmov	r2, r3, d0
+ 1171              		.loc 1 178 24
+ 1172 0224 1046     		mov	r0, r2
+ 1173 0226 1946     		mov	r1, r3
+ 1174 0228 FFF7FEFF 		bl	__aeabi_d2uiz
+ 1175 022c 0346     		mov	r3, r0
+ 1176 022e DAB2     		uxtb	r2, r3
+ 1177              		.loc 1 178 22
+ 1178 0230 7B68     		ldr	r3, [r7, #4]
+ 1179 0232 83F83E20 		strb	r2, [r3, #62]
+ 179:Core/Src/l86_gnss.c **** 
+ 180:Core/Src/l86_gnss.c **** 		// format date
+ 181:Core/Src/l86_gnss.c **** 		non_formatted_date = gps_data_->non_fixed_date;
+ 1180              		.loc 1 181 33
+ 1181 0236 7B68     		ldr	r3, [r7, #4]
+ 1182 0238 1B6A     		ldr	r3, [r3, #32]
+ 1183              		.loc 1 181 22
+ 1184 023a 284A     		ldr	r2, .L43+24
+ 1185 023c 1360     		str	r3, [r2]
+ 182:Core/Src/l86_gnss.c **** 		gps_data_->date[0] = (uint8_t)(non_formatted_date / 10000);
+ 1186              		.loc 1 182 53
+ 1187 023e 274B     		ldr	r3, .L43+24
+ 1188 0240 1B68     		ldr	r3, [r3]
+ 1189 0242 274A     		ldr	r2, .L43+28
+ 1190 0244 A2FB0323 		umull	r2, r3, r2, r3
+ 1191 0248 5B0B     		lsrs	r3, r3, #13
+ 1192              		.loc 1 182 24
+ 1193 024a DAB2     		uxtb	r2, r3
+ 1194              		.loc 1 182 22
+ 1195 024c 7B68     		ldr	r3, [r7, #4]
+ 1196 024e 83F83F20 		strb	r2, [r3, #63]
+ 183:Core/Src/l86_gnss.c **** 		non_formatted_date -= gps_data_->date[0] * 10000;
+ 1197              		.loc 1 183 22
+ 1198 0252 224B     		ldr	r3, .L43+24
+ 1199 0254 1B68     		ldr	r3, [r3]
+ 1200              		.loc 1 183 40
+ 1201 0256 7A68     		ldr	r2, [r7, #4]
+ 1202 0258 92F83F20 		ldrb	r2, [r2, #63]	@ zero_extendqisi2
+ 1203 025c 1146     		mov	r1, r2
+ 1204              		.loc 1 183 44
+ 1205 025e 42F21072 		movw	r2, #10000
+ 1206 0262 01FB02F2 		mul	r2, r1, r2
+ 1207              		.loc 1 183 22
+ 1208 0266 9B1A     		subs	r3, r3, r2
+ 1209 0268 1C4A     		ldr	r2, .L43+24
+ 1210 026a 1360     		str	r3, [r2]
+ 184:Core/Src/l86_gnss.c **** 		gps_data_->date[1] = (uint8_t)(non_formatted_date / 100);
+ 1211              		.loc 1 184 53
+ 1212 026c 1B4B     		ldr	r3, .L43+24
+ 1213 026e 1B68     		ldr	r3, [r3]
+ 1214 0270 1C4A     		ldr	r2, .L43+32
+ 1215 0272 A2FB0323 		umull	r2, r3, r2, r3
+ 1216 0276 5B09     		lsrs	r3, r3, #5
+ 1217              		.loc 1 184 24
+ 1218 0278 DAB2     		uxtb	r2, r3
+ 1219              		.loc 1 184 22
+ 1220 027a 7B68     		ldr	r3, [r7, #4]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 26
+
+
+ 1221 027c 83F84020 		strb	r2, [r3, #64]
+ 185:Core/Src/l86_gnss.c **** 		non_formatted_date -= gps_data_->date[1] * 100;
+ 1222              		.loc 1 185 22
+ 1223 0280 164B     		ldr	r3, .L43+24
+ 1224 0282 1B68     		ldr	r3, [r3]
+ 1225              		.loc 1 185 40
+ 1226 0284 7A68     		ldr	r2, [r7, #4]
+ 1227 0286 92F84020 		ldrb	r2, [r2, #64]	@ zero_extendqisi2
+ 1228 028a 1146     		mov	r1, r2
+ 1229              		.loc 1 185 44
+ 1230 028c 6422     		movs	r2, #100
+ 1231 028e 01FB02F2 		mul	r2, r1, r2
+ 1232              		.loc 1 185 22
+ 1233 0292 9B1A     		subs	r3, r3, r2
+ 1234 0294 114A     		ldr	r2, .L43+24
+ 1235 0296 1360     		str	r3, [r2]
+ 186:Core/Src/l86_gnss.c **** 		gps_data_->date[2] = (uint8_t)(non_formatted_date);
+ 1236              		.loc 1 186 24
+ 1237 0298 104B     		ldr	r3, .L43+24
+ 1238 029a 1B68     		ldr	r3, [r3]
+ 1239 029c DAB2     		uxtb	r2, r3
+ 1240              		.loc 1 186 22
+ 1241 029e 7B68     		ldr	r3, [r7, #4]
+ 1242 02a0 83F84120 		strb	r2, [r3, #65]
+ 187:Core/Src/l86_gnss.c **** 
+ 188:Core/Src/l86_gnss.c **** 		// format height
+ 189:Core/Src/l86_gnss.c **** 		gps_data_->orthometric_height = gps_data_->altitude - gps_data_->geoid_height;
+ 1243              		.loc 1 189 44
+ 1244 02a4 7B68     		ldr	r3, [r7, #4]
+ 1245 02a6 93ED0B7A 		vldr.32	s14, [r3, #44]
+ 1246              		.loc 1 189 66
+ 1247 02aa 7B68     		ldr	r3, [r7, #4]
+ 1248 02ac D3ED0C7A 		vldr.32	s15, [r3, #48]
+ 1249              		.loc 1 189 55
+ 1250 02b0 77EE677A 		vsub.f32	s15, s14, s15
+ 1251              		.loc 1 189 33
+ 1252 02b4 7B68     		ldr	r3, [r7, #4]
+ 1253 02b6 C3ED117A 		vstr.32	s15, [r3, #68]
+ 1254              	.L42:
+ 190:Core/Src/l86_gnss.c **** 	}
+ 191:Core/Src/l86_gnss.c **** }
+ 1255              		.loc 1 191 1
+ 1256 02ba 00BF     		nop
+ 1257 02bc 0837     		adds	r7, r7, #8
+ 1258              		.cfi_def_cfa_offset 8
+ 1259 02be BD46     		mov	sp, r7
+ 1260              		.cfi_def_cfa_register 13
+ 1261              		@ sp needed
+ 1262 02c0 80BD     		pop	{r7, pc}
+ 1263              	.L44:
+ 1264 02c2 00BF     		.align	2
+ 1265              	.L43:
+ 1266 02c4 00000000 		.word	non_formatted_latitude
+ 1267 02c8 0000C842 		.word	1120403456
+ 1268 02cc 00007042 		.word	1114636288
+ 1269 02d0 00000000 		.word	non_formatted_longitude
+ 1270 02d4 00000000 		.word	non_formatted_time
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 27
+
+
+ 1271 02d8 00401C46 		.word	1176256512
+ 1272 02dc 00000000 		.word	non_formatted_date
+ 1273 02e0 5917B7D1 		.word	-776530087
+ 1274 02e4 1F85EB51 		.word	1374389535
+ 1275              		.cfi_endproc
+ 1276              	.LFE250:
+ 1278              		.text
+ 1279              	.Letext0:
+ 1280              		.file 2 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 1281              		.file 3 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 1282              		.file 4 "Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f446xx.h"
+ 1283              		.file 5 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 1284              		.file 6 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h"
+ 1285              		.file 7 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma.h"
+ 1286              		.file 8 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h"
+ 1287              		.file 9 "Core/Inc/l86_gnss.h"
+ 1288              		.file 10 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltoo
+ 1289              		.file 11 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltoo
+ 1290              		.file 12 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltoo
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 28
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 l86_gnss.c
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:25     .bss.huart_gnss:00000000 huart_gnss
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:22     .bss.huart_gnss:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:32     .bss.gnss_rx_buffer:00000000 gnss_rx_buffer
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:29     .bss.gnss_rx_buffer:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:39     .bss.gps_buffer:00000000 gps_buffer
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:36     .bss.gps_buffer:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:42     .bss.gps_GNRMC_start_point:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:45     .bss.gps_GNRMC_start_point:00000000 gps_GNRMC_start_point
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:48     .bss.gps_GPGGA_start_point:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:51     .bss.gps_GPGGA_start_point:00000000 gps_GPGGA_start_point
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:56     .bss.is_data_valid:00000000 is_data_valid
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:57     .bss.is_data_valid:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:59     .bss.current_char:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:62     .bss.current_char:00000000 current_char
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:65     .bss.current_data:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:68     .bss.current_data:00000000 current_data
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:73     .bss.counter:00000000 counter
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:74     .bss.counter:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:76     .bss.msg:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:79     .bss.msg:00000000 msg
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:82     .bss.non_formatted_latitude:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:85     .bss.non_formatted_latitude:00000000 non_formatted_latitude
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:88     .bss.non_formatted_longitude:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:91     .bss.non_formatted_longitude:00000000 non_formatted_longitude
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:94     .bss.non_formatted_time:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:97     .bss.non_formatted_time:00000000 non_formatted_time
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:100    .bss.non_formatted_date:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:103    .bss.non_formatted_date:00000000 non_formatted_date
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:106    .text.L86_GNSS_Init:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:112    .text.L86_GNSS_Init:00000000 L86_GNSS_Init
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:149    .text.L86_GNSS_Init:00000028 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:155    .text.HAL_UART_RxHalfCpltCallback:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:161    .text.HAL_UART_RxHalfCpltCallback:00000000 HAL_UART_RxHalfCpltCallback
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:527    .text.process_data:00000000 process_data
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:199    .text.HAL_UART_RxHalfCpltCallback:00000024 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:205    .text.HAL_UART_RxCpltCallback:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:211    .text.HAL_UART_RxCpltCallback:00000000 HAL_UART_RxCpltCallback
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:249    .text.HAL_UART_RxCpltCallback:00000024 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:255    .text.L86_GNSS_Update:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:261    .text.L86_GNSS_Update:00000000 L86_GNSS_Update
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:578    .text.get_GNRMC_data:00000000 get_GNRMC_data
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:765    .text.get_GPGGA_data:00000000 get_GPGGA_data
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:923    .text.format_data:00000000 format_data
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:298    .rodata:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:308    .text.L86_GNSS_Print_Info:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:314    .text.L86_GNSS_Print_Info:00000000 L86_GNSS_Print_Info
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:515    .text.L86_GNSS_Print_Info:00000160 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:522    .text.process_data:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:561    .text.process_data:00000020 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:573    .text.get_GNRMC_data:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:741    .text.get_GNRMC_data:000000e8 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:760    .text.get_GPGGA_data:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:905    .text.get_GPGGA_data:000000c8 $d
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:918    .text.format_data:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s:1266   .text.format_data:000002c4 $d
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 29
+
+
+                           .group:00000000 wm4.0.fbeba72283fbbed79c5ed62adcf8946b
+                           .group:00000000 wm4._newlib_version.h.4.6d111ab2e95434b664b53815e5c8ccba
+                           .group:00000000 wm4.features.h.33.3e67abe6fb64142d4f6fa9496796153c
+                           .group:00000000 wm4._default_types.h.15.247e5cd201eca3442cbf5404108c4935
+                           .group:00000000 wm4._intsup.h.10.48bafbb683905c4daa4565a85aeeb264
+                           .group:00000000 wm4._stdint.h.10.c24fa3af3bc1706662bb5593a907e841
+                           .group:00000000 wm4.stdint.h.23.d53047a68f4a85177f80b422d52785ed
+                           .group:00000000 wm4.stm32f4xx_hal_conf.h.25.834fd89df99f7f3fe75169badeed02aa
+                           .group:00000000 wm4.stm32f4xx.h.38.63e3ea23bd63a94457417730025259b6
+                           .group:00000000 wm4.stm32f446xx.h.34.dd43cebd7192f96bce7a5ff975201274
+                           .group:00000000 wm4.cmsis_version.h.32.0ac195c83bb4537824e6ad1c47474b79
+                           .group:00000000 wm4.core_cm4.h.66.e4ff136c4a17abc46741866f64f8e729
+                           .group:00000000 wm4.cmsis_gcc.h.26.498d0ad17a45fc9ef20fdc01caf02259
+                           .group:00000000 wm4.core_cm4.h.174.62be9b4588d49bed18171771001331df
+                           .group:00000000 wm4.mpu_armv7.h.32.83326921a797fa9d6f70449916b4b839
+                           .group:00000000 wm4.stm32f446xx.h.917.13927c85cbbf4787955bc4173c54fa12
+                           .group:00000000 wm4.stm32f4xx.h.195.a4b8bf80f37cc96981498656ffe5f588
+                           .group:00000000 wm4.stm32_hal_legacy.h.22.8b7d303dc46a0b7ac6d3edf19ce2608d
+                           .group:00000000 wm4.stddef.h.39.3e0425629195acf083c9561151306b4d
+                           .group:00000000 wm4.stm32f4xx_hal_def.h.58.3cb484e92e5ccf2e55312a4714e27917
+                           .group:00000000 wm4.stm32f4xx_hal_rcc_ex.h.20.9b6e314009d4800dd71c0ec1c264a1ea
+                           .group:00000000 wm4.stm32f4xx_hal_rcc.h.106.0887cf5d985ae88e345b0aed0ceb4729
+                           .group:00000000 wm4.stm32f4xx_hal_gpio.h.21.22da6a14b6049d6ac156577be74df1d7
+                           .group:00000000 wm4.stm32f4xx_hal_gpio_ex.h.21.33ea7ea24fd170b1d3dce3d23330c9d3
+                           .group:00000000 wm4.stm32f4xx_hal_gpio.h.254.d7e07832f748fe8bcb575db0b8373592
+                           .group:00000000 wm4.stm32f4xx_hal_exti.h.21.4fc7f37c3cc97fb821b368ede79414b6
+                           .group:00000000 wm4.stm32f4xx_hal_dma.h.21.8e4b1421c914345c23be719e5e528779
+                           .group:00000000 wm4.stm32f4xx_hal_dma.h.720.ac2d7eef74792e4026acc4d2923c5da4
+                           .group:00000000 wm4.stm32f4xx_hal_cortex.h.20.03673e4f79386680bf73ba399c19306b
+                           .group:00000000 wm4.stm32f4xx_ll_adc.h.21.8ab9bf4d55f678506dbbe8102cb12bbc
+                           .group:00000000 wm4.stm32f4xx_hal_adc.h.159.62530d9b3382796f19493a9679ef426c
+                           .group:00000000 wm4.stm32f4xx_hal_adc_ex.h.21.94e87945640619cdd4cff40627e1380a
+                           .group:00000000 wm4.stm32f4xx_hal_adc.h.639.c30c49256117cbda0ada83149c65b3d8
+                           .group:00000000 wm4.stm32f4xx_hal_flash.h.20.2f1e0d1b7010b3a81a7980aaf712e7e5
+                           .group:00000000 wm4.stm32f4xx_hal_flash_ex.h.20.77cb3e5c0f1e426426a4cbc884a1eed8
+                           .group:00000000 wm4.stm32f4xx_hal_flash.h.361.23bc19b9eac79b0956d913651841ede8
+                           .group:00000000 wm4.stm32f4xx_hal_i2c.h.21.147e96a27b1f7b1f2f8ee22132703ee3
+                           .group:00000000 wm4.stm32f4xx_hal_i2c_ex.h.21.951ef5bfa13cf131d2015c338e82e461
+                           .group:00000000 wm4.stm32f4xx_hal_i2c.h.647.ade9c3447780b1cc0ece02f0ce83aedc
+                           .group:00000000 wm4.stm32f4xx_hal_pwr.h.20.1905a0783a9c83adefd7df0c4b501e40
+                           .group:00000000 wm4.stm32f4xx_hal_pwr_ex.h.20.9786dbd699c850465fa7b77273740267
+                           .group:00000000 wm4.stm32f4xx_hal_pwr.h.338.debc0a4a62ba54688e63ab53dd99c4ea
+                           .group:00000000 wm4.stm32f4xx_hal_spi.h.21.8b27a8d792c565f72ddd4cfad797986f
+                           .group:00000000 wm4.stm32f4xx_hal_tim.h.21.c31cbc03c25f07a932427770396c59d2
+                           .group:00000000 wm4.stm32f4xx_hal_tim_ex.h.21.3ff8ebb44e16ac9d5b95e2b3533221b9
+                           .group:00000000 wm4.stm32f4xx_hal_uart.h.21.ba8e24dd05c77faac3f3d48472e636ba
+                           .group:00000000 wm4.stm32f4xx_hal.h.71.02372bc31d47d29d3f67fbfe1429649e
+                           .group:00000000 wm4.newlib.h.7.f9f25f80f86429f653675286e7973cb9
+                           .group:00000000 wm4.ieeefp.h.77.9dc6728f2d488a554e7c0cabef1b6c33
+                           .group:00000000 wm4.config.h.224.10ee1ad185d877c6e334e6581faab44d
+                           .group:00000000 wm4._ansi.h.31.de524f58584151836e90d8620a16f8e8
+                           .group:00000000 wm4.stdio.h.31.7c0e28c411445f3f9c5b11accf882760
+                           .group:00000000 wm4.stddef.h.158.bfed30416c9480cd13bc4a25427d538f
+                           .group:00000000 wm4.cdefs.h.49.f93868eb904b9ca05b5c0257d31128ca
+                           .group:00000000 wm4.stdarg.h.34.3a23a216c0c293b3d2ea2e89281481e6
+                           .group:00000000 wm4._types.h.20.dd0d04dca3800a0d2a6129b87f3adbb2
+                           .group:00000000 wm4.stddef.h.158.5f30652bb2ea05b142c1bbee9108c999
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccj7a3w7.s 			page 30
+
+
+                           .group:00000000 wm4._types.h.127.3bdfe3ff8ea2d0985b03d9cbe93480e3
+                           .group:00000000 wm4.reent.h.17.e292bf8b0bec6c96e131a54347145a30
+                           .group:00000000 wm4.lock.h.2.1461d1fff82dffe8bfddc23307f6484f
+                           .group:00000000 wm4.reent.h.77.89f7dde66c62b1f1dee32bdb6ab2d544
+                           .group:00000000 wm4.stdio.h.67.0cf8a9c281ab0b348aef5c02e7e48825
+                           .group:00000000 wm4.stdio.h.2.4aa87247282eca6c8f36f9de33d8df1a
+                           .group:00000000 wm4.stdio.h.87.a1e20d2651f9bfb66e51bfbe849db00a
+                           .group:00000000 wm4.string.h.8.c4b8571ce60dff2817f43fec8b86aecd
+                           .group:00000000 wm4.string.h.177.59a005921fa78485abc80a0267de5752
+                           .group:00000000 wm4.math.h.13.35ad80917fddb38312d53499dad31194
+                           .group:00000000 wm4.stdlib.h.13.4ed386f5c1a80d71e72172885d946ef2
+                           .group:00000000 wm4.alloca.h.8.dfc0c703c47ec3e69746825b17d9e66d
+                           .group:00000000 wm4.stdlib.h.56.f4862cfbf4363a1db01842d5bdf72c18
+                           .group:00000000 wm4.l86_gnss.h.18.6f4a829974aa92c34c491736bca64a6e
+
+UNDEFINED SYMBOLS
+HAL_UART_Receive_DMA
+__aeabi_f2d
+memset
+snprintf
+memcpy
+strlen
+HAL_UART_Transmit
+strstr
+sscanf
+__aeabi_d2f
+__aeabi_d2uiz
+floor

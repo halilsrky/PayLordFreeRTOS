@@ -61,14 +61,14 @@ void addDataPacketNormal(BME_280_t* BME, bmi088_struct_t* BMI, sensor_fusion_t* 
   normal_paket[20] = aci_float32_uint8_donusturucu.array[3];
 
   FLOAT32_UINT8_DONUSTURUCU volt_float32_uint8_donusturucu;
-  volt_float32_uint8_donusturucu.sayi = (voltage); // Volt degerinin atamasini yapiyoruz.
+  volt_float32_uint8_donusturucu.sayi = (BMI->datas.acc_z); // Volt degerinin atamasini yapiyoruz.
   normal_paket[21] = volt_float32_uint8_donusturucu.array[0];
   normal_paket[22] = volt_float32_uint8_donusturucu.array[1];
   normal_paket[23] = volt_float32_uint8_donusturucu.array[2];
   normal_paket[24] = volt_float32_uint8_donusturucu.array[3];
 
   FLOAT32_UINT8_DONUSTURUCU akim_float32_uint8_donusturucu;
-  akim_float32_uint8_donusturucu.sayi = (current); // Akim degerinin atamasini yapiyoruz.
+  akim_float32_uint8_donusturucu.sayi = (BMI->datas.gyro_z); // Akim degerinin atamasini yapiyoruz.
   normal_paket[25] = akim_float32_uint8_donusturucu.array[0];
   normal_paket[26] = akim_float32_uint8_donusturucu.array[1];
   normal_paket[27] = akim_float32_uint8_donusturucu.array[2];

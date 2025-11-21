@@ -1,0 +1,1151 @@
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 6
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"sensor_fusion.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Core/Src/sensor_fusion.c"
+  20              		.section	.bss.kalman,"aw",%nobits
+  21              		.align	2
+  24              	kalman:
+  25 0000 00000000 		.space	76
+  25      00000000 
+  25      00000000 
+  25      00000000 
+  25      00000000 
+  26              		.section	.bss.initialized,"aw",%nobits
+  29              	initialized:
+  30 0000 00       		.space	1
+  31              		.section	.bss.last_kalman_update_time,"aw",%nobits
+  32              		.align	2
+  35              	last_kalman_update_time:
+  36 0000 00000000 		.space	4
+  37              		.section	.bss.flight_start_time,"aw",%nobits
+  38              		.align	2
+  41              	flight_start_time:
+  42 0000 00000000 		.space	4
+  43              		.section	.bss.accel_buffer,"aw",%nobits
+  44              		.align	2
+  47              	accel_buffer:
+  48 0000 00000000 		.space	20
+  48      00000000 
+  48      00000000 
+  48      00000000 
+  48      00000000 
+  49              		.section	.bss.accel_buffer_index,"aw",%nobits
+  52              	accel_buffer_index:
+  53 0000 00       		.space	1
+  54              		.section	.bss.accel_buffer_full,"aw",%nobits
+  57              	accel_buffer_full:
+  58 0000 00       		.space	1
+  59              		.section	.bss.accel_failure_detected,"aw",%nobits
+  62              	accel_failure_detected:
+  63 0000 00       		.space	1
+  64              		.section	.text.calculate_accel_std_deviation,"ax",%progbits
+  65              		.align	1
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 2
+
+
+  66              		.syntax unified
+  67              		.thumb
+  68              		.thumb_func
+  70              	calculate_accel_std_deviation:
+  71              	.LFB242:
+   1:Core/Src/sensor_fusion.c **** /**
+   2:Core/Src/sensor_fusion.c ****  * @file sensor_fusion.c
+   3:Core/Src/sensor_fusion.c ****  * @brief Sensor fusion implementation that uses external Kalman filter
+   4:Core/Src/sensor_fusion.c ****  * @date 2025-07-05
+   5:Core/Src/sensor_fusion.c ****  * @author halilsrky
+   6:Core/Src/sensor_fusion.c ****  */
+   7:Core/Src/sensor_fusion.c **** #include "sensor_fusion.h"
+   8:Core/Src/sensor_fusion.c **** #include "kalman.h"
+   9:Core/Src/sensor_fusion.c **** #include "queternion.h"
+  10:Core/Src/sensor_fusion.c **** #include "quaternion.h"
+  11:Core/Src/sensor_fusion.c **** #include "flight_algorithm.h"
+  12:Core/Src/sensor_fusion.c **** #include <math.h>
+  13:Core/Src/sensor_fusion.c **** 
+  14:Core/Src/sensor_fusion.c **** // M_PI tanımı yoksa tanımla
+  15:Core/Src/sensor_fusion.c **** #ifndef M_PI
+  16:Core/Src/sensor_fusion.c **** #define M_PI 3.14159265358979323846f
+  17:Core/Src/sensor_fusion.c **** #endif
+  18:Core/Src/sensor_fusion.c **** 
+  19:Core/Src/sensor_fusion.c **** /* Private variables */
+  20:Core/Src/sensor_fusion.c **** static KalmanFilter_t kalman;          // Kalman filter instance from kalman.h
+  21:Core/Src/sensor_fusion.c **** static uint8_t initialized = 0;        // Flag to track initialization
+  22:Core/Src/sensor_fusion.c **** static uint32_t last_kalman_update_time = 0;  // Timestamp of last Kalman update
+  23:Core/Src/sensor_fusion.c **** static uint32_t flight_start_time = 0;  // Timestamp when flight began (from flight algorithm)
+  24:Core/Src/sensor_fusion.c **** 
+  25:Core/Src/sensor_fusion.c **** /* İvme sensörü arıza tespiti için değişkenler */
+  26:Core/Src/sensor_fusion.c **** #define ACCEL_BUFFER_SIZE 5            // İvme değerlerini saklamak için buffer boyutu
+  27:Core/Src/sensor_fusion.c **** static float accel_buffer[ACCEL_BUFFER_SIZE]; // İvme değerleri için halka tampon
+  28:Core/Src/sensor_fusion.c **** static uint8_t accel_buffer_index = 0;        // Tampon indeksi
+  29:Core/Src/sensor_fusion.c **** static uint8_t accel_buffer_full = 0;         // Tampon doldu mu?
+  30:Core/Src/sensor_fusion.c **** static uint8_t accel_failure_detected = 0;    // Arıza tespit edildi mi?
+  31:Core/Src/sensor_fusion.c **** 
+  32:Core/Src/sensor_fusion.c **** /* Dinamik arıza tespit eşik değerleri */
+  33:Core/Src/sensor_fusion.c **** #define THRUST_PHASE_DURATION_MS 15000  // İtki fazı süresi (15 saniye)
+  34:Core/Src/sensor_fusion.c **** #define ACCEL_MAX_VALUE_THRUST 150.0f   // İtki fazında max ivme (m/s²)
+  35:Core/Src/sensor_fusion.c **** #define ACCEL_MAX_STD_THRUST 50.0f      // İtki fazında max std sapma
+  36:Core/Src/sensor_fusion.c **** #define ACCEL_MAX_VALUE_CRUISE 50.0f    // Seyir fazında max ivme
+  37:Core/Src/sensor_fusion.c **** #define ACCEL_MAX_STD_CRUISE 15.0f      // Seyir fazında max std sapma
+  38:Core/Src/sensor_fusion.c **** 
+  39:Core/Src/sensor_fusion.c **** /**
+  40:Core/Src/sensor_fusion.c ****  * @brief İvme değerlerinin standart sapmasını hesapla
+  41:Core/Src/sensor_fusion.c ****  * @return Standart sapma değeri
+  42:Core/Src/sensor_fusion.c ****  */
+  43:Core/Src/sensor_fusion.c **** static float calculate_accel_std_deviation(void)
+  44:Core/Src/sensor_fusion.c **** {
+  72              		.loc 1 44 1
+  73              		.cfi_startproc
+  74              		@ args = 0, pretend = 0, frame = 24
+  75              		@ frame_needed = 1, uses_anonymous_args = 0
+  76 0000 80B5     		push	{r7, lr}
+  77              		.cfi_def_cfa_offset 8
+  78              		.cfi_offset 7, -8
+  79              		.cfi_offset 14, -4
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 3
+
+
+  80 0002 86B0     		sub	sp, sp, #24
+  81              		.cfi_def_cfa_offset 32
+  82 0004 00AF     		add	r7, sp, #0
+  83              		.cfi_def_cfa_register 7
+  45:Core/Src/sensor_fusion.c ****     // Buffer dolmadıysa ve çok az veri varsa
+  46:Core/Src/sensor_fusion.c ****     if (!accel_buffer_full && accel_buffer_index < 2) return 0.0f;
+  84              		.loc 1 46 9
+  85 0006 3D4B     		ldr	r3, .L10
+  86 0008 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+  87              		.loc 1 46 8
+  88 000a 002B     		cmp	r3, #0
+  89 000c 06D1     		bne	.L2
+  90              		.loc 1 46 50 discriminator 1
+  91 000e 3C4B     		ldr	r3, .L10+4
+  92 0010 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+  93              		.loc 1 46 28 discriminator 1
+  94 0012 012B     		cmp	r3, #1
+  95 0014 02D8     		bhi	.L2
+  96              		.loc 1 46 62 discriminator 2
+  97 0016 DFED3B7A 		vldr.32	s15, .L10+8
+  98 001a 69E0     		b	.L3
+  99              	.L2:
+  47:Core/Src/sensor_fusion.c **** 
+  48:Core/Src/sensor_fusion.c ****     int count = accel_buffer_full ? ACCEL_BUFFER_SIZE : accel_buffer_index;
+ 100              		.loc 1 48 35
+ 101 001c 374B     		ldr	r3, .L10
+ 102 001e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 103              		.loc 1 48 55
+ 104 0020 002B     		cmp	r3, #0
+ 105 0022 02D1     		bne	.L4
+ 106              		.loc 1 48 55 is_stmt 0 discriminator 1
+ 107 0024 364B     		ldr	r3, .L10+4
+ 108 0026 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 109 0028 00E0     		b	.L5
+ 110              	.L4:
+ 111              		.loc 1 48 55 discriminator 2
+ 112 002a 0523     		movs	r3, #5
+ 113              	.L5:
+ 114              		.loc 1 48 9 is_stmt 1 discriminator 4
+ 115 002c 7B60     		str	r3, [r7, #4]
+  49:Core/Src/sensor_fusion.c ****     float sum = 0.0f;
+ 116              		.loc 1 49 11 discriminator 4
+ 117 002e 4FF00003 		mov	r3, #0
+ 118 0032 7B61     		str	r3, [r7, #20]	@ float
+  50:Core/Src/sensor_fusion.c ****     float mean = 0.0f;
+ 119              		.loc 1 50 11 discriminator 4
+ 120 0034 4FF00003 		mov	r3, #0
+ 121 0038 3B60     		str	r3, [r7]	@ float
+  51:Core/Src/sensor_fusion.c ****     float variance = 0.0f;
+ 122              		.loc 1 51 11 discriminator 4
+ 123 003a 4FF00003 		mov	r3, #0
+ 124 003e 3B61     		str	r3, [r7, #16]	@ float
+ 125              	.LBB2:
+  52:Core/Src/sensor_fusion.c **** 
+  53:Core/Src/sensor_fusion.c ****     // Ortalama hesapla
+  54:Core/Src/sensor_fusion.c ****     for (int i = 0; i < count; i++) {
+ 126              		.loc 1 54 14 discriminator 4
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 4
+
+
+ 127 0040 0023     		movs	r3, #0
+ 128 0042 FB60     		str	r3, [r7, #12]
+ 129              		.loc 1 54 5 discriminator 4
+ 130 0044 0EE0     		b	.L6
+ 131              	.L7:
+  55:Core/Src/sensor_fusion.c ****         sum += accel_buffer[i];
+ 132              		.loc 1 55 28 discriminator 3
+ 133 0046 304A     		ldr	r2, .L10+12
+ 134 0048 FB68     		ldr	r3, [r7, #12]
+ 135 004a 9B00     		lsls	r3, r3, #2
+ 136 004c 1344     		add	r3, r3, r2
+ 137 004e D3ED007A 		vldr.32	s15, [r3]
+ 138              		.loc 1 55 13 discriminator 3
+ 139 0052 97ED057A 		vldr.32	s14, [r7, #20]
+ 140 0056 77EE277A 		vadd.f32	s15, s14, s15
+ 141 005a C7ED057A 		vstr.32	s15, [r7, #20]
+  54:Core/Src/sensor_fusion.c ****         sum += accel_buffer[i];
+ 142              		.loc 1 54 33 discriminator 3
+ 143 005e FB68     		ldr	r3, [r7, #12]
+ 144 0060 0133     		adds	r3, r3, #1
+ 145 0062 FB60     		str	r3, [r7, #12]
+ 146              	.L6:
+  54:Core/Src/sensor_fusion.c ****         sum += accel_buffer[i];
+ 147              		.loc 1 54 23 discriminator 1
+ 148 0064 FA68     		ldr	r2, [r7, #12]
+ 149 0066 7B68     		ldr	r3, [r7, #4]
+ 150 0068 9A42     		cmp	r2, r3
+ 151 006a ECDB     		blt	.L7
+ 152              	.LBE2:
+  56:Core/Src/sensor_fusion.c ****     }
+  57:Core/Src/sensor_fusion.c ****     mean = sum / count;
+ 153              		.loc 1 57 16
+ 154 006c 7B68     		ldr	r3, [r7, #4]
+ 155 006e 07EE903A 		vmov	s15, r3	@ int
+ 156 0072 B8EEE77A 		vcvt.f32.s32	s14, s15
+ 157              		.loc 1 57 10
+ 158 0076 D7ED056A 		vldr.32	s13, [r7, #20]
+ 159 007a C6EE877A 		vdiv.f32	s15, s13, s14
+ 160 007e C7ED007A 		vstr.32	s15, [r7]
+ 161              	.LBB3:
+  58:Core/Src/sensor_fusion.c **** 
+  59:Core/Src/sensor_fusion.c ****     // Varyans hesapla
+  60:Core/Src/sensor_fusion.c ****     for (int i = 0; i < count; i++) {
+ 162              		.loc 1 60 14
+ 163 0082 0023     		movs	r3, #0
+ 164 0084 BB60     		str	r3, [r7, #8]
+ 165              		.loc 1 60 5
+ 166 0086 1EE0     		b	.L8
+ 167              	.L9:
+  61:Core/Src/sensor_fusion.c ****         variance += (accel_buffer[i] - mean) * (accel_buffer[i] - mean);
+ 168              		.loc 1 61 34 discriminator 3
+ 169 0088 1F4A     		ldr	r2, .L10+12
+ 170 008a BB68     		ldr	r3, [r7, #8]
+ 171 008c 9B00     		lsls	r3, r3, #2
+ 172 008e 1344     		add	r3, r3, r2
+ 173 0090 93ED007A 		vldr.32	s14, [r3]
+ 174              		.loc 1 61 38 discriminator 3
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 5
+
+
+ 175 0094 D7ED007A 		vldr.32	s15, [r7]
+ 176 0098 37EE677A 		vsub.f32	s14, s14, s15
+ 177              		.loc 1 61 61 discriminator 3
+ 178 009c 1A4A     		ldr	r2, .L10+12
+ 179 009e BB68     		ldr	r3, [r7, #8]
+ 180 00a0 9B00     		lsls	r3, r3, #2
+ 181 00a2 1344     		add	r3, r3, r2
+ 182 00a4 D3ED006A 		vldr.32	s13, [r3]
+ 183              		.loc 1 61 65 discriminator 3
+ 184 00a8 D7ED007A 		vldr.32	s15, [r7]
+ 185 00ac 76EEE77A 		vsub.f32	s15, s13, s15
+ 186              		.loc 1 61 46 discriminator 3
+ 187 00b0 67EE277A 		vmul.f32	s15, s14, s15
+ 188              		.loc 1 61 18 discriminator 3
+ 189 00b4 97ED047A 		vldr.32	s14, [r7, #16]
+ 190 00b8 77EE277A 		vadd.f32	s15, s14, s15
+ 191 00bc C7ED047A 		vstr.32	s15, [r7, #16]
+  60:Core/Src/sensor_fusion.c ****         variance += (accel_buffer[i] - mean) * (accel_buffer[i] - mean);
+ 192              		.loc 1 60 33 discriminator 3
+ 193 00c0 BB68     		ldr	r3, [r7, #8]
+ 194 00c2 0133     		adds	r3, r3, #1
+ 195 00c4 BB60     		str	r3, [r7, #8]
+ 196              	.L8:
+  60:Core/Src/sensor_fusion.c ****         variance += (accel_buffer[i] - mean) * (accel_buffer[i] - mean);
+ 197              		.loc 1 60 23 discriminator 1
+ 198 00c6 BA68     		ldr	r2, [r7, #8]
+ 199 00c8 7B68     		ldr	r3, [r7, #4]
+ 200 00ca 9A42     		cmp	r2, r3
+ 201 00cc DCDB     		blt	.L9
+ 202              	.LBE3:
+  62:Core/Src/sensor_fusion.c ****     }
+  63:Core/Src/sensor_fusion.c ****     variance /= count;
+ 203              		.loc 1 63 14
+ 204 00ce 7B68     		ldr	r3, [r7, #4]
+ 205 00d0 07EE903A 		vmov	s15, r3	@ int
+ 206 00d4 B8EEE77A 		vcvt.f32.s32	s14, s15
+ 207 00d8 D7ED046A 		vldr.32	s13, [r7, #16]
+ 208 00dc C6EE877A 		vdiv.f32	s15, s13, s14
+ 209 00e0 C7ED047A 		vstr.32	s15, [r7, #16]
+  64:Core/Src/sensor_fusion.c **** 
+  65:Core/Src/sensor_fusion.c ****     return sqrtf(variance);
+ 210              		.loc 1 65 12
+ 211 00e4 97ED040A 		vldr.32	s0, [r7, #16]
+ 212 00e8 FFF7FEFF 		bl	sqrtf
+ 213 00ec F0EE407A 		vmov.f32	s15, s0
+ 214              	.L3:
+  66:Core/Src/sensor_fusion.c **** }
+ 215              		.loc 1 66 1
+ 216 00f0 B0EE670A 		vmov.f32	s0, s15
+ 217 00f4 1837     		adds	r7, r7, #24
+ 218              		.cfi_def_cfa_offset 8
+ 219 00f6 BD46     		mov	sp, r7
+ 220              		.cfi_def_cfa_register 13
+ 221              		@ sp needed
+ 222 00f8 80BD     		pop	{r7, pc}
+ 223              	.L11:
+ 224 00fa 00BF     		.align	2
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 6
+
+
+ 225              	.L10:
+ 226 00fc 00000000 		.word	accel_buffer_full
+ 227 0100 00000000 		.word	accel_buffer_index
+ 228 0104 00000000 		.word	0
+ 229 0108 00000000 		.word	accel_buffer
+ 230              		.cfi_endproc
+ 231              	.LFE242:
+ 233              		.section	.text.detect_accel_failure,"ax",%progbits
+ 234              		.align	1
+ 235              		.syntax unified
+ 236              		.thumb
+ 237              		.thumb_func
+ 239              	detect_accel_failure:
+ 240              	.LFB243:
+  67:Core/Src/sensor_fusion.c **** 
+  68:Core/Src/sensor_fusion.c **** /**
+  69:Core/Src/sensor_fusion.c ****  * @brief İvme sensörünün arızalı olup olmadığını kontrol et
+  70:Core/Src/sensor_fusion.c ****  * @param accel İvme değeri (m/s²)
+  71:Core/Src/sensor_fusion.c ****  * @return 1: Arıza tespit edildi, 0: Arıza yok
+  72:Core/Src/sensor_fusion.c ****  */
+  73:Core/Src/sensor_fusion.c **** static uint8_t detect_accel_failure(float accel)
+  74:Core/Src/sensor_fusion.c **** {
+ 241              		.loc 1 74 1
+ 242              		.cfi_startproc
+ 243              		@ args = 0, pretend = 0, frame = 32
+ 244              		@ frame_needed = 1, uses_anonymous_args = 0
+ 245 0000 80B5     		push	{r7, lr}
+ 246              		.cfi_def_cfa_offset 8
+ 247              		.cfi_offset 7, -8
+ 248              		.cfi_offset 14, -4
+ 249 0002 88B0     		sub	sp, sp, #32
+ 250              		.cfi_def_cfa_offset 40
+ 251 0004 00AF     		add	r7, sp, #0
+ 252              		.cfi_def_cfa_register 7
+ 253 0006 87ED010A 		vstr.32	s0, [r7, #4]
+  75:Core/Src/sensor_fusion.c ****     float accel_abs = fabsf(accel);
+ 254              		.loc 1 75 11
+ 255 000a D7ED017A 		vldr.32	s15, [r7, #4]
+ 256 000e F0EEE77A 		vabs.f32	s15, s15
+ 257 0012 C7ED057A 		vstr.32	s15, [r7, #20]
+  76:Core/Src/sensor_fusion.c ****     float max_accel, max_std;
+  77:Core/Src/sensor_fusion.c **** 
+  78:Core/Src/sensor_fusion.c ****     // Buffer güncelleme
+  79:Core/Src/sensor_fusion.c ****     accel_buffer[accel_buffer_index] = accel_abs;
+ 258              		.loc 1 79 17
+ 259 0016 314B     		ldr	r3, .L23
+ 260 0018 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 261              		.loc 1 79 38
+ 262 001a 314A     		ldr	r2, .L23+4
+ 263 001c 9B00     		lsls	r3, r3, #2
+ 264 001e 1344     		add	r3, r3, r2
+ 265 0020 7A69     		ldr	r2, [r7, #20]	@ float
+ 266 0022 1A60     		str	r2, [r3]	@ float
+  80:Core/Src/sensor_fusion.c ****     accel_buffer_index = (accel_buffer_index + 1) % ACCEL_BUFFER_SIZE;
+ 267              		.loc 1 80 46
+ 268 0024 2D4B     		ldr	r3, .L23
+ 269 0026 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 7
+
+
+ 270 0028 5A1C     		adds	r2, r3, #1
+ 271              		.loc 1 80 51
+ 272 002a 2E4B     		ldr	r3, .L23+8
+ 273 002c 83FB0213 		smull	r1, r3, r3, r2
+ 274 0030 5910     		asrs	r1, r3, #1
+ 275 0032 D317     		asrs	r3, r2, #31
+ 276 0034 C91A     		subs	r1, r1, r3
+ 277 0036 0B46     		mov	r3, r1
+ 278 0038 9B00     		lsls	r3, r3, #2
+ 279 003a 0B44     		add	r3, r3, r1
+ 280 003c D11A     		subs	r1, r2, r3
+ 281              		.loc 1 80 24
+ 282 003e CAB2     		uxtb	r2, r1
+ 283 0040 264B     		ldr	r3, .L23
+ 284 0042 1A70     		strb	r2, [r3]
+  81:Core/Src/sensor_fusion.c ****     if (accel_buffer_index == 0) {
+ 285              		.loc 1 81 28
+ 286 0044 254B     		ldr	r3, .L23
+ 287 0046 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 288              		.loc 1 81 8
+ 289 0048 002B     		cmp	r3, #0
+ 290 004a 02D1     		bne	.L13
+  82:Core/Src/sensor_fusion.c ****         accel_buffer_full = 1;
+ 291              		.loc 1 82 27
+ 292 004c 264B     		ldr	r3, .L23+12
+ 293 004e 0122     		movs	r2, #1
+ 294 0050 1A70     		strb	r2, [r3]
+ 295              	.L13:
+  83:Core/Src/sensor_fusion.c ****     }
+  84:Core/Src/sensor_fusion.c **** 
+  85:Core/Src/sensor_fusion.c ****     // Standart sapma hesapla
+  86:Core/Src/sensor_fusion.c ****     float std_dev = calculate_accel_std_deviation();
+ 296              		.loc 1 86 21
+ 297 0052 FFF7FEFF 		bl	calculate_accel_std_deviation
+ 298 0056 87ED040A 		vstr.32	s0, [r7, #16]
+  87:Core/Src/sensor_fusion.c **** 
+  88:Core/Src/sensor_fusion.c ****     // Uçuş başlangıç zamanını flight_algorithm'dan al
+  89:Core/Src/sensor_fusion.c **** 	uint32_t algorithm_start_time = flight_algorithm_get_start_time();
+ 299              		.loc 1 89 34
+ 300 005a FFF7FEFF 		bl	flight_algorithm_get_start_time
+ 301 005e F860     		str	r0, [r7, #12]
+  90:Core/Src/sensor_fusion.c **** 
+  91:Core/Src/sensor_fusion.c **** 	// Uçuş başlamışsa flight_algorithm'dan gelen zamanı kullan
+  92:Core/Src/sensor_fusion.c **** 	if (algorithm_start_time > 0) {
+ 302              		.loc 1 92 5
+ 303 0060 FB68     		ldr	r3, [r7, #12]
+ 304 0062 002B     		cmp	r3, #0
+ 305 0064 02D0     		beq	.L14
+  93:Core/Src/sensor_fusion.c **** 		flight_start_time = algorithm_start_time;
+ 306              		.loc 1 93 21
+ 307 0066 214A     		ldr	r2, .L23+16
+ 308 0068 FB68     		ldr	r3, [r7, #12]
+ 309 006a 1360     		str	r3, [r2]
+ 310              	.L14:
+  94:Core/Src/sensor_fusion.c **** 	}
+  95:Core/Src/sensor_fusion.c **** 
+  96:Core/Src/sensor_fusion.c **** 	// Uçuş fazına göre limit değerlerini belirle
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 8
+
+
+  97:Core/Src/sensor_fusion.c **** 	if (flight_start_time == 0) {
+ 311              		.loc 1 97 24
+ 312 006c 1F4B     		ldr	r3, .L23+16
+ 313 006e 1B68     		ldr	r3, [r3]
+ 314              		.loc 1 97 5
+ 315 0070 002B     		cmp	r3, #0
+ 316 0072 04D1     		bne	.L15
+  98:Core/Src/sensor_fusion.c **** 		max_accel = 200.0f;  // Yer hazırlığında gerçekçi olmayan çok yüksek değer
+ 317              		.loc 1 98 13
+ 318 0074 1E4B     		ldr	r3, .L23+20
+ 319 0076 FB61     		str	r3, [r7, #28]	@ float
+  99:Core/Src/sensor_fusion.c **** 		max_std = 100.0f;    // Yer hazırlığında çok yüksek standart sapma eşiği
+ 320              		.loc 1 99 11
+ 321 0078 1E4B     		ldr	r3, .L23+24
+ 322 007a BB61     		str	r3, [r7, #24]	@ float
+ 323 007c 14E0     		b	.L16
+ 324              	.L15:
+ 325              	.LBB4:
+ 100:Core/Src/sensor_fusion.c **** 	}
+ 101:Core/Src/sensor_fusion.c **** 	else {
+ 102:Core/Src/sensor_fusion.c **** 		// *** UÇUŞ BAŞLADI - NORMAL ARIZA TESPİTİ ***
+ 103:Core/Src/sensor_fusion.c **** 		uint32_t flight_elapsed_time = HAL_GetTick() - flight_start_time;
+ 326              		.loc 1 103 34
+ 327 007e FFF7FEFF 		bl	HAL_GetTick
+ 328 0082 0246     		mov	r2, r0
+ 329              		.loc 1 103 48
+ 330 0084 194B     		ldr	r3, .L23+16
+ 331 0086 1B68     		ldr	r3, [r3]
+ 332              		.loc 1 103 12
+ 333 0088 D31A     		subs	r3, r2, r3
+ 334 008a BB60     		str	r3, [r7, #8]
+ 104:Core/Src/sensor_fusion.c **** 
+ 105:Core/Src/sensor_fusion.c **** 		if (flight_elapsed_time < THRUST_PHASE_DURATION_MS) {
+ 335              		.loc 1 105 6
+ 336 008c BB68     		ldr	r3, [r7, #8]
+ 337 008e 43F69722 		movw	r2, #14999
+ 338 0092 9342     		cmp	r3, r2
+ 339 0094 04D8     		bhi	.L17
+ 106:Core/Src/sensor_fusion.c **** 			// İtki fazı - Yüksek limitler
+ 107:Core/Src/sensor_fusion.c **** 			max_accel = ACCEL_MAX_VALUE_THRUST;
+ 340              		.loc 1 107 14
+ 341 0096 184B     		ldr	r3, .L23+28
+ 342 0098 FB61     		str	r3, [r7, #28]	@ float
+ 108:Core/Src/sensor_fusion.c **** 			max_std = ACCEL_MAX_STD_THRUST;
+ 343              		.loc 1 108 12
+ 344 009a 184B     		ldr	r3, .L23+32
+ 345 009c BB61     		str	r3, [r7, #24]	@ float
+ 346 009e 03E0     		b	.L16
+ 347              	.L17:
+ 109:Core/Src/sensor_fusion.c **** 		} else {
+ 110:Core/Src/sensor_fusion.c **** 			// Seyir fazı - Düşük limitler
+ 111:Core/Src/sensor_fusion.c **** 			max_accel = ACCEL_MAX_VALUE_CRUISE;
+ 348              		.loc 1 111 14
+ 349 00a0 164B     		ldr	r3, .L23+32
+ 350 00a2 FB61     		str	r3, [r7, #28]	@ float
+ 112:Core/Src/sensor_fusion.c **** 			max_std = ACCEL_MAX_STD_CRUISE;
+ 351              		.loc 1 112 12
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 9
+
+
+ 352 00a4 164B     		ldr	r3, .L23+36
+ 353 00a6 BB61     		str	r3, [r7, #24]	@ float
+ 354              	.L16:
+ 355              	.LBE4:
+ 113:Core/Src/sensor_fusion.c **** 		}
+ 114:Core/Src/sensor_fusion.c **** 	}
+ 115:Core/Src/sensor_fusion.c **** 
+ 116:Core/Src/sensor_fusion.c ****     // İvme değeri veya standart sapma limitler dışındaysa
+ 117:Core/Src/sensor_fusion.c ****     if (accel_abs > max_accel || std_dev > max_std) {
+ 356              		.loc 1 117 8
+ 357 00a8 97ED057A 		vldr.32	s14, [r7, #20]
+ 358 00ac D7ED077A 		vldr.32	s15, [r7, #28]
+ 359 00b0 B4EEE77A 		vcmpe.f32	s14, s15
+ 360 00b4 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 361 00b8 08DC     		bgt	.L18
+ 362              		.loc 1 117 31 discriminator 1
+ 363 00ba 97ED047A 		vldr.32	s14, [r7, #16]
+ 364 00be D7ED067A 		vldr.32	s15, [r7, #24]
+ 365 00c2 B4EEE77A 		vcmpe.f32	s14, s15
+ 366 00c6 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 367 00ca 01DD     		ble	.L22
+ 368              	.L18:
+ 118:Core/Src/sensor_fusion.c ****         return 1;  // Arıza tespit edildi
+ 369              		.loc 1 118 16
+ 370 00cc 0123     		movs	r3, #1
+ 371 00ce 00E0     		b	.L21
+ 372              	.L22:
+ 119:Core/Src/sensor_fusion.c ****     }
+ 120:Core/Src/sensor_fusion.c **** 
+ 121:Core/Src/sensor_fusion.c ****     return 0;  // Arıza yok
+ 373              		.loc 1 121 12
+ 374 00d0 0023     		movs	r3, #0
+ 375              	.L21:
+ 122:Core/Src/sensor_fusion.c **** }
+ 376              		.loc 1 122 1
+ 377 00d2 1846     		mov	r0, r3
+ 378 00d4 2037     		adds	r7, r7, #32
+ 379              		.cfi_def_cfa_offset 8
+ 380 00d6 BD46     		mov	sp, r7
+ 381              		.cfi_def_cfa_register 13
+ 382              		@ sp needed
+ 383 00d8 80BD     		pop	{r7, pc}
+ 384              	.L24:
+ 385 00da 00BF     		.align	2
+ 386              	.L23:
+ 387 00dc 00000000 		.word	accel_buffer_index
+ 388 00e0 00000000 		.word	accel_buffer
+ 389 00e4 67666666 		.word	1717986919
+ 390 00e8 00000000 		.word	accel_buffer_full
+ 391 00ec 00000000 		.word	flight_start_time
+ 392 00f0 00004843 		.word	1128792064
+ 393 00f4 0000C842 		.word	1120403456
+ 394 00f8 00001643 		.word	1125515264
+ 395 00fc 00004842 		.word	1112014848
+ 396 0100 00007041 		.word	1097859072
+ 397              		.cfi_endproc
+ 398              	.LFE243:
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 10
+
+
+ 400              		.section	.text.sensor_fusion_init,"ax",%progbits
+ 401              		.align	1
+ 402              		.global	sensor_fusion_init
+ 403              		.syntax unified
+ 404              		.thumb
+ 405              		.thumb_func
+ 407              	sensor_fusion_init:
+ 408              	.LFB244:
+ 123:Core/Src/sensor_fusion.c **** 
+ 124:Core/Src/sensor_fusion.c **** /**
+ 125:Core/Src/sensor_fusion.c ****  * @brief Initialize the sensor fusion module
+ 126:Core/Src/sensor_fusion.c ****  */
+ 127:Core/Src/sensor_fusion.c **** void sensor_fusion_init()
+ 128:Core/Src/sensor_fusion.c **** {
+ 409              		.loc 1 128 1
+ 410              		.cfi_startproc
+ 411              		@ args = 0, pretend = 0, frame = 8
+ 412              		@ frame_needed = 1, uses_anonymous_args = 0
+ 413 0000 80B5     		push	{r7, lr}
+ 414              		.cfi_def_cfa_offset 8
+ 415              		.cfi_offset 7, -8
+ 416              		.cfi_offset 14, -4
+ 417 0002 82B0     		sub	sp, sp, #8
+ 418              		.cfi_def_cfa_offset 16
+ 419 0004 00AF     		add	r7, sp, #0
+ 420              		.cfi_def_cfa_register 7
+ 129:Core/Src/sensor_fusion.c ****     // Sensörlerinize göre gürültü değerlerini ayarlayın - daha konservatif başlangıç
+ 130:Core/Src/sensor_fusion.c ****     kalman.process_noise = 0.05f;         // Model gürültüsü (biraz artırıldı)
+ 421              		.loc 1 130 26
+ 422 0006 194B     		ldr	r3, .L28
+ 423 0008 194A     		ldr	r2, .L28+4
+ 424 000a 1A63     		str	r2, [r3, #48]	@ float
+ 131:Core/Src/sensor_fusion.c ****     kalman.measurement_noise_alt = 0.1f;  // BME280 yükseklik gürültüsü (daha realistik)
+ 425              		.loc 1 131 34
+ 426 000c 174B     		ldr	r3, .L28
+ 427 000e 194A     		ldr	r2, .L28+8
+ 428 0010 5A63     		str	r2, [r3, #52]	@ float
+ 132:Core/Src/sensor_fusion.c ****     kalman.measurement_noise_acc = 10.0f; // BMI088 ivme gürültüsü (başlangıç için)
+ 429              		.loc 1 132 34
+ 430 0012 164B     		ldr	r3, .L28
+ 431 0014 184A     		ldr	r2, .L28+12
+ 432 0016 9A63     		str	r2, [r3, #56]	@ float
+ 133:Core/Src/sensor_fusion.c **** 
+ 134:Core/Src/sensor_fusion.c ****     KalmanFilter_Init(&kalman);
+ 433              		.loc 1 134 5
+ 434 0018 1448     		ldr	r0, .L28
+ 435 001a FFF7FEFF 		bl	KalmanFilter_Init
+ 436              	.LBB5:
+ 135:Core/Src/sensor_fusion.c **** 
+ 136:Core/Src/sensor_fusion.c ****     // İvme arıza tespit değişkenlerini sıfırla
+ 137:Core/Src/sensor_fusion.c ****     for (int i = 0; i < ACCEL_BUFFER_SIZE; i++) {
+ 437              		.loc 1 137 14
+ 438 001e 0023     		movs	r3, #0
+ 439 0020 7B60     		str	r3, [r7, #4]
+ 440              		.loc 1 137 5
+ 441 0022 09E0     		b	.L26
+ 442              	.L27:
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 11
+
+
+ 138:Core/Src/sensor_fusion.c ****         accel_buffer[i] = 0.0f;
+ 443              		.loc 1 138 25 discriminator 3
+ 444 0024 154A     		ldr	r2, .L28+16
+ 445 0026 7B68     		ldr	r3, [r7, #4]
+ 446 0028 9B00     		lsls	r3, r3, #2
+ 447 002a 1344     		add	r3, r3, r2
+ 448 002c 4FF00002 		mov	r2, #0
+ 449 0030 1A60     		str	r2, [r3]	@ float
+ 137:Core/Src/sensor_fusion.c ****         accel_buffer[i] = 0.0f;
+ 450              		.loc 1 137 45 discriminator 3
+ 451 0032 7B68     		ldr	r3, [r7, #4]
+ 452 0034 0133     		adds	r3, r3, #1
+ 453 0036 7B60     		str	r3, [r7, #4]
+ 454              	.L26:
+ 137:Core/Src/sensor_fusion.c ****         accel_buffer[i] = 0.0f;
+ 455              		.loc 1 137 23 discriminator 1
+ 456 0038 7B68     		ldr	r3, [r7, #4]
+ 457 003a 042B     		cmp	r3, #4
+ 458 003c F2DD     		ble	.L27
+ 459              	.LBE5:
+ 139:Core/Src/sensor_fusion.c ****     }
+ 140:Core/Src/sensor_fusion.c ****     accel_buffer_index = 0;
+ 460              		.loc 1 140 24
+ 461 003e 104B     		ldr	r3, .L28+20
+ 462 0040 0022     		movs	r2, #0
+ 463 0042 1A70     		strb	r2, [r3]
+ 141:Core/Src/sensor_fusion.c ****     accel_buffer_full = 0;
+ 464              		.loc 1 141 23
+ 465 0044 0F4B     		ldr	r3, .L28+24
+ 466 0046 0022     		movs	r2, #0
+ 467 0048 1A70     		strb	r2, [r3]
+ 142:Core/Src/sensor_fusion.c ****     accel_failure_detected = 0;
+ 468              		.loc 1 142 28
+ 469 004a 0F4B     		ldr	r3, .L28+28
+ 470 004c 0022     		movs	r2, #0
+ 471 004e 1A70     		strb	r2, [r3]
+ 143:Core/Src/sensor_fusion.c **** 
+ 144:Core/Src/sensor_fusion.c ****     initialized = 1;
+ 472              		.loc 1 144 17
+ 473 0050 0E4B     		ldr	r3, .L28+32
+ 474 0052 0122     		movs	r2, #1
+ 475 0054 1A70     		strb	r2, [r3]
+ 145:Core/Src/sensor_fusion.c ****     last_kalman_update_time = 0;  // Sıfırla ki ilk çalıştırmada düzgün başlasın
+ 476              		.loc 1 145 29
+ 477 0056 0E4B     		ldr	r3, .L28+36
+ 478 0058 0022     		movs	r2, #0
+ 479 005a 1A60     		str	r2, [r3]
+ 146:Core/Src/sensor_fusion.c ****     flight_start_time = 0;
+ 480              		.loc 1 146 23
+ 481 005c 0D4B     		ldr	r3, .L28+40
+ 482 005e 0022     		movs	r2, #0
+ 483 0060 1A60     		str	r2, [r3]
+ 147:Core/Src/sensor_fusion.c **** }
+ 484              		.loc 1 147 1
+ 485 0062 00BF     		nop
+ 486 0064 0837     		adds	r7, r7, #8
+ 487              		.cfi_def_cfa_offset 8
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 12
+
+
+ 488 0066 BD46     		mov	sp, r7
+ 489              		.cfi_def_cfa_register 13
+ 490              		@ sp needed
+ 491 0068 80BD     		pop	{r7, pc}
+ 492              	.L29:
+ 493 006a 00BF     		.align	2
+ 494              	.L28:
+ 495 006c 00000000 		.word	kalman
+ 496 0070 CDCC4C3D 		.word	1028443341
+ 497 0074 CDCCCC3D 		.word	1036831949
+ 498 0078 00002041 		.word	1092616192
+ 499 007c 00000000 		.word	accel_buffer
+ 500 0080 00000000 		.word	accel_buffer_index
+ 501 0084 00000000 		.word	accel_buffer_full
+ 502 0088 00000000 		.word	accel_failure_detected
+ 503 008c 00000000 		.word	initialized
+ 504 0090 00000000 		.word	last_kalman_update_time
+ 505 0094 00000000 		.word	flight_start_time
+ 506              		.cfi_endproc
+ 507              	.LFE244:
+ 509              		.global	__aeabi_f2d
+ 510              		.global	__aeabi_dmul
+ 511              		.global	__aeabi_d2f
+ 512              		.section	.text.sensor_fusion_update_kalman,"ax",%progbits
+ 513              		.align	1
+ 514              		.global	sensor_fusion_update_kalman
+ 515              		.syntax unified
+ 516              		.thumb
+ 517              		.thumb_func
+ 519              	sensor_fusion_update_kalman:
+ 520              	.LFB245:
+ 148:Core/Src/sensor_fusion.c **** 
+ 149:Core/Src/sensor_fusion.c **** /**
+ 150:Core/Src/sensor_fusion.c ****  * @brief Update sensor fusion with new measurements (Kalman filter)
+ 151:Core/Src/sensor_fusion.c ****  */
+ 152:Core/Src/sensor_fusion.c **** void sensor_fusion_update_kalman(BME_280_t* BME, bmi088_struct_t* BMI, sensor_fusion_t* sensor)
+ 153:Core/Src/sensor_fusion.c **** {
+ 521              		.loc 1 153 1
+ 522              		.cfi_startproc
+ 523              		@ args = 0, pretend = 0, frame = 40
+ 524              		@ frame_needed = 1, uses_anonymous_args = 0
+ 525 0000 80B5     		push	{r7, lr}
+ 526              		.cfi_def_cfa_offset 8
+ 527              		.cfi_offset 7, -8
+ 528              		.cfi_offset 14, -4
+ 529 0002 8AB0     		sub	sp, sp, #40
+ 530              		.cfi_def_cfa_offset 48
+ 531 0004 00AF     		add	r7, sp, #0
+ 532              		.cfi_def_cfa_register 7
+ 533 0006 F860     		str	r0, [r7, #12]
+ 534 0008 B960     		str	r1, [r7, #8]
+ 535 000a 7A60     		str	r2, [r7, #4]
+ 154:Core/Src/sensor_fusion.c ****     // Get current time for automatic delta calculation
+ 155:Core/Src/sensor_fusion.c ****     uint32_t current_time = HAL_GetTick();
+ 536              		.loc 1 155 29
+ 537 000c FFF7FEFF 		bl	HAL_GetTick
+ 538 0010 F861     		str	r0, [r7, #28]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 13
+
+
+ 156:Core/Src/sensor_fusion.c **** 
+ 157:Core/Src/sensor_fusion.c ****     // Calculate time difference in seconds
+ 158:Core/Src/sensor_fusion.c ****     float time_sec;
+ 159:Core/Src/sensor_fusion.c **** 
+ 160:Core/Src/sensor_fusion.c ****     // İlk çalıştırmada zamanı başlat
+ 161:Core/Src/sensor_fusion.c ****     if (last_kalman_update_time == 0) {
+ 539              		.loc 1 161 33
+ 540 0012 5D4B     		ldr	r3, .L49+8
+ 541 0014 1B68     		ldr	r3, [r3]
+ 542              		.loc 1 161 8
+ 543 0016 002B     		cmp	r3, #0
+ 544 0018 05D1     		bne	.L31
+ 162:Core/Src/sensor_fusion.c ****         last_kalman_update_time = current_time;
+ 545              		.loc 1 162 33
+ 546 001a 5B4A     		ldr	r2, .L49+8
+ 547 001c FB69     		ldr	r3, [r7, #28]
+ 548 001e 1360     		str	r3, [r2]
+ 163:Core/Src/sensor_fusion.c ****         time_sec = 0.01f; // İlk iterasyon için sabit değer
+ 549              		.loc 1 163 18
+ 550 0020 5A4B     		ldr	r3, .L49+12
+ 551 0022 7B62     		str	r3, [r7, #36]	@ float
+ 552 0024 21E0     		b	.L32
+ 553              	.L31:
+ 554              	.LBB6:
+ 164:Core/Src/sensor_fusion.c ****     } else {
+ 165:Core/Src/sensor_fusion.c ****         // Zaman farkını hesapla
+ 166:Core/Src/sensor_fusion.c ****         uint32_t time_diff = current_time - last_kalman_update_time;
+ 555              		.loc 1 166 43
+ 556 0026 584B     		ldr	r3, .L49+8
+ 557 0028 1B68     		ldr	r3, [r3]
+ 558              		.loc 1 166 18
+ 559 002a FA69     		ldr	r2, [r7, #28]
+ 560 002c D31A     		subs	r3, r2, r3
+ 561 002e BB61     		str	r3, [r7, #24]
+ 167:Core/Src/sensor_fusion.c ****         time_sec = time_diff / 1000.0f;
+ 562              		.loc 1 167 30
+ 563 0030 BB69     		ldr	r3, [r7, #24]
+ 564 0032 07EE903A 		vmov	s15, r3	@ int
+ 565 0036 B8EE677A 		vcvt.f32.u32	s14, s15
+ 566              		.loc 1 167 18
+ 567 003a DFED556A 		vldr.32	s13, .L49+16
+ 568 003e C7EE267A 		vdiv.f32	s15, s14, s13
+ 569 0042 C7ED097A 		vstr.32	s15, [r7, #36]
+ 168:Core/Src/sensor_fusion.c **** 
+ 169:Core/Src/sensor_fusion.c ****         // Zaman kontrolü - makul sınırlar içinde olmalı
+ 170:Core/Src/sensor_fusion.c ****         if (time_sec <= 0.0f || time_sec > 1.0f) {
+ 570              		.loc 1 170 12
+ 571 0046 D7ED097A 		vldr.32	s15, [r7, #36]
+ 572 004a F5EEC07A 		vcmpe.f32	s15, #0
+ 573 004e F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 574 0052 08D9     		bls	.L33
+ 575              		.loc 1 170 30 discriminator 1
+ 576 0054 D7ED097A 		vldr.32	s15, [r7, #36]
+ 577 0058 B7EE007A 		vmov.f32	s14, #1.0e+0
+ 578 005c F4EEC77A 		vcmpe.f32	s15, s14
+ 579 0060 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 580 0064 01DD     		ble	.L32
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 14
+
+
+ 581              	.L33:
+ 171:Core/Src/sensor_fusion.c ****             time_sec = 0.01f; // Default 10ms if invalid
+ 582              		.loc 1 171 22
+ 583 0066 494B     		ldr	r3, .L49+12
+ 584 0068 7B62     		str	r3, [r7, #36]	@ float
+ 585              	.L32:
+ 586              	.LBE6:
+ 172:Core/Src/sensor_fusion.c ****         }
+ 173:Core/Src/sensor_fusion.c ****     }
+ 174:Core/Src/sensor_fusion.c **** 
+ 175:Core/Src/sensor_fusion.c ****     // Update the last update time
+ 176:Core/Src/sensor_fusion.c ****     last_kalman_update_time = current_time;
+ 587              		.loc 1 176 29
+ 588 006a 474A     		ldr	r2, .L49+8
+ 589 006c FB69     		ldr	r3, [r7, #28]
+ 590 006e 1360     		str	r3, [r2]
+ 177:Core/Src/sensor_fusion.c **** 
+ 178:Core/Src/sensor_fusion.c ****     // Güvenlik kontrolü - BME ve BMI sensör verilerinin geçerli olduğundan emin ol
+ 179:Core/Src/sensor_fusion.c ****     if (BME == NULL || BMI == NULL || sensor == NULL) {
+ 591              		.loc 1 179 8
+ 592 0070 FB68     		ldr	r3, [r7, #12]
+ 593 0072 002B     		cmp	r3, #0
+ 594 0074 7ED0     		beq	.L48
+ 595              		.loc 1 179 21 discriminator 1
+ 596 0076 BB68     		ldr	r3, [r7, #8]
+ 597 0078 002B     		cmp	r3, #0
+ 598 007a 7BD0     		beq	.L48
+ 599              		.loc 1 179 36 discriminator 2
+ 600 007c 7B68     		ldr	r3, [r7, #4]
+ 601 007e 002B     		cmp	r3, #0
+ 602 0080 78D0     		beq	.L48
+ 180:Core/Src/sensor_fusion.c ****         return;
+ 181:Core/Src/sensor_fusion.c ****     }
+ 182:Core/Src/sensor_fusion.c **** 
+ 183:Core/Src/sensor_fusion.c ****     // Calculate vertical acceleration by compensating for gravity using IMU orientation
+ 184:Core/Src/sensor_fusion.c ****     float angle_rad = BMI->datas.theta * (M_PI / 180.0f);  // dereceyse radyana çevir
+ 603              		.loc 1 184 33
+ 604 0082 BB68     		ldr	r3, [r7, #8]
+ 605 0084 5B6B     		ldr	r3, [r3, #52]	@ float
+ 606 0086 1846     		mov	r0, r3	@ float
+ 607 0088 FFF7FEFF 		bl	__aeabi_f2d
+ 608              		.loc 1 184 40
+ 609 008c 3CA3     		adr	r3, .L49
+ 610 008e D3E90023 		ldrd	r2, [r3]
+ 611 0092 FFF7FEFF 		bl	__aeabi_dmul
+ 612 0096 0246     		mov	r2, r0
+ 613 0098 0B46     		mov	r3, r1
+ 614              		.loc 1 184 11
+ 615 009a 1046     		mov	r0, r2
+ 616 009c 1946     		mov	r1, r3
+ 617 009e FFF7FEFF 		bl	__aeabi_d2f
+ 618 00a2 0346     		mov	r3, r0	@ float
+ 619 00a4 7B61     		str	r3, [r7, #20]	@ float
+ 185:Core/Src/sensor_fusion.c **** 
+ 186:Core/Src/sensor_fusion.c ****     // Yerçekimi ivmesinin lokal z eksenindeki bileşeni
+ 187:Core/Src/sensor_fusion.c ****     float g_local_z = 9.81f * cosf(angle_rad);
+ 620              		.loc 1 187 31
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 15
+
+
+ 621 00a6 97ED050A 		vldr.32	s0, [r7, #20]
+ 622 00aa FFF7FEFF 		bl	cosf
+ 623 00ae F0EE407A 		vmov.f32	s15, s0
+ 624              		.loc 1 187 11
+ 625 00b2 9FED387A 		vldr.32	s14, .L49+20
+ 626 00b6 67EE877A 		vmul.f32	s15, s15, s14
+ 627 00ba C7ED047A 		vstr.32	s15, [r7, #16]
+ 188:Core/Src/sensor_fusion.c **** 
+ 189:Core/Src/sensor_fusion.c ****     // Gerçek ivmeyi hesapla:
+ 190:Core/Src/sensor_fusion.c ****     float accel_z_corrected = BMI->datas.acc_z - g_local_z;
+ 628              		.loc 1 190 41
+ 629 00be BB68     		ldr	r3, [r7, #8]
+ 630 00c0 93ED197A 		vldr.32	s14, [r3, #100]
+ 631              		.loc 1 190 11
+ 632 00c4 D7ED047A 		vldr.32	s15, [r7, #16]
+ 633 00c8 77EE677A 		vsub.f32	s15, s14, s15
+ 634 00cc C7ED087A 		vstr.32	s15, [r7, #32]
+ 191:Core/Src/sensor_fusion.c **** 
+ 192:Core/Src/sensor_fusion.c ****     // İvme sensörü arıza tespiti
+ 193:Core/Src/sensor_fusion.c ****     accel_failure_detected = detect_accel_failure(accel_z_corrected);
+ 635              		.loc 1 193 30
+ 636 00d0 97ED080A 		vldr.32	s0, [r7, #32]
+ 637 00d4 FFF7FEFF 		bl	detect_accel_failure
+ 638 00d8 0346     		mov	r3, r0
+ 639 00da 1A46     		mov	r2, r3
+ 640              		.loc 1 193 28
+ 641 00dc 2E4B     		ldr	r3, .L49+24
+ 642 00de 1A70     		strb	r2, [r3]
+ 194:Core/Src/sensor_fusion.c **** 
+ 195:Core/Src/sensor_fusion.c ****     // İvme değeri kontrolü - aşırı değerleri sınırla
+ 196:Core/Src/sensor_fusion.c ****     if (fabsf(accel_z_corrected) > 500.0f) {
+ 643              		.loc 1 196 9
+ 644 00e0 D7ED087A 		vldr.32	s15, [r7, #32]
+ 645 00e4 F0EEE77A 		vabs.f32	s15, s15
+ 646              		.loc 1 196 8
+ 647 00e8 9FED2C7A 		vldr.32	s14, .L49+28
+ 648 00ec F4EEC77A 		vcmpe.f32	s15, s14
+ 649 00f0 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 650 00f4 0ADD     		ble	.L38
+ 197:Core/Src/sensor_fusion.c ****         accel_z_corrected = (accel_z_corrected > 0) ? 500.0f : -500.0f;
+ 651              		.loc 1 197 62
+ 652 00f6 D7ED087A 		vldr.32	s15, [r7, #32]
+ 653 00fa F5EEC07A 		vcmpe.f32	s15, #0
+ 654 00fe F1EE10FA 		vmrs	APSR_nzcv, FPSCR
+ 655 0102 01DD     		ble	.L47
+ 656              		.loc 1 197 62 is_stmt 0 discriminator 1
+ 657 0104 264B     		ldr	r3, .L49+32
+ 658 0106 00E0     		b	.L42
+ 659              	.L47:
+ 660              		.loc 1 197 62 discriminator 2
+ 661 0108 264B     		ldr	r3, .L49+36
+ 662              	.L42:
+ 663              		.loc 1 197 27 is_stmt 1 discriminator 4
+ 664 010a 3B62     		str	r3, [r7, #32]	@ float
+ 665              	.L38:
+ 198:Core/Src/sensor_fusion.c ****     }
+ 199:Core/Src/sensor_fusion.c **** 
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 16
+
+
+ 200:Core/Src/sensor_fusion.c ****     // Arıza durumuna göre Kalman filtresi parametrelerini güncelle
+ 201:Core/Src/sensor_fusion.c ****     if (accel_failure_detected) {
+ 666              		.loc 1 201 9
+ 667 010c 224B     		ldr	r3, .L49+24
+ 668 010e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 669              		.loc 1 201 8
+ 670 0110 002B     		cmp	r3, #0
+ 671 0112 03D0     		beq	.L43
+ 202:Core/Src/sensor_fusion.c ****         // Arıza tespit edildi - ivme sensörüne çok az güven
+ 203:Core/Src/sensor_fusion.c ****         kalman.measurement_noise_acc = 500.0f;  // Çok yüksek gürültü = düşük güven
+ 672              		.loc 1 203 38
+ 673 0114 244B     		ldr	r3, .L49+40
+ 674 0116 224A     		ldr	r2, .L49+32
+ 675 0118 9A63     		str	r2, [r3, #56]	@ float
+ 676 011a 02E0     		b	.L44
+ 677              	.L43:
+ 204:Core/Src/sensor_fusion.c ****     } else {
+ 205:Core/Src/sensor_fusion.c ****         // Normal durum - normal güven
+ 206:Core/Src/sensor_fusion.c ****         kalman.measurement_noise_acc = 50.0f;
+ 678              		.loc 1 206 38
+ 679 011c 224B     		ldr	r3, .L49+40
+ 680 011e 234A     		ldr	r2, .L49+44
+ 681 0120 9A63     		str	r2, [r3, #56]	@ float
+ 682              	.L44:
+ 207:Core/Src/sensor_fusion.c ****     }
+ 208:Core/Src/sensor_fusion.c **** 
+ 209:Core/Src/sensor_fusion.c ****     // Only update if initialized
+ 210:Core/Src/sensor_fusion.c ****     if (initialized) {
+ 683              		.loc 1 210 9
+ 684 0122 234B     		ldr	r3, .L49+48
+ 685 0124 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 686              		.loc 1 210 8
+ 687 0126 002B     		cmp	r3, #0
+ 688 0128 25D0     		beq	.L30
+ 211:Core/Src/sensor_fusion.c ****         // HATA DÜZELTİLDİ: accel_failure_detected yerine gerçek ivme değeri kullanılıyor
+ 212:Core/Src/sensor_fusion.c ****         sensor->filtered_altitude = KalmanFilter_Update(&kalman, BME->altitude, accel_z_corrected, 
+ 689              		.loc 1 212 37
+ 690 012a FB68     		ldr	r3, [r7, #12]
+ 691 012c D3ED087A 		vldr.32	s15, [r3, #32]
+ 692 0130 97ED091A 		vldr.32	s2, [r7, #36]
+ 693 0134 D7ED080A 		vldr.32	s1, [r7, #32]
+ 694 0138 B0EE670A 		vmov.f32	s0, s15
+ 695 013c 1A48     		ldr	r0, .L49+40
+ 696 013e FFF7FEFF 		bl	KalmanFilter_Update
+ 697 0142 F0EE407A 		vmov.f32	s15, s0
+ 698              		.loc 1 212 35
+ 699 0146 7B68     		ldr	r3, [r7, #4]
+ 700 0148 C3ED007A 		vstr.32	s15, [r3]
+ 213:Core/Src/sensor_fusion.c ****         sensor->apogeeDetect = KalmanFilter_IsApogeeDetected(&kalman);
+ 701              		.loc 1 213 32
+ 702 014c 1648     		ldr	r0, .L49+40
+ 703 014e FFF7FEFF 		bl	KalmanFilter_IsApogeeDetected
+ 704 0152 0346     		mov	r3, r0
+ 705              		.loc 1 213 30
+ 706 0154 DAB2     		uxtb	r2, r3
+ 707 0156 7B68     		ldr	r3, [r7, #4]
+ 708 0158 1A76     		strb	r2, [r3, #24]
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 17
+
+
+ 214:Core/Src/sensor_fusion.c ****         sensor->velocity = Kalman_Get_Velocity(&kalman);
+ 709              		.loc 1 214 28
+ 710 015a 1348     		ldr	r0, .L49+40
+ 711 015c FFF7FEFF 		bl	Kalman_Get_Velocity
+ 712 0160 F0EE407A 		vmov.f32	s15, s0
+ 713              		.loc 1 214 26
+ 714 0164 7B68     		ldr	r3, [r7, #4]
+ 715 0166 C3ED017A 		vstr.32	s15, [r3, #4]
+ 215:Core/Src/sensor_fusion.c ****         sensor->accel_failure = accel_failure_detected;
+ 716              		.loc 1 215 31
+ 717 016a 0B4B     		ldr	r3, .L49+24
+ 718 016c 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 719 016e 7B68     		ldr	r3, [r7, #4]
+ 720 0170 5A76     		strb	r2, [r3, #25]
+ 721 0172 00E0     		b	.L30
+ 722              	.L48:
+ 180:Core/Src/sensor_fusion.c ****     }
+ 723              		.loc 1 180 9
+ 724 0174 00BF     		nop
+ 725              	.L30:
+ 216:Core/Src/sensor_fusion.c ****     }
+ 217:Core/Src/sensor_fusion.c **** }
+ 726              		.loc 1 217 1
+ 727 0176 2837     		adds	r7, r7, #40
+ 728              		.cfi_def_cfa_offset 8
+ 729 0178 BD46     		mov	sp, r7
+ 730              		.cfi_def_cfa_register 13
+ 731              		@ sp needed
+ 732 017a 80BD     		pop	{r7, pc}
+ 733              	.L50:
+ 734 017c AFF30080 		.align	3
+ 735              	.L49:
+ 736 0180 399D52A2 		.word	-1571644103
+ 737 0184 46DF913F 		.word	1066524486
+ 738 0188 00000000 		.word	last_kalman_update_time
+ 739 018c 0AD7233C 		.word	1008981770
+ 740 0190 00007A44 		.word	1148846080
+ 741 0194 C3F51C41 		.word	1092416963
+ 742 0198 00000000 		.word	accel_failure_detected
+ 743 019c 0000FA43 		.word	1140457472
+ 744 01a0 0000FA43 		.word	1140457472
+ 745 01a4 0000FAC3 		.word	-1007026176
+ 746 01a8 00000000 		.word	kalman
+ 747 01ac 00004842 		.word	1112014848
+ 748 01b0 00000000 		.word	initialized
+ 749              		.cfi_endproc
+ 750              	.LFE245:
+ 752              		.text
+ 753              	.Letext0:
+ 754              		.file 2 "Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f446xx.h"
+ 755              		.file 3 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 756              		.file 4 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltool
+ 757              		.file 5 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_def.h"
+ 758              		.file 6 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma.h"
+ 759              		.file 7 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_i2c.h"
+ 760              		.file 8 "Core/Inc/bme280.h"
+ 761              		.file 9 "Core/Inc/bmi088.h"
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 18
+
+
+ 762              		.file 10 "Core/Inc/sensor_fusion.h"
+ 763              		.file 11 "Core/Inc/kalman.h"
+ 764              		.file 12 "C:\\ST\\STM32CubeIDE_1.14.1\\STM32CubeIDE\\plugins\\com.st.stm32cube.ide.mcu.externaltoo
+ 765              		.file 13 "Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h"
+ 766              		.file 14 "Core/Inc/flight_algorithm.h"
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 19
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 sensor_fusion.c
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:21     .bss.kalman:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:24     .bss.kalman:00000000 kalman
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:29     .bss.initialized:00000000 initialized
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:30     .bss.initialized:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:32     .bss.last_kalman_update_time:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:35     .bss.last_kalman_update_time:00000000 last_kalman_update_time
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:38     .bss.flight_start_time:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:41     .bss.flight_start_time:00000000 flight_start_time
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:44     .bss.accel_buffer:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:47     .bss.accel_buffer:00000000 accel_buffer
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:52     .bss.accel_buffer_index:00000000 accel_buffer_index
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:53     .bss.accel_buffer_index:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:57     .bss.accel_buffer_full:00000000 accel_buffer_full
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:58     .bss.accel_buffer_full:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:62     .bss.accel_failure_detected:00000000 accel_failure_detected
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:63     .bss.accel_failure_detected:00000000 $d
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:65     .text.calculate_accel_std_deviation:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:70     .text.calculate_accel_std_deviation:00000000 calculate_accel_std_deviation
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:226    .text.calculate_accel_std_deviation:000000fc $d
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:234    .text.detect_accel_failure:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:239    .text.detect_accel_failure:00000000 detect_accel_failure
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:387    .text.detect_accel_failure:000000dc $d
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:401    .text.sensor_fusion_init:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:407    .text.sensor_fusion_init:00000000 sensor_fusion_init
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:495    .text.sensor_fusion_init:0000006c $d
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:513    .text.sensor_fusion_update_kalman:00000000 $t
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:519    .text.sensor_fusion_update_kalman:00000000 sensor_fusion_update_kalman
+C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s:736    .text.sensor_fusion_update_kalman:00000180 $d
+                           .group:00000000 wm4.0.fbeba72283fbbed79c5ed62adcf8946b
+                           .group:00000000 wm4.stm32f4xx_hal_conf.h.25.834fd89df99f7f3fe75169badeed02aa
+                           .group:00000000 wm4.stm32f4xx.h.38.63e3ea23bd63a94457417730025259b6
+                           .group:00000000 wm4.stm32f446xx.h.34.dd43cebd7192f96bce7a5ff975201274
+                           .group:00000000 wm4._newlib_version.h.4.6d111ab2e95434b664b53815e5c8ccba
+                           .group:00000000 wm4.features.h.33.3e67abe6fb64142d4f6fa9496796153c
+                           .group:00000000 wm4._default_types.h.15.247e5cd201eca3442cbf5404108c4935
+                           .group:00000000 wm4._intsup.h.10.48bafbb683905c4daa4565a85aeeb264
+                           .group:00000000 wm4._stdint.h.10.c24fa3af3bc1706662bb5593a907e841
+                           .group:00000000 wm4.stdint.h.23.d53047a68f4a85177f80b422d52785ed
+                           .group:00000000 wm4.cmsis_version.h.32.0ac195c83bb4537824e6ad1c47474b79
+                           .group:00000000 wm4.core_cm4.h.66.e4ff136c4a17abc46741866f64f8e729
+                           .group:00000000 wm4.cmsis_gcc.h.26.498d0ad17a45fc9ef20fdc01caf02259
+                           .group:00000000 wm4.core_cm4.h.174.62be9b4588d49bed18171771001331df
+                           .group:00000000 wm4.mpu_armv7.h.32.83326921a797fa9d6f70449916b4b839
+                           .group:00000000 wm4.stm32f446xx.h.917.13927c85cbbf4787955bc4173c54fa12
+                           .group:00000000 wm4.stm32f4xx.h.195.a4b8bf80f37cc96981498656ffe5f588
+                           .group:00000000 wm4.stm32_hal_legacy.h.22.8b7d303dc46a0b7ac6d3edf19ce2608d
+                           .group:00000000 wm4.stddef.h.39.3e0425629195acf083c9561151306b4d
+                           .group:00000000 wm4.stm32f4xx_hal_def.h.58.3cb484e92e5ccf2e55312a4714e27917
+                           .group:00000000 wm4.stm32f4xx_hal_rcc_ex.h.20.9b6e314009d4800dd71c0ec1c264a1ea
+                           .group:00000000 wm4.stm32f4xx_hal_rcc.h.106.0887cf5d985ae88e345b0aed0ceb4729
+                           .group:00000000 wm4.stm32f4xx_hal_gpio.h.21.22da6a14b6049d6ac156577be74df1d7
+                           .group:00000000 wm4.stm32f4xx_hal_gpio_ex.h.21.33ea7ea24fd170b1d3dce3d23330c9d3
+                           .group:00000000 wm4.stm32f4xx_hal_gpio.h.254.d7e07832f748fe8bcb575db0b8373592
+                           .group:00000000 wm4.stm32f4xx_hal_exti.h.21.4fc7f37c3cc97fb821b368ede79414b6
+                           .group:00000000 wm4.stm32f4xx_hal_dma.h.21.8e4b1421c914345c23be719e5e528779
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 20
+
+
+                           .group:00000000 wm4.stm32f4xx_hal_dma.h.720.ac2d7eef74792e4026acc4d2923c5da4
+                           .group:00000000 wm4.stm32f4xx_hal_cortex.h.20.03673e4f79386680bf73ba399c19306b
+                           .group:00000000 wm4.stm32f4xx_ll_adc.h.21.8ab9bf4d55f678506dbbe8102cb12bbc
+                           .group:00000000 wm4.stm32f4xx_hal_adc.h.159.62530d9b3382796f19493a9679ef426c
+                           .group:00000000 wm4.stm32f4xx_hal_adc_ex.h.21.94e87945640619cdd4cff40627e1380a
+                           .group:00000000 wm4.stm32f4xx_hal_adc.h.639.c30c49256117cbda0ada83149c65b3d8
+                           .group:00000000 wm4.stm32f4xx_hal_flash.h.20.2f1e0d1b7010b3a81a7980aaf712e7e5
+                           .group:00000000 wm4.stm32f4xx_hal_flash_ex.h.20.77cb3e5c0f1e426426a4cbc884a1eed8
+                           .group:00000000 wm4.stm32f4xx_hal_flash.h.361.23bc19b9eac79b0956d913651841ede8
+                           .group:00000000 wm4.stm32f4xx_hal_i2c.h.21.147e96a27b1f7b1f2f8ee22132703ee3
+                           .group:00000000 wm4.stm32f4xx_hal_i2c_ex.h.21.951ef5bfa13cf131d2015c338e82e461
+                           .group:00000000 wm4.stm32f4xx_hal_i2c.h.647.ade9c3447780b1cc0ece02f0ce83aedc
+                           .group:00000000 wm4.stm32f4xx_hal_pwr.h.20.1905a0783a9c83adefd7df0c4b501e40
+                           .group:00000000 wm4.stm32f4xx_hal_pwr_ex.h.20.9786dbd699c850465fa7b77273740267
+                           .group:00000000 wm4.stm32f4xx_hal_pwr.h.338.debc0a4a62ba54688e63ab53dd99c4ea
+                           .group:00000000 wm4.stm32f4xx_hal_spi.h.21.8b27a8d792c565f72ddd4cfad797986f
+                           .group:00000000 wm4.stm32f4xx_hal_tim.h.21.c31cbc03c25f07a932427770396c59d2
+                           .group:00000000 wm4.stm32f4xx_hal_tim_ex.h.21.3ff8ebb44e16ac9d5b95e2b3533221b9
+                           .group:00000000 wm4.stm32f4xx_hal_uart.h.21.ba8e24dd05c77faac3f3d48472e636ba
+                           .group:00000000 wm4.stm32f4xx_hal.h.71.02372bc31d47d29d3f67fbfe1429649e
+                           .group:00000000 wm4.main.h.61.69da45f81907557a0774729345d5d811
+                           .group:00000000 wm4.bme280.h.15.88e478fc5eeab150f523397b78536efe
+                           .group:00000000 wm4.newlib.h.7.f9f25f80f86429f653675286e7973cb9
+                           .group:00000000 wm4.ieeefp.h.77.9dc6728f2d488a554e7c0cabef1b6c33
+                           .group:00000000 wm4.config.h.224.10ee1ad185d877c6e334e6581faab44d
+                           .group:00000000 wm4._ansi.h.31.de524f58584151836e90d8620a16f8e8
+                           .group:00000000 wm4.stdio.h.31.7c0e28c411445f3f9c5b11accf882760
+                           .group:00000000 wm4.stddef.h.158.bfed30416c9480cd13bc4a25427d538f
+                           .group:00000000 wm4.cdefs.h.49.f93868eb904b9ca05b5c0257d31128ca
+                           .group:00000000 wm4.stdarg.h.34.3a23a216c0c293b3d2ea2e89281481e6
+                           .group:00000000 wm4._types.h.20.dd0d04dca3800a0d2a6129b87f3adbb2
+                           .group:00000000 wm4.stddef.h.158.5f30652bb2ea05b142c1bbee9108c999
+                           .group:00000000 wm4._types.h.127.3bdfe3ff8ea2d0985b03d9cbe93480e3
+                           .group:00000000 wm4.reent.h.17.e292bf8b0bec6c96e131a54347145a30
+                           .group:00000000 wm4.lock.h.2.1461d1fff82dffe8bfddc23307f6484f
+                           .group:00000000 wm4.reent.h.77.89f7dde66c62b1f1dee32bdb6ab2d544
+                           .group:00000000 wm4.stdio.h.67.0cf8a9c281ab0b348aef5c02e7e48825
+                           .group:00000000 wm4.stdio.h.2.4aa87247282eca6c8f36f9de33d8df1a
+                           .group:00000000 wm4.stdio.h.87.a1e20d2651f9bfb66e51bfbe849db00a
+                           .group:00000000 wm4.string.h.8.c4b8571ce60dff2817f43fec8b86aecd
+                           .group:00000000 wm4.string.h.177.59a005921fa78485abc80a0267de5752
+                           .group:00000000 wm4.bmi088.h.24.39da1258636463617ae199ce9c348de5
+                           .group:00000000 wm4.flight_algorithm.h.17.39c37277ff32f77a5f159fddac275549
+                           .group:00000000 wm4.math.h.13.35ad80917fddb38312d53499dad31194
+
+UNDEFINED SYMBOLS
+sqrtf
+flight_algorithm_get_start_time
+HAL_GetTick
+KalmanFilter_Init
+__aeabi_f2d
+__aeabi_dmul
+__aeabi_d2f
+cosf
+KalmanFilter_Update
+KalmanFilter_IsApogeeDetected
+Kalman_Get_Velocity
+ARM GAS  C:\Users\Halil\AppData\Local\Temp\ccBzrprB.s 			page 21
+
+
