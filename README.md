@@ -91,13 +91,9 @@ PayLordFreeRTOS/
 - FatFS
 - SEGGER SystemView (debug)
 
-## 📝 Lisans
-
-Bu proje [MIT License](LICENSE) altında lisanslanmıştır.
-
 ## 👨‍💻 Geliştirici
 
-**Halil İbrahim Sarıkaya**  
+**Halil Sarıkaya**  
 GitHub: [@halilsrky](https://github.com/halilsrky)
 
 ---
