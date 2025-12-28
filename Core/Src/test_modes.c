@@ -16,8 +16,7 @@
 extern unsigned char sit_paket[36];
 extern unsigned char sd_paket[64];
 
-extern sensor_fusion_t sensor_output;
-extern UART_HandleTypeDef huart4;
+extern UART_HandleTypeDef huart2;
 
 
 /**
@@ -31,18 +30,20 @@ void test_modes_init(void)
 /**
  * @brief Handle SIT (Sensor Interface Test) mode
  */
-void test_modes_handle_sit(BME_280_t* bme, bmi088_struct_t* bmi)
+void test_modes_handle_sit(bme_sample_t* bme, bmi_sample_t* bmi)
 {
 	addDataPacketSit(bme, bmi);
-    if (!usart4_tx_busy) {
-        uart4_send_packet_dma((uint8_t*)sit_paket, 36);
-    	//HAL_UART_Transmit(&huart4, (uint8_t*)sit_paket, 36, 100);
+    if (!usart2_tx_busy) {
+        uart2_send_packet_dma((uint8_t*)sit_paket, 36);
     }
 }
 
 
 void algorithm_update_sut(void)
 {
+
+	fused_sample_t sensor_output;
+
     // Check if SUT data is ready
     if (uart_handler_sut_data_ready()) {
         uart_handler_clear_sut_flag();
@@ -60,24 +61,23 @@ void algorithm_update_sut(void)
 /**
  * @brief Handle SUT (System Under Test) mode
  */
-uint16_t test_modes_handle_sut(sut_data_t* sut_data, sensor_fusion_t* sensor_output)
+uint16_t test_modes_handle_sut(sut_data_t* sut_data, fused_sample_t* sensor_output)
 {
     // Convert SUT data to BME and BMI structures
-    BME_280_t bme_sut = {0};
-    bmi088_struct_t bmi_sut = {0};
-    gps_data_t gnss_data = {0};                  // L86 GNSS receiver data
+	bme_sample_t bme_sut = {0};
+	bmi_sample_t bmi_sut = {0};
 
     // Fill BME data
     bme_sut.altitude = sut_data->altitude;
     bme_sut.pressure = sut_data->pressure;
 
     // Fill BMI data
-    bmi_sut.datas.acc_z = sut_data->acc_x;
-    bmi_sut.datas.acc_y = sut_data->acc_y;
-    bmi_sut.datas.acc_x = (-sut_data->acc_z);
-    bmi_sut.datas.gyro_z = sut_data->gyro_x;
-    bmi_sut.datas.theta = fabs(sut_data->gyro_y) > fabs(sut_data->gyro_x) ? sut_data->gyro_y : sut_data->gyro_x;
-    bmi_sut.datas.gyro_x = sut_data->gyro_z;
+    bmi_sut.accel_z = sut_data->accel_x;
+    bmi_sut.accel_y = sut_data->accel_y;
+    bmi_sut.accel_x = (-sut_data->accel_z);
+    bmi_sut.gyro_z = sut_data->gyro_x;
+    bmi_sut.theta = fabs(sut_data->gyro_y) > fabs(sut_data->gyro_x) ? sut_data->gyro_y : sut_data->gyro_x;
+    bmi_sut.gyro_x = sut_data->gyro_z;
 
     // Process synthetic data through sensor fusion first
     sensor_fusion_update_kalman(&bme_sut, &bmi_sut, sensor_output);

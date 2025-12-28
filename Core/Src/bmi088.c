@@ -395,6 +395,10 @@ void bmi088_process_gyro_data(bmi088_struct_t* BMI)
 
 	Orientation_Update(BMI->datas.gyro_y, -BMI->datas.gyro_x, BMI->datas.gyro_z,BMI->datas.acc_y,-BMI->datas.acc_x,BMI->datas.acc_z, BMI->datas.delta_time);
 	BMI->datas.theta = quaternionToThetaZ();
+	BMI->datas.yaw = quaternionToYaw();
+	BMI->datas.pitch = quaternionToPitch();
+	BMI->datas.roll = quaternionToRoll();
+
 	is_gyro_renewed = 1;
 
 	BMI->flags.isGyroDmaComplete = 0;

@@ -37,18 +37,18 @@ void uart_handler_init(void)
  */
 void uart_handler_process_packets(void)
 {
-    if (usart4_packet_ready) {
-        usart4_packet_ready = 0; // Clear flag immediately
+    if (usart2_packet_ready) {
+        usart2_packet_ready = 0; // Clear flag immediately
 
         // Command packet (5 bytes with header 0xAA)
-        if (usart4_rx_buffer[0] == CMD_HEADER && usart4_packet_size == 5) {
+        if (usart2_rx_buffer[0] == CMD_HEADER && usart2_packet_size == 5) {
             command_packet_ready = 1;
-            process_command_packet(usart4_rx_buffer);
+            process_command_packet(usart2_rx_buffer);
         }
         // SUT data packet (36 bytes with header 0xAB)
-        else if (usart4_rx_buffer[0] == PACKET_HEADER && usart4_packet_size == 36) {
+        else if (usart2_rx_buffer[0] == PACKET_HEADER && usart2_packet_size == 36) {
             sut_packet_ready = 1;
-            process_sut_packet(usart4_rx_buffer);
+            process_sut_packet(usart2_rx_buffer);
         }
     }
 }
@@ -101,9 +101,9 @@ void process_sut_packet(uint8_t* buffer)
     // Parse data
     latest_sut_data.altitude = uint8_arrayi_float32_ye_donustur(&buffer[1]);
     latest_sut_data.pressure = uint8_arrayi_float32_ye_donustur(&buffer[5]);
-    latest_sut_data.acc_x = uint8_arrayi_float32_ye_donustur(&buffer[9]);
-    latest_sut_data.acc_y = uint8_arrayi_float32_ye_donustur(&buffer[13]);
-    latest_sut_data.acc_z = uint8_arrayi_float32_ye_donustur(&buffer[17]);
+    latest_sut_data.accel_x = uint8_arrayi_float32_ye_donustur(&buffer[9]);
+    latest_sut_data.accel_y = uint8_arrayi_float32_ye_donustur(&buffer[13]);
+    latest_sut_data.accel_z = uint8_arrayi_float32_ye_donustur(&buffer[17]);
     latest_sut_data.gyro_x = uint8_arrayi_float32_ye_donustur(&buffer[21]);
     latest_sut_data.gyro_y = uint8_arrayi_float32_ye_donustur(&buffer[25]);
     latest_sut_data.gyro_z = uint8_arrayi_float32_ye_donustur(&buffer[29]);
@@ -165,7 +165,7 @@ void uart_handler_clear_sut_flag(void)
  */
 void uart_handler_send_status(uint16_t status_bits)
 {
-    if (!usart4_tx_busy) {
+    if (!usart2_tx_busy) {
         // Use static buffer for DMA safety
         status_packet_dma[0] = 0xAA;
         status_packet_dma[1] = status_bits & 0xFF;         // Low byte of status
@@ -177,7 +177,7 @@ void uart_handler_send_status(uint16_t status_bits)
         status_packet_dma[4] = 0x0D;
         status_packet_dma[5] = 0x0A;
 
-        uart4_send_packet_dma(status_packet_dma, 6);
+        uart2_send_packet_dma(status_packet_dma, 6);
     }
 }
 

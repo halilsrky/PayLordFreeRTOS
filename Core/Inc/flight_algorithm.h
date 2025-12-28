@@ -45,7 +45,7 @@ typedef enum {
 // =============================================================================
 // Configuration Defaults
 // =============================================================================
-#define DEFAULT_LAUNCH_ACCEL_THRESHOLD    25.0f   // m/s² - Launch detection threshold
+#define DEFAULT_LAUNCH_ACCEL_THRESHOLD    45.0f   // m/s² - Launch detection threshold
 #define DEFAULT_LAUNCH_VELOCITY_THRESHOLD 50.0f   // m/s - Backup launch detection
 #define DEFAULT_MIN_ARMING_ALTITUDE       1800.0f // m - Minimum altitude for arming
 #define DEFAULT_MAIN_CHUTE_ALTITUDE       500.0f  // m - Main parachute deployment altitude

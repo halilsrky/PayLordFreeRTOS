@@ -1,4 +1,4 @@
-../Core/Src/test_modes.c:26:6:test_modes_init	4	static
-../Core/Src/test_modes.c:34:6:test_modes_handle_sit	16	static
-../Core/Src/test_modes.c:44:6:algorithm_update_sut	48	static
-../Core/Src/test_modes.c:63:10:test_modes_handle_sut	312	static
+../Core/Src/test_modes.c:25:6:test_modes_init	4	static
+../Core/Src/test_modes.c:33:6:test_modes_handle_sit	16	static
+../Core/Src/test_modes.c:42:6:algorithm_update_sut	88	static
+../Core/Src/test_modes.c:64:10:test_modes_handle_sut	88	static

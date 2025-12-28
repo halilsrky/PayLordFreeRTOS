@@ -27,9 +27,9 @@ typedef union {
 } UINT16_UINT8_DONUSTURUCU;
 
 unsigned char check_sum_hesapla_normal(int a);
-
+unsigned char check_sum_hesapla_sit(int a);
 
 void addDataPacketNormal(bme_sample_t* BME, bmi_sample_t* BMI, fused_sample_t* sensor, gnss_sample_t* GNSS, float hmc1021_gauss, float voltage, float current);
 void addDataPacketSD(bme_sample_t* BME, bmi_sample_t* BMI, fused_sample_t* sensor, gnss_sample_t* GNSS, float hmc1021_gauss, float voltage, float current);
-
+float uint8_arrayi_float32_ye_donustur(uint8_t byte_array_u8[4]);
 #endif /* INC_PACKET_H_ */

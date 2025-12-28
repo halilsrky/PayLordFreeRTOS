@@ -65,7 +65,8 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h \
  ../Core/Inc/data_logger.h ../Core/Inc/queternion.h \
  ../Core/Inc/sensor_fusion.h ../Core/Inc/flight_algorithm.h \
- ../Core/Inc/sensor_mailbox.h
+ ../Core/Inc/sensor_mailbox.h ../Core/Inc/uart_handler.h \
+ ../Core/Inc/test_modes.h ../Core/Inc/uart_handler.h
 ../Core/Inc/main.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 ../Core/Inc/stm32f4xx_hal_conf.h:
@@ -151,3 +152,6 @@ C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_P
 ../Core/Inc/sensor_fusion.h:
 ../Core/Inc/flight_algorithm.h:
 ../Core/Inc/sensor_mailbox.h:
+../Core/Inc/uart_handler.h:
+../Core/Inc/test_modes.h:
+../Core/Inc/uart_handler.h:

@@ -1,4 +1,5 @@
 Core/Src/test_modes.o: ../Core/Src/test_modes.c ../Core/Inc/test_modes.h \
+ ../Core/Inc/uart_handler.h ../Core/Inc/sensor_fusion.h \
  ../Core/Inc/bme280.h ../Core/Inc/main.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
  ../Core/Inc/stm32f4xx_hal_conf.h \
@@ -34,8 +35,7 @@ Core/Src/test_modes.o: ../Core/Src/test_modes.c ../Core/Inc/test_modes.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
- ../Core/Inc/bmi088.h ../Core/Inc/uart_handler.h \
- ../Core/Inc/sensor_fusion.h ../Core/Inc/sensor_mailbox.h \
+ ../Core/Inc/bmi088.h ../Core/Inc/sensor_mailbox.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h \
  ../Core/Inc/FreeRTOSConfig.h \
@@ -55,6 +55,8 @@ Core/Src/test_modes.o: ../Core/Src/test_modes.c ../Core/Inc/test_modes.h \
  ../Core/Inc/flight_algorithm.h ../Core/Inc/flight_algorithm.h \
  ../Core/Inc/data_logger.h ../Core/Inc/l86_gnss.h
 ../Core/Inc/test_modes.h:
+../Core/Inc/uart_handler.h:
+../Core/Inc/sensor_fusion.h:
 ../Core/Inc/bme280.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
@@ -92,8 +94,6 @@ Core/Src/test_modes.o: ../Core/Src/test_modes.c ../Core/Inc/test_modes.h \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
 ../Core/Inc/bmi088.h:
-../Core/Inc/uart_handler.h:
-../Core/Inc/sensor_fusion.h:
 ../Core/Inc/sensor_mailbox.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h:

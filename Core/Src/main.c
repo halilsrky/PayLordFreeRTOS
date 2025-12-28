@@ -81,6 +81,8 @@
 #include "sensor_fusion.h"   // Sensor fusion algorithms
 #include "flight_algorithm.h" // Flight state detection and control
 #include "sensor_mailbox.h"  // Mailbox-based inter-task communication
+#include "uart_handler.h"    // UART communication and test mode handling
+#include "test_modes.h"      // Test mode handlers (SIT, SUT)
 
 /*MATHEMATICAL CONSTANTS*/
 #ifndef M_PI
@@ -113,61 +115,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-/* Definitions for bmiTask */
-osThreadId_t bmiTaskHandle;
-const osThreadAttr_t bmiTask_attributes = {
-  .name = "bmiTask",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityRealtime,  // En yüksek öncelik
-};
 
-/* Definitions for bmeTask */
-osThreadId_t bmeTaskHandle;
-const osThreadAttr_t bmeTask_attributes = {
-  .name = "bmeTask",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityHigh,
-};
-
-/* Definitions for sensorFusionTask */
-osThreadId_t sensorFusionTaskHandle;
-const osThreadAttr_t sensorFusionTask_attributes = {
-  .name = "sensorFusionTask",
-  .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityAboveNormal,
-};
-
-/* Definitions for adcTask */
-osThreadId_t adcTaskHandle;
-const osThreadAttr_t adcTask_attributes = {
-  .name = "adcTask",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
-
-/* Definitions for gnssTask */
-osThreadId_t gnssTaskHandle;
-const osThreadAttr_t gnssTask_attributes = {
-  .name = "gnssTask",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
-
-/* Definitions for telemetryTask */
-osThreadId_t telemetryTaskHandle;
-const osThreadAttr_t telemetryTask_attributes = {
-  .name = "telemetryTask",
-  .stack_size = 384 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
-
-/* Definitions for dataLoggerTask */
-osThreadId_t dataLoggerTaskHandle;
-const osThreadAttr_t dataLoggerTask_attributes = {
-  .name = "dataLoggerTask",
-  .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityBelowNormal,
-};
 
 /*==================== SENSOR STRUCTURES ====================*/
 // Environmental sensor (BME280) - temperature, humidity, pressure
@@ -178,11 +126,14 @@ BME_parameters_t bme_params;            // BME280 calibration parameters
 gps_data_t gnss_data;                   // L86 GNSS receiver data
 static e22_conf_struct_t lora_1;        // LoRa configuration structure
 
+extern osThreadId_t bmiTaskHandle;
+extern osThreadId_t sensorFusionTaskHandle;
 /*==================== COMMUNICATION BUFFERS ====================*/
 // UART communication buffers
 static char uart_buffer[128];
 extern unsigned char normal_paket[50];  // Normal mode telemetry packet
 extern unsigned char sd_paket[64];      // SD card data packet
+
 uint8_t usart2_rx_buffer[36];  // UART4 receive buffer
 
 
@@ -231,15 +182,6 @@ void read_ADC(void);
 void lora_init(void);
 void lora_send_packet_dma(uint8_t *data, uint16_t size);
 void uart2_send_packet_dma(uint8_t *data, uint16_t size);
-
-// FreeRTOS Task Functions
-void StartBMITask(void *argument);
-void StartBMETask(void *argument);
-void StartSensorFusionTask(void *argument);
-void StartADCTask(void *argument);
-void StartGNSSTask(void *argument);
-void StartTelemetryTask(void *argument);
-void StartDataLoggerTask(void *argument);
 
 /* USER CODE END PFP */
 
@@ -710,6 +652,12 @@ void StartSensorFusionTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
+    // Skip sensor fusion when in test mode (SIT or SUT)
+    if (uart_handler_get_mode() != MODE_NORMAL) {
+      osDelay(100);  // Wait and check again
+      continue;
+    }
+    
     // Wait for BME data ready notification with 200ms timeout
     flags = osThreadFlagsWait(BME_DATA_READY_FLAG, osFlagsWaitAny, 200);
     
@@ -738,12 +686,12 @@ void StartSensorFusionTask(void *argument)
     if(bme_data_valid && bmi_data_valid)
     {
       // Full sensor fusion with BME280 + BMI088
-      sensor_fusion_update_kalman(&bme_data, &bmi_data, &sensor_output);
+      sensor_fusion_update_kalman(&bme_data, &bmi_data, &fused_output);
     }
     else if(bmi_data_valid)
     {
       // IMU-only fusion (no barometer update)
-      sensor_fusion_update_imu_only(&bmi_data, &sensor_output);
+      sensor_fusion_update_imu_only(&bmi_data, &fused_output);
     }
     else
     {
@@ -752,15 +700,7 @@ void StartSensorFusionTask(void *argument)
     }
 
     // Update flight algorithm (launch detection, apogee, etc.)
-    flight_algorithm_update(&bme_data, &bmi_data, &sensor_output);
-    
-    // Prepare fused output for mailbox
-    fused_output.timestamp = HAL_GetTick();
-    fused_output.filtered_altitude = sensor_output.filtered_altitude;
-    fused_output.velocity = sensor_output.velocity;
-    fused_output.apogee_detected = sensor_output.apogeeDetect;
-    fused_output.accel_failure = sensor_output.accel_failure;
-    fused_output.flight_phase = flight_algorithm_get_durum_verisi();
+    flight_algorithm_update(&bme_data, &bmi_data, &fused_output);
     
     // Send to mailbox (overwrites existing, non-blocking)
     mailbox_send_fused(&fused_output);
@@ -892,6 +832,87 @@ void StartDataLoggerTask(void *argument)
     log_normal_packet_data(sd_paket, "gorev.bin");
   }
   /* USER CODE END StartDataLoggerTask */
+}
+
+/**
+  * @brief  Function implementing the test mode task.
+  * @param  argument: Not used
+  * @retval None
+  * @note   Handles SIT and SUT test modes via UART2
+  * @note   When in test mode, StartSensorFusionTask pauses
+  */
+void StartTestModeTask(void *argument)
+{
+  /* USER CODE BEGIN StartTestModeTask */
+  bmi_sample_t bmi_data;
+  bme_sample_t bme_data;
+  SystemMode_t current_mode;
+  TickType_t xLastWakeTime;
+  const TickType_t xPeriod = pdMS_TO_TICKS(100);  // 10 Hz
+  
+  /* Initialize UART handler and test modes */
+  uart_handler_init();
+  test_modes_init();
+  flight_algorithm_init();
+  
+  /* Start UART2 DMA reception for test commands */
+  HAL_UARTEx_ReceiveToIdle_DMA(&huart2, usart2_rx_buffer, sizeof(usart2_rx_buffer));
+  __HAL_DMA_DISABLE_IT(huart2.hdmarx, DMA_IT_HT);
+  
+  xLastWakeTime = xTaskGetTickCount();
+  
+  /* Infinite loop */
+  for(;;)
+  {
+    // Wait for next cycle
+    vTaskDelayUntil(&xLastWakeTime, xPeriod);
+    
+    // Process incoming UART packets (commands and SUT data)
+    uart_handler_process_packets();
+    
+    // Handle command processing and system state transitions
+    if (uart_handler_command_ready()) {
+      uart_handler_clear_command_flag();
+      
+      // Reset flight algorithm state when switching to NORMAL mode
+      if (uart_handler_get_mode() == MODE_NORMAL) {
+        flight_algorithm_reset();
+      }
+    }
+    
+    // Get current mode
+    current_mode = uart_handler_get_mode();
+    
+    // Handle different test modes
+    switch (current_mode) {
+      case MODE_NORMAL:
+        // Normal mode - other tasks handle sensor processing
+        // Nothing to do here
+        break;
+        
+      case MODE_SIT:
+        /* SIT Mode: Sensor Interface Test
+         * Tests sensor integration with real-time hardware data
+         */
+        mailbox_peek_bmi(&bmi_data);
+        mailbox_peek_bme(&bme_data);
+        test_modes_handle_sit(&bme_data, &bmi_data);
+        break;
+        
+      case MODE_SUT:
+        /* SUT Mode: System Under Test
+         * Validates algorithms with synthetic flight data
+         */
+        algorithm_update_sut();
+        break;
+        
+      default:
+        // Unknown mode - switch to safe (normal) mode
+        set_current_mode(MODE_NORMAL);
+        break;
+    }
+  }
+  /* USER CODE END StartTestModeTask */
 }
 
 /* USER CODE BEGIN 4 */

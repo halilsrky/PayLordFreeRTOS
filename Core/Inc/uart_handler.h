@@ -30,12 +30,9 @@ typedef enum {
 typedef struct {
     float altitude;
     float pressure;
-    float acc_x;
-    float acc_y;
-    float acc_z;
-    float gyro_x;
-    float gyro_y;
-    float gyro_z;
+    float accel_x, accel_y, accel_z; // m/s²
+    float gyro_x, gyro_y, gyro_z;    // rad/s (or deg/s depending on config)
+    float theta;                      // Angle (degrees)
 } sut_data_t;
 
 /**
@@ -102,10 +99,10 @@ void uart_handler_clear_sut_flag(void);
 void set_current_mode(SystemMode_t test_mode);
 
 // External dependencies from main.c
-extern volatile uint8_t usart4_packet_ready;
-extern volatile uint16_t usart4_packet_size;
-extern uint8_t usart4_rx_buffer[36];
-extern volatile uint8_t usart4_tx_busy;
-extern void uart4_send_packet_dma(uint8_t *data, uint16_t size);
+extern volatile uint8_t usart2_packet_ready;
+extern volatile uint16_t usart2_packet_size;
+extern uint8_t usart2_rx_buffer[36];
+extern volatile uint8_t usart2_tx_busy;
+extern void uart2_send_packet_dma(uint8_t *data, uint16_t size);
 
 #endif /* INC_UART_HANDLER_H_ */
