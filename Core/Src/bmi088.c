@@ -32,6 +32,9 @@ static float gyro_frequency_hz = 0.0f;
 // Delta time için HAL_GetTick() kullanımı
 static uint32_t last_hal_tick = 0;
 
+// Statik offset bellek alanı (FreeRTOS'ta calloc yerine)
+static bmi088_offsets_t static_offsets = {0};
+
 
 #ifdef SELFTEST_ENABLED
 #include <string.h>
@@ -131,6 +134,8 @@ uint8_t bmi088_init(bmi088_struct_t* BMI)
 	BMI->flags.isAccelDmaComplete = 0;
 	BMI->flags.isGyroDmaComplete = 0;
 	BMI->flags.isDmaTransferActive = 0;
+	BMI->flags.isAccelPending = 0;
+	BMI->flags.isGyroPending = 0;
 	is_time_updated = 0;
 	is_starded = 0;
 	uint8_t buf[2];
@@ -138,8 +143,8 @@ uint8_t bmi088_init(bmi088_struct_t* BMI)
 
 	if(BMI->device_config.offsets == NULL)
 	{
-		BMI->device_config.offsets = calloc(sizeof(*BMI->device_config.offsets), 1);
-
+		// Statik bellek kullan (FreeRTOS'ta calloc sorun yaratabilir)
+		BMI->device_config.offsets = &static_offsets;
 	}
 
 	HAL_StatusTypeDef ret = HAL_I2C_Mem_Read(BMI->device_config.BMI_I2c, ACC_I2C_ADD, ACC_CHIP_ID, I2C_MEMADD_SIZE_8BIT, buf, 1, 50);
@@ -257,12 +262,19 @@ HAL_StatusTypeDef bmi088_start_accel_dma(bmi088_struct_t* BMI)
 		return HAL_ERROR;
 	}
 
-	if(!BMI->flags.isAccelUpdated || BMI->flags.isDmaTransferActive)
+	if(!BMI->flags.isAccelUpdated)
 	{
 		return HAL_BUSY;
 	}
 
+	if(BMI->flags.isDmaTransferActive)
+	{
+		BMI->flags.isAccelPending = 1; // Remember to start after current DMA completes
+		return HAL_BUSY;
+	}
+
 	BMI->flags.isDmaTransferActive = 1;
+	BMI->flags.isAccelPending = 0;
 	ret = HAL_I2C_Mem_Read_DMA(BMI->device_config.BMI_I2c, ACC_I2C_ADD, ACC_X_LSB, I2C_MEMADD_SIZE_8BIT, BMI->datas.raw_accel_data, 9);
 	if(ret != HAL_OK)
 	{
@@ -282,12 +294,19 @@ HAL_StatusTypeDef bmi088_start_gyro_dma(bmi088_struct_t* BMI)
 		return HAL_ERROR;
 	}
 
-	if(!BMI->flags.isGyroUpdated || BMI->flags.isDmaTransferActive)
+	if(!BMI->flags.isGyroUpdated)
 	{
 		return HAL_BUSY;
 	}
 
+	if(BMI->flags.isDmaTransferActive)
+	{
+		BMI->flags.isGyroPending = 1; // Remember to start after current DMA completes
+		return HAL_BUSY;
+	}
+
 	BMI->flags.isDmaTransferActive = 1;
+	BMI->flags.isGyroPending = 0;
 	ret = HAL_I2C_Mem_Read_DMA(BMI->device_config.BMI_I2c, GYRO_I2C_ADD, GYRO_RATE_X_LSB, I2C_MEMADD_SIZE_8BIT, BMI->datas.raw_gyro_data, 6);
 	if(ret != HAL_OK)
 	{
@@ -454,6 +473,18 @@ void bmi088_accel_dma_complete_callback(bmi088_struct_t* BMI)
 	BMI->flags.isAccelDmaComplete = 1;
 	BMI->flags.isDmaTransferActive = 0;
 	BMI->flags.isAccelUpdated = 0;
+
+	// If gyro request arrived while accel DMA was running, kick it off now
+	if(BMI->flags.isGyroPending)
+	{
+		BMI->flags.isGyroPending = 0;
+		bmi088_start_gyro_dma(BMI);
+	}
+	else if(BMI->flags.isAccelPending)
+	{
+		BMI->flags.isAccelPending = 0;
+		bmi088_start_accel_dma(BMI);
+	}
 }
 
 /**
@@ -465,6 +496,18 @@ void bmi088_gyro_dma_complete_callback(bmi088_struct_t* BMI)
 	BMI->flags.isGyroDmaComplete = 1;
 	BMI->flags.isDmaTransferActive = 0;
 	BMI->flags.isGyroUpdated = 0;
+
+	// If accel request arrived while gyro DMA was running, kick it off now
+	if(BMI->flags.isAccelPending)
+	{
+		BMI->flags.isAccelPending = 0;
+		bmi088_start_accel_dma(BMI);
+	}
+	else if(BMI->flags.isGyroPending)
+	{
+		BMI->flags.isGyroPending = 0;
+		bmi088_start_gyro_dma(BMI);
+	}
 }
 
 /**

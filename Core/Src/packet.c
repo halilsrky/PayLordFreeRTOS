@@ -19,7 +19,7 @@ unsigned char check_sum_hesapla_normal(int a){
     return (unsigned char) (check_sum % 256);
 }
 
-void addDataPacketNormal(BME_280_t* BME, bmi088_struct_t* BMI, sensor_fusion_t* sensor, gps_data_t* GPS, float hmc1021_gauss, float voltage, float current){
+void addDataPacketNormal(bme_sample_t* BME, bmi_sample_t* BMI, fused_sample_t* sensor, gnss_sample_t* GNSS, float hmc1021_gauss, float voltage, float current){
   normal_paket[0] = 0xFF; // Sabit
 
   FLOAT32_UINT8_DONUSTURUCU irtifa_float32_uint8_donusturucu;
@@ -46,7 +46,7 @@ void addDataPacketNormal(BME_280_t* BME, bmi088_struct_t* BMI, sensor_fusion_t* 
 
   // Roket Boylam
   FLOAT32_UINT8_DONUSTURUCU roket_boylam_irtifa_float32_uint8_donusturucu;
-  roket_boylam_irtifa_float32_uint8_donusturucu.sayi = (GPS->longitude); // Roket boylam degerinin atamasini yapiyoruz.
+	roket_boylam_irtifa_float32_uint8_donusturucu.sayi = (GNSS->longitude); // Roket boylam degerinin atamasini yapiyoruz.
   normal_paket[13] = roket_boylam_irtifa_float32_uint8_donusturucu.array[0];
   normal_paket[14] = roket_boylam_irtifa_float32_uint8_donusturucu.array[1];
   normal_paket[15] = roket_boylam_irtifa_float32_uint8_donusturucu.array[2];
@@ -54,21 +54,21 @@ void addDataPacketNormal(BME_280_t* BME, bmi088_struct_t* BMI, sensor_fusion_t* 
 
 
   FLOAT32_UINT8_DONUSTURUCU aci_float32_uint8_donusturucu;
-  aci_float32_uint8_donusturucu.sayi = (BMI->datas.theta); // Theta acisinin atamasini yapiyoruz.
+  aci_float32_uint8_donusturucu.sayi = (BMI->theta); // Theta acisinin atamasini yapiyoruz.
   normal_paket[17] = aci_float32_uint8_donusturucu.array[0];
   normal_paket[18] = aci_float32_uint8_donusturucu.array[1];
   normal_paket[19] = aci_float32_uint8_donusturucu.array[2];
   normal_paket[20] = aci_float32_uint8_donusturucu.array[3];
 
   FLOAT32_UINT8_DONUSTURUCU volt_float32_uint8_donusturucu;
-  volt_float32_uint8_donusturucu.sayi = (BMI->datas.acc_z); // Volt degerinin atamasini yapiyoruz.
+  volt_float32_uint8_donusturucu.sayi = (BMI->accel_z); // Volt degerinin atamasini yapiyoruz.
   normal_paket[21] = volt_float32_uint8_donusturucu.array[0];
   normal_paket[22] = volt_float32_uint8_donusturucu.array[1];
   normal_paket[23] = volt_float32_uint8_donusturucu.array[2];
   normal_paket[24] = volt_float32_uint8_donusturucu.array[3];
 
   FLOAT32_UINT8_DONUSTURUCU akim_float32_uint8_donusturucu;
-  akim_float32_uint8_donusturucu.sayi = (BMI->datas.gyro_z); // Akim degerinin atamasini yapiyoruz.
+  akim_float32_uint8_donusturucu.sayi = (BMI->gyro_z); // Akim degerinin atamasini yapiyoruz.
   normal_paket[25] = akim_float32_uint8_donusturucu.array[0];
   normal_paket[26] = akim_float32_uint8_donusturucu.array[1];
   normal_paket[27] = akim_float32_uint8_donusturucu.array[2];
@@ -105,14 +105,14 @@ void addDataPacketNormal(BME_280_t* BME, bmi088_struct_t* BMI, sensor_fusion_t* 
   //NEM
   normal_paket[45] = BME->humidity; // Nem degerinin atamasini yapiyoruz
 
-  normal_paket[46] = flight_algorithm_get_durum_verisi();
+  normal_paket[46] = 0;
 
   normal_paket[47] = check_sum_hesapla_normal(47); // Check_sum = check_sum_hesapla();
   normal_paket[48] = 0x0D; // Sabit
   normal_paket[49] = 0x0A;
 }
 
-void addDataPacketSD(BME_280_t* BME, bmi088_struct_t* BMI, sensor_fusion_t* sensor, gps_data_t* GPS, float hmc1021_gauss, float voltage, float current){
+void addDataPacketSD(bme_sample_t* BME, bmi_sample_t* BMI, fused_sample_t* sensor, gnss_sample_t* GNSS, float hmc1021_gauss, float voltage, float current){
 
 	  uint32_t zaman = HAL_GetTick();
 
@@ -126,7 +126,7 @@ void addDataPacketSD(BME_280_t* BME, bmi088_struct_t* BMI, sensor_fusion_t* sens
 	  sd_paket[4] = irtifa_float32_uint8_donusturucu.array[3];
 
 	  FLOAT32_UINT8_DONUSTURUCU roket_gps_irtifa_float32_uint8_donusturucu;
-	  roket_gps_irtifa_float32_uint8_donusturucu.sayi = (GPS->altitude); // Roket GPS Irtifa degerinin atamasini yapiyoruz.
+	  roket_gps_irtifa_float32_uint8_donusturucu.sayi = (GNSS->altitude); // Roket GPS Irtifa degerinin atamasini yapiyoruz.
 	  sd_paket[5] = roket_gps_irtifa_float32_uint8_donusturucu.array[0];
 	  sd_paket[6] = roket_gps_irtifa_float32_uint8_donusturucu.array[1];
 	  sd_paket[7] = roket_gps_irtifa_float32_uint8_donusturucu.array[2];
@@ -134,7 +134,7 @@ void addDataPacketSD(BME_280_t* BME, bmi088_struct_t* BMI, sensor_fusion_t* sens
 
 	   // Roket Enlem
 	  FLOAT32_UINT8_DONUSTURUCU roket_enlem_float32_uint8_donusturucu;
-	  roket_enlem_float32_uint8_donusturucu.sayi = (GPS->latitude); // Roket enlem degerinin atamasini yapiyoruz.
+	  roket_enlem_float32_uint8_donusturucu.sayi = (GNSS->latitude); // Roket enlem degerinin atamasini yapiyoruz.
 	  sd_paket[9] = roket_enlem_float32_uint8_donusturucu.array[0];
 	  sd_paket[10] = roket_enlem_float32_uint8_donusturucu.array[1];
 	  sd_paket[11] = roket_enlem_float32_uint8_donusturucu.array[2];
@@ -142,7 +142,7 @@ void addDataPacketSD(BME_280_t* BME, bmi088_struct_t* BMI, sensor_fusion_t* sens
 
 	  // Roket Boylam
 	  FLOAT32_UINT8_DONUSTURUCU roket_boylam_irtifa_float32_uint8_donusturucu;
-	  roket_boylam_irtifa_float32_uint8_donusturucu.sayi = (GPS->longitude); // Roket boylam degerinin atamasini yapiyoruz.
+	  roket_boylam_irtifa_float32_uint8_donusturucu.sayi = (GNSS->longitude); // Roket boylam degerinin atamasini yapiyoruz.
 	  sd_paket[13] = roket_boylam_irtifa_float32_uint8_donusturucu.array[0];
 	  sd_paket[14] = roket_boylam_irtifa_float32_uint8_donusturucu.array[1];
 	  sd_paket[15] = roket_boylam_irtifa_float32_uint8_donusturucu.array[2];
@@ -150,49 +150,49 @@ void addDataPacketSD(BME_280_t* BME, bmi088_struct_t* BMI, sensor_fusion_t* sens
 
 
 	  FLOAT32_UINT8_DONUSTURUCU jiroskop_x_float32_uint8_donusturucu;
-	  jiroskop_x_float32_uint8_donusturucu.sayi = (BMI->datas.gyro_x); // Jiroskop X degerinin atamasini yapiyoruz.
+	  jiroskop_x_float32_uint8_donusturucu.sayi = (BMI->gyro_x); // Jiroskop X degerinin atamasini yapiyoruz.
 	  sd_paket[17] = jiroskop_x_float32_uint8_donusturucu.array[0];
 	  sd_paket[18] = jiroskop_x_float32_uint8_donusturucu.array[1];
 	  sd_paket[19] = jiroskop_x_float32_uint8_donusturucu.array[2];
 	  sd_paket[20] = jiroskop_x_float32_uint8_donusturucu.array[3];
 
 	  FLOAT32_UINT8_DONUSTURUCU jiroskop_y_float32_uint8_donusturucu;
-	  jiroskop_y_float32_uint8_donusturucu.sayi = (BMI->datas.gyro_y); // Jiroskop Y degerinin atamasini yapiyoruz.
+	  jiroskop_y_float32_uint8_donusturucu.sayi = (BMI->gyro_y); // Jiroskop Y degerinin atamasini yapiyoruz.
 	  sd_paket[21] = jiroskop_y_float32_uint8_donusturucu.array[0];
 	  sd_paket[22] = jiroskop_y_float32_uint8_donusturucu.array[1];
 	  sd_paket[23] = jiroskop_y_float32_uint8_donusturucu.array[2];
 	  sd_paket[24] = jiroskop_y_float32_uint8_donusturucu.array[3];
 
 	  FLOAT32_UINT8_DONUSTURUCU jiroskop_z_float32_uint8_donusturucu;
-	  jiroskop_z_float32_uint8_donusturucu.sayi = (BMI->datas.gyro_z); // Jiroskop Z degerinin atamasini yapiyoruz.
+	  jiroskop_z_float32_uint8_donusturucu.sayi = (BMI->gyro_z); // Jiroskop Z degerinin atamasini yapiyoruz.
 	  sd_paket[25] = jiroskop_z_float32_uint8_donusturucu.array[0];
 	  sd_paket[26] = jiroskop_z_float32_uint8_donusturucu.array[1];
 	  sd_paket[27] = jiroskop_z_float32_uint8_donusturucu.array[2];
 	  sd_paket[28] = jiroskop_z_float32_uint8_donusturucu.array[3];
 
 	  FLOAT32_UINT8_DONUSTURUCU ivme_x_float32_uint8_donusturucu;
-	  ivme_x_float32_uint8_donusturucu.sayi = (BMI->datas.acc_x); // Ivme X degerinin atamasini yapiyoruz.
+	  ivme_x_float32_uint8_donusturucu.sayi = (BMI->accel_x); // Ivme X degerinin atamasini yapiyoruz.
 	  sd_paket[29] = ivme_x_float32_uint8_donusturucu.array[0];
 	  sd_paket[30] = ivme_x_float32_uint8_donusturucu.array[1];
 	  sd_paket[31] = ivme_x_float32_uint8_donusturucu.array[2];
 	  sd_paket[32] = ivme_x_float32_uint8_donusturucu.array[3];
 
 	  FLOAT32_UINT8_DONUSTURUCU ivme_y_float32_uint8_donusturucu;
-	  ivme_y_float32_uint8_donusturucu.sayi = (BMI->datas.acc_y); // Ivme Y degerinin atamasini yapiyoruz.
+	  ivme_y_float32_uint8_donusturucu.sayi = (BMI->accel_y); // Ivme Y degerinin atamasini yapiyoruz.
 	  sd_paket[33] = ivme_y_float32_uint8_donusturucu.array[0];
 	  sd_paket[34] = ivme_y_float32_uint8_donusturucu.array[1];
 	  sd_paket[35] = ivme_y_float32_uint8_donusturucu.array[2];
 	  sd_paket[36] = ivme_y_float32_uint8_donusturucu.array[3];
 
 	  FLOAT32_UINT8_DONUSTURUCU ivme_z_float32_uint8_donusturucu;
-	  ivme_z_float32_uint8_donusturucu.sayi = (BMI->datas.acc_z); // Ivme Z degerinin atamasini yapiyoruz.
+	  ivme_z_float32_uint8_donusturucu.sayi = (BMI->accel_z); // Ivme Z degerinin atamasini yapiyoruz.
 	  sd_paket[37] = ivme_z_float32_uint8_donusturucu.array[0];
 	  sd_paket[38] = ivme_z_float32_uint8_donusturucu.array[1];
 	  sd_paket[39] = ivme_z_float32_uint8_donusturucu.array[2];
 	  sd_paket[40] = ivme_z_float32_uint8_donusturucu.array[3];
 
 	  FLOAT32_UINT8_DONUSTURUCU aci_float32_uint8_donusturucu;
-	  aci_float32_uint8_donusturucu.sayi = (BMI->datas.theta); // Aci degerinin atamasini yapiyoruz.
+	  aci_float32_uint8_donusturucu.sayi = (BMI->theta); // Aci degerinin atamasini yapiyoruz.
 	  sd_paket[41] = aci_float32_uint8_donusturucu.array[0];
 	  sd_paket[42] = aci_float32_uint8_donusturucu.array[1];
 	  sd_paket[43] = aci_float32_uint8_donusturucu.array[2];

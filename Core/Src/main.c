@@ -49,7 +49,14 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "adc.h"
+#include "dma.h"
 #include "fatfs.h"
+#include "i2c.h"
+#include "spi.h"
+#include "tim.h"
+#include "usart.h"
+#include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -73,6 +80,7 @@
 #include "queternion.h"      // Quaternion mathematics
 #include "sensor_fusion.h"   // Sensor fusion algorithms
 #include "flight_algorithm.h" // Flight state detection and control
+#include "sensor_mailbox.h"  // Mailbox-based inter-task communication
 
 /*MATHEMATICAL CONSTANTS*/
 #ifndef M_PI
@@ -99,36 +107,11 @@
 
 #define ACCEL_DMA_FLAG		(0x0001U)
 #define GYRO_DMA_FLAG		(0x0002U)
+#define BME_DATA_READY_FLAG	(0x0004U)
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-ADC_HandleTypeDef hadc1;
-ADC_HandleTypeDef hadc2;
-ADC_HandleTypeDef hadc3;
 
-I2C_HandleTypeDef hi2c1;
-I2C_HandleTypeDef hi2c3;
-DMA_HandleTypeDef hdma_i2c1_rx;
-
-SPI_HandleTypeDef hspi1;
-SPI_HandleTypeDef hspi3;
-
-TIM_HandleTypeDef htim2;
-
-UART_HandleTypeDef huart4;
-UART_HandleTypeDef huart2;
-UART_HandleTypeDef huart6;
-DMA_HandleTypeDef hdma_uart4_tx;
-DMA_HandleTypeDef hdma_usart2_tx;
-DMA_HandleTypeDef hdma_usart6_rx;
-
-/* Definitions for defaultTask */
-osThreadId_t defaultTaskHandle;
-const osThreadAttr_t defaultTask_attributes = {
-  .name = "defaultTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
 /* USER CODE BEGIN PV */
 /* Definitions for bmiTask */
 osThreadId_t bmiTaskHandle;
@@ -200,9 +183,12 @@ static e22_conf_struct_t lora_1;        // LoRa configuration structure
 static char uart_buffer[128];
 extern unsigned char normal_paket[50];  // Normal mode telemetry packet
 extern unsigned char sd_paket[64];      // SD card data packet
+uint8_t usart2_rx_buffer[36];  // UART4 receive buffer
 
-volatile uint8_t usart4_tx_busy = 0;    // UART4 transmission busy flag
+
 volatile uint8_t usart2_tx_busy = 0;    // UART2 transmission busy flag
+volatile uint8_t usart2_packet_ready = 0;  // UART2 packet received flag
+volatile uint16_t usart2_packet_size = 0;  // Size of received UART2 packet
 
 /*==================== SENSOR STATUS VARIABLES ====================*/
 // Sensor initialization and health status
@@ -237,21 +223,7 @@ osMutexId_t i2cMutexHandle = NULL;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_DMA_Init(void);
-static void MX_I2C1_Init(void);
-static void MX_I2C3_Init(void);
-static void MX_TIM2_Init(void);
-static void MX_USART2_UART_Init(void);
-static void MX_ADC1_Init(void);
-static void MX_USART6_UART_Init(void);
-static void MX_UART4_Init(void);
-static void MX_ADC2_Init(void);
-static void MX_ADC3_Init(void);
-static void MX_SPI1_Init(void);
-static void MX_SPI3_Init(void);
-void StartDefaultTask(void *argument);
-
+void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
 static void bme280_begin(void);
 uint8_t bmi_imu_init(void);
@@ -378,61 +350,8 @@ int main(void)
   /* USER CODE END 2 */
 
   /* Init scheduler */
-  osKernelInitialize();
-
-  /* USER CODE BEGIN RTOS_MUTEX */
-  /* Create I2C mutex for thread-safe I2C bus access */
-  const osMutexAttr_t i2cMutex_attributes = {
-    .name = "i2cMutex"
-  };
-  i2cMutexHandle = osMutexNew(&i2cMutex_attributes);
-  if(i2cMutexHandle == NULL) {
-    Error_Handler();
-  }
-  /* USER CODE END RTOS_MUTEX */
-
-  /* USER CODE BEGIN RTOS_SEMAPHORES */
-  /* USER CODE END RTOS_SEMAPHORES */
-
-  /* USER CODE BEGIN RTOS_TIMERS */
-  /* start timers, add new ones, ... */
-  /* USER CODE END RTOS_TIMERS */
-
-  /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
-  /* USER CODE END RTOS_QUEUES */
-
-  /* Create the thread(s) */
-  /* creation of defaultTask */
-  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
-
-  /* USER CODE BEGIN RTOS_THREADS */
-  /* creation of bmiTask */
-  bmiTaskHandle = osThreadNew(StartBMITask, NULL, &bmiTask_attributes);
-  
-  /* creation of bmeTask */
-  bmeTaskHandle = osThreadNew(StartBMETask, NULL, &bmeTask_attributes);
-  
-  /* creation of sensorFusionTask */
-  sensorFusionTaskHandle = osThreadNew(StartSensorFusionTask, NULL, &sensorFusionTask_attributes);
-  
-  /* creation of adcTask */
-  adcTaskHandle = osThreadNew(StartADCTask, NULL, &adcTask_attributes);
-  
-  /* creation of gnssTask */
-  gnssTaskHandle = osThreadNew(StartGNSSTask, NULL, &gnssTask_attributes);
-  
-  /* creation of telemetryTask */
-  telemetryTaskHandle = osThreadNew(StartTelemetryTask, NULL, &telemetryTask_attributes);
-  
-  /* creation of dataLoggerTask */
-  dataLoggerTaskHandle = osThreadNew(StartDataLoggerTask, NULL, &dataLoggerTask_attributes);
-  
-  /* USER CODE END RTOS_THREADS */
-
-  /* USER CODE BEGIN RTOS_EVENTS */
-  /* add events, ... */
-  /* USER CODE END RTOS_EVENTS */
+  osKernelInitialize();  /* Call init function for freertos objects (in cmsis_os2.c) */
+  MX_FREERTOS_Init();
 
   /* Start scheduler */
   osKernelStart();
@@ -497,547 +416,6 @@ void SystemClock_Config(void)
   }
 }
 
-/**
-  * @brief ADC1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_ADC1_Init(void)
-{
-
-  /* USER CODE BEGIN ADC1_Init 0 */
-
-  /* USER CODE END ADC1_Init 0 */
-
-  ADC_ChannelConfTypeDef sConfig = {0};
-
-  /* USER CODE BEGIN ADC1_Init 1 */
-
-  /* USER CODE END ADC1_Init 1 */
-
-  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
-  */
-  hadc1.Instance = ADC1;
-  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
-  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc1.Init.ScanConvMode = DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
-  hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 1;
-  hadc1.Init.DMAContinuousRequests = DISABLE;
-  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-  if (HAL_ADC_Init(&hadc1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
-  */
-  sConfig.Channel = ADC_CHANNEL_9;
-  sConfig.Rank = 1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN ADC1_Init 2 */
-
-  /* USER CODE END ADC1_Init 2 */
-
-}
-
-/**
-  * @brief ADC2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_ADC2_Init(void)
-{
-
-  /* USER CODE BEGIN ADC2_Init 0 */
-
-  /* USER CODE END ADC2_Init 0 */
-
-  ADC_ChannelConfTypeDef sConfig = {0};
-
-  /* USER CODE BEGIN ADC2_Init 1 */
-
-  /* USER CODE END ADC2_Init 1 */
-
-  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
-  */
-  hadc2.Instance = ADC2;
-  hadc2.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
-  hadc2.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc2.Init.ScanConvMode = DISABLE;
-  hadc2.Init.ContinuousConvMode = DISABLE;
-  hadc2.Init.DiscontinuousConvMode = DISABLE;
-  hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc2.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-  hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc2.Init.NbrOfConversion = 1;
-  hadc2.Init.DMAContinuousRequests = DISABLE;
-  hadc2.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-  if (HAL_ADC_Init(&hadc2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
-  */
-  sConfig.Channel = ADC_CHANNEL_10;
-  sConfig.Rank = 1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
-  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN ADC2_Init 2 */
-
-  /* USER CODE END ADC2_Init 2 */
-
-}
-
-/**
-  * @brief ADC3 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_ADC3_Init(void)
-{
-
-  /* USER CODE BEGIN ADC3_Init 0 */
-
-  /* USER CODE END ADC3_Init 0 */
-
-  ADC_ChannelConfTypeDef sConfig = {0};
-
-  /* USER CODE BEGIN ADC3_Init 1 */
-
-  /* USER CODE END ADC3_Init 1 */
-
-  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
-  */
-  hadc3.Instance = ADC3;
-  hadc3.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
-  hadc3.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc3.Init.ScanConvMode = DISABLE;
-  hadc3.Init.ContinuousConvMode = DISABLE;
-  hadc3.Init.DiscontinuousConvMode = DISABLE;
-  hadc3.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc3.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-  hadc3.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc3.Init.NbrOfConversion = 1;
-  hadc3.Init.DMAContinuousRequests = DISABLE;
-  hadc3.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-  if (HAL_ADC_Init(&hadc3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
-  */
-  sConfig.Channel = ADC_CHANNEL_11;
-  sConfig.Rank = 1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
-  if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN ADC3_Init 2 */
-
-  /* USER CODE END ADC3_Init 2 */
-
-}
-
-/**
-  * @brief I2C1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_I2C1_Init(void)
-{
-
-  /* USER CODE BEGIN I2C1_Init 0 */
-
-  /* USER CODE END I2C1_Init 0 */
-
-  /* USER CODE BEGIN I2C1_Init 1 */
-
-  /* USER CODE END I2C1_Init 1 */
-  hi2c1.Instance = I2C1;
-  hi2c1.Init.ClockSpeed = 100000;
-  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c1.Init.OwnAddress1 = 0;
-  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c1.Init.OwnAddress2 = 0;
-  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN I2C1_Init 2 */
-
-  /* USER CODE END I2C1_Init 2 */
-
-}
-
-/**
-  * @brief I2C3 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_I2C3_Init(void)
-{
-
-  /* USER CODE BEGIN I2C3_Init 0 */
-
-  /* USER CODE END I2C3_Init 0 */
-
-  /* USER CODE BEGIN I2C3_Init 1 */
-
-  /* USER CODE END I2C3_Init 1 */
-  hi2c3.Instance = I2C3;
-  hi2c3.Init.ClockSpeed = 100000;
-  hi2c3.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c3.Init.OwnAddress1 = 0;
-  hi2c3.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c3.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c3.Init.OwnAddress2 = 0;
-  hi2c3.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c3.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN I2C3_Init 2 */
-
-  /* USER CODE END I2C3_Init 2 */
-
-}
-
-/**
-  * @brief SPI1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_SPI1_Init(void)
-{
-
-  /* USER CODE BEGIN SPI1_Init 0 */
-
-  /* USER CODE END SPI1_Init 0 */
-
-  /* USER CODE BEGIN SPI1_Init 1 */
-
-  /* USER CODE END SPI1_Init 1 */
-  /* SPI1 parameter configuration*/
-  hspi1.Instance = SPI1;
-  hspi1.Init.Mode = SPI_MODE_MASTER;
-  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
-  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
-  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
-  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi1.Init.CRCPolynomial = 10;
-  if (HAL_SPI_Init(&hspi1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN SPI1_Init 2 */
-
-  /* USER CODE END SPI1_Init 2 */
-
-}
-
-/**
-  * @brief SPI3 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_SPI3_Init(void)
-{
-
-  /* USER CODE BEGIN SPI3_Init 0 */
-
-  /* USER CODE END SPI3_Init 0 */
-
-  /* USER CODE BEGIN SPI3_Init 1 */
-
-  /* USER CODE END SPI3_Init 1 */
-  /* SPI3 parameter configuration*/
-  hspi3.Instance = SPI3;
-  hspi3.Init.Mode = SPI_MODE_MASTER;
-  hspi3.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi3.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi3.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi3.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi3.Init.NSS = SPI_NSS_SOFT;
-  hspi3.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
-  hspi3.Init.FirstBit = SPI_FIRSTBIT_MSB;
-  hspi3.Init.TIMode = SPI_TIMODE_DISABLE;
-  hspi3.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi3.Init.CRCPolynomial = 10;
-  if (HAL_SPI_Init(&hspi3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN SPI3_Init 2 */
-
-  /* USER CODE END SPI3_Init 2 */
-
-}
-
-/**
-  * @brief TIM2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM2_Init(void)
-{
-
-  /* USER CODE BEGIN TIM2_Init 0 */
-
-  /* USER CODE END TIM2_Init 0 */
-
-  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-
-  /* USER CODE BEGIN TIM2_Init 1 */
-
-  /* USER CODE END TIM2_Init 1 */
-  htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 8399;
-  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 999;
-  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM2_Init 2 */
-
-  /* USER CODE END TIM2_Init 2 */
-
-}
-
-/**
-  * @brief UART4 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_UART4_Init(void)
-{
-
-  /* USER CODE BEGIN UART4_Init 0 */
-
-  /* USER CODE END UART4_Init 0 */
-
-  /* USER CODE BEGIN UART4_Init 1 */
-
-  /* USER CODE END UART4_Init 1 */
-  huart4.Instance = UART4;
-  huart4.Init.BaudRate = 9600;
-  huart4.Init.WordLength = UART_WORDLENGTH_8B;
-  huart4.Init.StopBits = UART_STOPBITS_1;
-  huart4.Init.Parity = UART_PARITY_NONE;
-  huart4.Init.Mode = UART_MODE_TX_RX;
-  huart4.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart4.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart4) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN UART4_Init 2 */
-
-  /* USER CODE END UART4_Init 2 */
-
-}
-
-/**
-  * @brief USART2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART2_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART2_Init 0 */
-
-  /* USER CODE END USART2_Init 0 */
-
-  /* USER CODE BEGIN USART2_Init 1 */
-
-  /* USER CODE END USART2_Init 1 */
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART2_Init 2 */
-
-  /* USER CODE END USART2_Init 2 */
-
-}
-
-/**
-  * @brief USART6 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART6_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART6_Init 0 */
-
-  /* USER CODE END USART6_Init 0 */
-
-  /* USER CODE BEGIN USART6_Init 1 */
-
-  /* USER CODE END USART6_Init 1 */
-  huart6.Instance = USART6;
-  huart6.Init.BaudRate = 9600;
-  huart6.Init.WordLength = UART_WORDLENGTH_8B;
-  huart6.Init.StopBits = UART_STOPBITS_1;
-  huart6.Init.Parity = UART_PARITY_NONE;
-  huart6.Init.Mode = UART_MODE_TX_RX;
-  huart6.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart6.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart6) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART6_Init 2 */
-
-  /* USER CODE END USART6_Init 2 */
-
-}
-
-/**
-  * Enable DMA controller clock
-  */
-static void MX_DMA_Init(void)
-{
-
-  /* DMA controller clock enable */
-  __HAL_RCC_DMA2_CLK_ENABLE();
-  __HAL_RCC_DMA1_CLK_ENABLE();
-
-  /* DMA interrupt init */
-  /* DMA1_Stream0_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
-  /* DMA1_Stream4_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
-  /* DMA1_Stream6_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
-  /* DMA2_Stream2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
-
-}
-
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  /* USER CODE BEGIN MX_GPIO_Init_1 */
-  /* USER CODE END MX_GPIO_Init_1 */
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOH_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, RF_M0_Pin|RF_M1_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, SD_CS_Pin|W25_FLASH_CS_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12|BUZZER_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pins : RF_M0_Pin RF_M1_Pin */
-  GPIO_InitStruct.Pin = RF_M0_Pin|RF_M1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : SD_CS_Pin W25_FLASH_CS_Pin */
-  GPIO_InitStruct.Pin = SD_CS_Pin|W25_FLASH_CS_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PB12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_12;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : BUZZER_Pin */
-  GPIO_InitStruct.Pin = BUZZER_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(BUZZER_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PB3 PB4 */
-  GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_4;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI3_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
-
-  HAL_NVIC_SetPriority(EXTI4_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(EXTI4_IRQn);
-
-  /* USER CODE BEGIN MX_GPIO_Init_2 */
-  /* USER CODE END MX_GPIO_Init_2 */
-}
-
 /* USER CODE BEGIN 4 */
 
 /**
@@ -1049,7 +427,7 @@ uint8_t bmi_imu_init(void)
 {
   // Accelerometer configuration
   BMI_sensor.device_config.acc_bandwith = ACC_BWP_OSR4;
-  BMI_sensor.device_config.acc_outputDateRate = ACC_ODR_12_5;
+  BMI_sensor.device_config.acc_outputDateRate = ACC_ODR_100;
   BMI_sensor.device_config.acc_powerMode = ACC_PWR_SAVE_ACTIVE;
   BMI_sensor.device_config.acc_range = ACC_RANGE_24G;
 
@@ -1075,13 +453,13 @@ uint8_t bmi_imu_init(void)
  */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  if(GPIO_Pin == GPIO_PIN_3)
+  if(GPIO_Pin == GPIO_PIN_4)
   {
     // Gyroscope data ready interrupt (EXTI3)
     bmi088_set_gyro_INT(&BMI_sensor);
     bmi088_start_gyro_dma(&BMI_sensor);
   }
-  if(GPIO_Pin == GPIO_PIN_4)
+  if(GPIO_Pin == GPIO_PIN_3)
   {
     // Accelerometer data ready interrupt (EXTI4)
     bmi088_set_accel_INT(&BMI_sensor);
@@ -1114,6 +492,25 @@ void uart2_send_packet_dma(uint8_t *data, uint16_t size)
         HAL_UART_Transmit_DMA(&huart2, data, size);
     }
 }
+
+
+/**
+ * @brief UART receive event callback
+ * @param huart UART handle
+ * @param Size Number of bytes received
+ * @note Handles UART2 packet reception with DMA
+ */
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+	if (huart->Instance == USART2) {
+		usart2_packet_ready = 1;
+		usart2_packet_size = Size;
+		// Restart RX DMA for next packet
+		HAL_UARTEx_ReceiveToIdle_DMA(&huart2, usart2_rx_buffer, sizeof(usart2_rx_buffer));
+		__HAL_DMA_DISABLE_IT(huart2.hdmarx, DMA_IT_HT); // Disable half-transfer interrupt
+	}
+}
+
 
 /**
  * @brief I2C Memory read complete callback (DMA)
@@ -1150,24 +547,45 @@ void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c)
   * @brief  Function implementing the telemetry task.
   * @param  argument: Not used
   * @retval None
+  * @note   Uses vTaskDelayUntil for deterministic 10Hz timing
+  * @note   Reads latest data from all mailboxes for packet creation
   */
 void StartTelemetryTask(void *argument)
 {
   /* USER CODE BEGIN StartTelemetryTask */
+  fused_sample_t fused_data;
+  gnss_sample_t gnss_data_local;
+  adc_sample_t adc_data;
+  bmi_sample_t bmi_data;
+  bme_sample_t bme_data;
+  TickType_t xLastWakeTime;
+  const TickType_t xPeriod = pdMS_TO_TICKS(100);  // 10 Hz
+  
+  /* Phase offset: 60ms - runs after sensor tasks to get fresh data */
+  osDelay(60);
+  xLastWakeTime = xTaskGetTickCount();
+  
   /* Infinite loop */
   for(;;)
   {
-    // Create telemetry packets
-    addDataPacketNormal(&BME280_sensor, &BMI_sensor, &sensor_output, &gnss_data, hmc1021_gauss, voltage_V, current_mA);
+    // Wait for next cycle (deterministic timing)
+    vTaskDelayUntil(&xLastWakeTime, xPeriod);
+    
+        // Get latest data from all mailboxes (non-blocking peek)
+    mailbox_peek_fused(&fused_data);
+    mailbox_peek_bmi(&bmi_data);
+    mailbox_peek_bme(&bme_data);
+    mailbox_peek_gnss(&gnss_data_local);
+    mailbox_peek_adc(&adc_data);
+    
+    // Create telemetry packets using updated global structures
+    addDataPacketNormal(&bme_data, &bmi_data, &fused_data, &gnss_data_local, adc_data.magnetometer, adc_data.voltage, adc_data.current);
 
     // Send data via UART2 using DMA
     uart2_send_packet_dma((uint8_t*)normal_paket, 50);
 
     // Send data via LoRa using DMA
     //lora_send_packet_dma((uint8_t*)normal_paket, 50);
-
-    // Wait for 100ms before next transmission (10Hz telemetry rate)
-    osDelay(100);
   }
   /* USER CODE END StartTelemetryTask */
 }
@@ -1178,12 +596,15 @@ void StartTelemetryTask(void *argument)
   * @retval None
   * @note   Interrupt-driven: Task waits on thread flags raised by DMA completion
   * @note   Uses system tick for delta_time calculation (more reliable in FreeRTOS)
+  * @note   Sends data to bmiMailbox for consumer tasks
   */
 void StartBMITask(void *argument)
 {
   /* USER CODE BEGIN StartBMITask */
-  /* Infinite loop */
+  bmi_sample_t bmi_sample;
   uint32_t notifiedFlags;
+  
+  /* Infinite loop */
   for(;;)
   {
     notifiedFlags = osThreadFlagsWait(ACCEL_DMA_FLAG | GYRO_DMA_FLAG, osFlagsWaitAny, osWaitForever);
@@ -1194,13 +615,32 @@ void StartBMITask(void *argument)
 
     if((notifiedFlags & ACCEL_DMA_FLAG) != 0U)
     {
+      SEGGER_SYSVIEW_Print("ACCEL");
       bmi088_process_accel_data(&BMI_sensor);
     }
 
     if((notifiedFlags & GYRO_DMA_FLAG) != 0U)
     {
+      SEGGER_SYSVIEW_Print("GYRO");
       bmi088_process_gyro_data(&BMI_sensor);
     }
+    
+    // Prepare sample for mailbox
+    bmi_sample.timestamp = HAL_GetTick();
+    bmi_sample.accel_x = BMI_sensor.datas.acc_x;
+    bmi_sample.accel_y = BMI_sensor.datas.acc_y;
+    bmi_sample.accel_z = BMI_sensor.datas.acc_z;
+    bmi_sample.gyro_x = BMI_sensor.datas.gyro_x;
+    bmi_sample.gyro_y = BMI_sensor.datas.gyro_y;
+    bmi_sample.gyro_z = BMI_sensor.datas.gyro_z;
+    bmi_sample.theta = BMI_sensor.datas.theta;
+    bmi_sample.delta_time = BMI_sensor.datas.delta_time;
+    bmi_sample.roll = BMI_sensor.datas.roll;
+    bmi_sample.pitch = BMI_sensor.datas.pitch;
+    bmi_sample.yaw = BMI_sensor.datas.yaw;
+    
+    // Send to mailbox (overwrites existing, non-blocking)
+    mailbox_send_bmi(&bmi_sample);
   }
   /* USER CODE END StartBMITask */
 }
@@ -1209,24 +649,43 @@ void StartBMITask(void *argument)
   * @brief  Function implementing the BME280 sensor task.
   * @param  argument: Not used
   * @retval None
+  * @note   Uses vTaskDelayUntil for deterministic 10Hz timing
+  * @note   Sends data to bmeMailbox for consumer tasks
   */
 void StartBMETask(void *argument)
 {
   /* USER CODE BEGIN StartBMETask */
+  bme_sample_t bme_sample;
+  TickType_t xLastWakeTime;
+  const TickType_t xPeriod = pdMS_TO_TICKS(100);  // 10 Hz
+  
+  /* Phase offset: 0ms (reference task - runs first to provide data) */
+  xLastWakeTime = xTaskGetTickCount();
+  
   /* Infinite loop */
   for(;;)
   {
-    // Acquire I2C bus mutex for thread-safe access
-    osMutexAcquire(i2cMutexHandle, osWaitForever);
-
+    // Wait for next cycle (deterministic timing)
+    vTaskDelayUntil(&xLastWakeTime, xPeriod);
+    
     // Update BME280 barometric pressure sensor data
     bme280_update();
+    
+    // Prepare sample for mailbox
+    bme_sample.timestamp = HAL_GetTick();
+    bme_sample.temperature = BME280_sensor.temperature;
+    bme_sample.pressure = BME280_sensor.pressure;
+    bme_sample.humidity = BME280_sensor.humidity;
+    bme_sample.altitude = BME280_sensor.altitude;
+    
+    // Send to mailbox (overwrites existing, non-blocking)
+    mailbox_send_bme(&bme_sample);
 
-    // Release I2C bus mutex
-    osMutexRelease(i2cMutexHandle);
-
-    // Short delay - barometer updates don't need to be as fast as IMU
-    osDelay(25);
+    // Notify sensor fusion task that new BME data is ready
+    if(sensorFusionTaskHandle != NULL)
+    {
+      osThreadFlagsSet(sensorFusionTaskHandle, BME_DATA_READY_FLAG);
+    }
   }
   /* USER CODE END StartBMETask */
 }
@@ -1235,21 +694,76 @@ void StartBMETask(void *argument)
   * @brief  Function implementing the sensor fusion task.
   * @param  argument: Not used
   * @retval None
+  * @note   Reads latest data from mailboxes for sensor fusion
+  * @note   Outputs fused data to fusedMailbox
   */
 void StartSensorFusionTask(void *argument)
 {
   /* USER CODE BEGIN StartSensorFusionTask */
+  bmi_sample_t bmi_data;
+  bme_sample_t bme_data;
+  fused_sample_t fused_output;
+  uint32_t flags;
+  uint8_t bme_data_valid;
+  uint8_t bmi_data_valid;
+  
   /* Infinite loop */
   for(;;)
   {
-    // Perform sensor fusion using Kalman filter
-    sensor_fusion_update_kalman(&BME280_sensor, &BMI_sensor, &sensor_output);
+    // Wait for BME data ready notification with 200ms timeout
+    flags = osThreadFlagsWait(BME_DATA_READY_FLAG, osFlagsWaitAny, 200);
+    
+    if(flags == osFlagsErrorTimeout)
+    {
+      // Timeout: BME data not received within 200ms, use BMI only
+      bme_data_valid = 0;
+    }
+    else if(((int32_t)flags) < 0)
+    {
+      continue; // Other error occurred, retry
+    }
+    else
+    {
+      // BME data received successfully
+      bme_data_valid = 1;
+    }
+    
+    // Get latest data from mailboxes (non-blocking peek)
+    bmi_data_valid = (mailbox_peek_bmi(&bmi_data) == pdTRUE) ? 1 : 0;
+    if(bme_data_valid) {
+      bme_data_valid = (mailbox_peek_bme(&bme_data) == pdTRUE) ? 1 : 0;
+    }
+
+    // Perform sensor fusion - with or without BME data
+    if(bme_data_valid && bmi_data_valid)
+    {
+      // Full sensor fusion with BME280 + BMI088
+      sensor_fusion_update_kalman(&bme_data, &bmi_data, &sensor_output);
+    }
+    else if(bmi_data_valid)
+    {
+      // IMU-only fusion (no barometer update)
+      sensor_fusion_update_imu_only(&bmi_data, &sensor_output);
+    }
+    else
+    {
+      // No valid sensor data, skip this cycle
+      continue;
+    }
 
     // Update flight algorithm (launch detection, apogee, etc.)
-    flight_algorithm_update(&BME280_sensor, &BMI_sensor, &sensor_output);
-
-    // Run at 10Hz (100ms period) - matches telemetry rate
-    osDelay(100);
+    flight_algorithm_update(&bme_data, &bmi_data, &sensor_output);
+    
+    // Prepare fused output for mailbox
+    fused_output.timestamp = HAL_GetTick();
+    fused_output.filtered_altitude = sensor_output.filtered_altitude;
+    fused_output.velocity = sensor_output.velocity;
+    fused_output.apogee_detected = sensor_output.apogeeDetect;
+    fused_output.accel_failure = sensor_output.accel_failure;
+    fused_output.flight_phase = flight_algorithm_get_durum_verisi();
+    
+    // Send to mailbox (overwrites existing, non-blocking)
+    mailbox_send_fused(&fused_output);
   }
   /* USER CODE END StartSensorFusionTask */
 }
@@ -1258,18 +772,37 @@ void StartSensorFusionTask(void *argument)
   * @brief  Function implementing the ADC reading task.
   * @param  argument: Not used
   * @retval None
+  * @note   Uses vTaskDelayUntil for deterministic 10Hz timing
+  * @note   Sends data to adcMailbox for consumer tasks
   */
 void StartADCTask(void *argument)
 {
   /* USER CODE BEGIN StartADCTask */
+  adc_sample_t adc_sample;
+  TickType_t xLastWakeTime;
+  const TickType_t xPeriod = pdMS_TO_TICKS(100);  // 10 Hz
+  
+  /* Phase offset: 20ms - stagger CPU load across 100ms period */
+  osDelay(20);
+  xLastWakeTime = xTaskGetTickCount();
+  
   /* Infinite loop */
   for(;;)
   {
+    // Wait for next cycle (deterministic timing)
+    vTaskDelayUntil(&xLastWakeTime, xPeriod);
+    
     // Read ADC channels (magnetometer, voltage, current)
     read_ADC();
-
-    // Run at 10Hz (100ms period)
-    osDelay(100);
+    
+    // Prepare sample for mailbox
+    adc_sample.timestamp = HAL_GetTick();
+    adc_sample.magnetometer = hmc1021_gauss;
+    adc_sample.voltage = voltage_V;
+    adc_sample.current = current_mA;
+    
+    // Send to mailbox (overwrites existing, non-blocking)
+    mailbox_send_adc(&adc_sample);
   }
   /* USER CODE END StartADCTask */
 }
@@ -1278,18 +811,41 @@ void StartADCTask(void *argument)
   * @brief  Function implementing the GNSS task.
   * @param  argument: Not used
   * @retval None
+  * @note   Uses vTaskDelayUntil for deterministic 10Hz timing
+  * @note   Sends data to gnssMailbox for consumer tasks
   */
 void StartGNSSTask(void *argument)
 {
   /* USER CODE BEGIN StartGNSSTask */
+  gnss_sample_t gnss_sample;
+  TickType_t xLastWakeTime;
+  const TickType_t xPeriod = pdMS_TO_TICKS(100);  // 10 Hz
+  
+  /* Phase offset: 40ms - stagger CPU load across 100ms period */
+  osDelay(40);
+  xLastWakeTime = xTaskGetTickCount();
+  
   /* Infinite loop */
   for(;;)
   {
+    // Wait for next cycle (deterministic timing)
+    vTaskDelayUntil(&xLastWakeTime, xPeriod);
+    
     // Update GPS/GNSS data
     L86_GNSS_Update(&gnss_data);
-
-    // Run at 10Hz (100ms period)
-    osDelay(100);
+    
+    // Prepare sample for mailbox
+    gnss_sample.timestamp = HAL_GetTick();
+    gnss_sample.latitude = gnss_data.latitude;
+    gnss_sample.longitude = gnss_data.longitude;
+    gnss_sample.altitude = gnss_data.altitude;
+    gnss_sample.speed = gnss_data.speed_over_ground;
+    gnss_sample.fix_status = gnss_data.fix_status;
+    gnss_sample.satellites = gnss_data.satellites_in_use;
+    gnss_sample.is_valid = gnss_data.is_valid;
+    
+    // Send to mailbox (overwrites existing, non-blocking)
+    mailbox_send_gnss(&gnss_sample);
   }
   /* USER CODE END StartGNSSTask */
 }
@@ -1298,21 +854,42 @@ void StartGNSSTask(void *argument)
   * @brief  Function implementing the data logger task.
   * @param  argument: Not used
   * @retval None
+  * @note   Uses vTaskDelayUntil for deterministic 10Hz timing
+  * @note   Reads latest data from all mailboxes for SD card logging
   */
 void StartDataLoggerTask(void *argument)
 {
   /* USER CODE BEGIN StartDataLoggerTask */
+  fused_sample_t fused_data;
+  bmi_sample_t bmi_data;
+  bme_sample_t bme_data;
+  gnss_sample_t gnss_data_local;
+  adc_sample_t adc_data;
+  TickType_t xLastWakeTime;
+  const TickType_t xPeriod = pdMS_TO_TICKS(100);  // 10 Hz
+  
+  /* Phase offset: 80ms - runs last after all sensor data is ready */
+  osDelay(80);
+  xLastWakeTime = xTaskGetTickCount();
+  
   /* Infinite loop */
   for(;;)
   {
-    // Create SD card data packet
-    addDataPacketSD(&BME280_sensor, &BMI_sensor, &sensor_output, &gnss_data, hmc1021_gauss, voltage_V, current_mA);
+    // Wait for next cycle (deterministic timing)
+    vTaskDelayUntil(&xLastWakeTime, xPeriod);
+    
+    // Get latest data from all mailboxes (non-blocking peek)
+    mailbox_peek_fused(&fused_data);
+    mailbox_peek_bmi(&bmi_data);
+    mailbox_peek_bme(&bme_data);
+    mailbox_peek_gnss(&gnss_data_local);
+    mailbox_peek_adc(&adc_data);
+    
+    // Create SD card data packet using updated global structures
+    addDataPacketSD(&bme_data, &bmi_data, &fused_data, &gnss_data_local, adc_data.magnetometer, adc_data.voltage, adc_data.current);
 
     // Log data to SD card
-    log_normal_packet_data(sd_paket);
-
-    // Run at 10Hz (100ms period) - matches telemetry rate
-    osDelay(100);
+    log_normal_packet_data(sd_paket, "gorev.bin");
   }
   /* USER CODE END StartDataLoggerTask */
 }
@@ -1415,34 +992,13 @@ void read_ADC()
  */
 void lora_send_packet_dma(uint8_t *data, uint16_t size)
 {
-	if (!usart4_tx_busy) {
-		usart4_tx_busy = 1;
-		HAL_UART_Transmit_DMA(&huart4, data, size);
+	if (!usart2_tx_busy) {
+		usart2_tx_busy = 1;
+		HAL_UART_Transmit_DMA(&huart2, data, size);
 	}
 }
 
 /* USER CODE END 4 */
-
-/* USER CODE BEGIN Header_StartDefaultTask */
-/**
-  * @brief  Function implementing the BMI088 sensor update task.
-  * @param  argument: Not used
-  * @retval None
-  */
-/* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument)
-{
-  /* USER CODE BEGIN 5 */
-  /* Start SEGGER SystemView once at the beginning */
-  SEGGER_SYSVIEW_Start();
-
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(100); // 100ms delay - reduced frequency for lighter task
-  }
-  /* USER CODE END 5 */
-}
 
 /**
   * @brief  Period elapsed callback in non blocking mode

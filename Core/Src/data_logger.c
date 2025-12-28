@@ -51,7 +51,7 @@ void data_logger_init()
 	file_open = 0;
 }
 
-void log_normal_packet_data(unsigned char* packet_data)
+void log_normal_packet_data(unsigned char* packet_data, char* name)
 {
 
 	if (sd_open == 0) {
@@ -66,7 +66,7 @@ void log_normal_packet_data(unsigned char* packet_data)
 	if (buffer_index >= BUFFER_SIZE) {
 		// Dosya açık değilse aç
 		if (!file_open) {
-			fres = f_open(&fil, "gorev.bin", FA_WRITE | FA_OPEN_ALWAYS);
+			fres = f_open(&fil, name, FA_WRITE | FA_OPEN_ALWAYS);
 			if (fres == FR_OK) {
 				f_lseek(&fil, f_size(&fil));  // Dosya sonuna git
 				file_open = 1;
@@ -93,7 +93,6 @@ void log_normal_packet_data(unsigned char* packet_data)
 		}
 	}
 }
-
 void flush_packet_buffer(void)
 {
 	// Eğer buffer'da veri varsa yaz

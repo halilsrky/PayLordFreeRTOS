@@ -3,6 +3,37 @@
  * @brief Core flight algorithm for rocket flight control system
  * @date 2025-07-03
  * @author halilsrky
+ *
+ * Flight State Machine:
+ * =====================
+ *
+ *  [IDLE] ---(launch detected)---> [BOOST]
+ *     |                               |
+ *     |                      (burnout detected)
+ *     |                               |
+ *     |                               v
+ *     |                           [COAST]
+ *     |                               |
+ *     |                      (apogee detected)
+ *     |                               |
+ *     |                               v
+ *     |                          [APOGEE]
+ *     |                               |
+ *     |                     (drogue deployed)
+ *     |                               |
+ *     |                               v
+ *     |                      [DROGUE_DESCENT]
+ *     |                               |
+ *     |                   (main altitude reached)
+ *     |                               |
+ *     |                               v
+ *     |                       [MAIN_DESCENT]
+ *     |                               |
+ *     |                      (landing detected)
+ *     |                               |
+ *     +----(abort)--->[ABORT]<--------+
+ *                               v
+ *                           [LANDED]
  */
 
 #include "flight_algorithm.h"
@@ -11,56 +42,110 @@
 #include "main.h"
 #include <math.h>
 
-// External dependencies
+// =============================================================================
+// External Dependencies
+// =============================================================================
 extern int is_BME_ok;
 
-// Private defines
-#define ALT_DECREASE_THRESHOLD   3     // consecutive altitude decreases
-
-// Private variables
+// =============================================================================
+// State Machine Variables
+// =============================================================================
 static FlightPhase_t current_phase = PHASE_IDLE;
+static FlightPhase_t previous_phase = PHASE_IDLE;
 
-// Flight parameters (configurable)
-static float launch_accel_threshold = 25.0f;  // m/s²
-static float min_arming_altitude = 1800.0f;   // meters
-static float main_chute_altitude = 500.0f;    // meters
-static float max_angle_threshold = 70.0f;     // degrees
+// =============================================================================
+// Flight Parameters (Configurable)
+// =============================================================================
+static float launch_accel_threshold = DEFAULT_LAUNCH_ACCEL_THRESHOLD;
+static float launch_velocity_threshold = DEFAULT_LAUNCH_VELOCITY_THRESHOLD;
+static float min_arming_altitude = DEFAULT_MIN_ARMING_ALTITUDE;
+static float main_chute_altitude = DEFAULT_MAIN_CHUTE_ALTITUDE;
+static float max_angle_threshold = DEFAULT_MAX_ANGLE_THRESHOLD;
+static float landing_velocity_threshold = DEFAULT_LANDING_VELOCITY;
 
-// Flight state tracking
-static uint8_t is_rising = 0;
-static uint8_t is_stabilized = 1;
-static uint8_t is_armed = 0;
-static uint8_t deployed_angle = 1;
-static uint8_t deployed_velocity = 1;
-static uint8_t drogue_deployed = 0;
-static uint8_t main_deployed = 0;
-int apogee_counter = 0;
-int burnout_counter = 1;
-float prev_velocity = 0;
+// =============================================================================
+// State Tracking Variables
+// =============================================================================
+static uint8_t is_armed = 0;              // System armed flag
+static uint8_t drogue_deployed = 0;       // Drogue deployment flag
+static uint8_t main_deployed = 0;         // Main deployment flag
 
-static uint32_t flight_start_time = 0;
-static uint8_t altitude_decrease_count = 0;
+// =============================================================================
+// Counter Variables for Confirmation
+// =============================================================================
+static uint16_t apogee_counter = 0;       // Apogee detection counter
+static uint16_t burnout_counter = 0;      // Burnout detection counter
+static uint16_t landing_counter = 0;      // Landing detection counter
+
+// =============================================================================
+// Timing Variables
+// =============================================================================
+static uint32_t flight_start_time = 0;    // Launch time (ms)
+static uint32_t phase_start_time = 0;     // Current phase start time (ms)
+
+// =============================================================================
+// Previous Values for Change Detection
+// =============================================================================
+static float prev_velocity = 0.0f;
 static float prev_altitude = 0.0f;
 
-// Status tracking
-static uint16_t status_bits = 0;
-static uint8_t durum_verisi = 1;
+// =============================================================================
+// Status Variables
+// =============================================================================
+static uint16_t status_bits = 0;          // Cumulative status bits
+static uint8_t durum_verisi = 1;          // Phase indicator (1-8)
 
-// Private function prototypes
-static float calculate_total_acceleration(bmi088_struct_t* bmi);
+// =============================================================================
+// Private Function Prototypes
+// =============================================================================
+static float calculate_total_acceleration(bmi_sample_t* bmi);
+static void transition_to_phase(FlightPhase_t new_phase);
+static uint8_t check_launch_condition(bmi_sample_t* bmi, fused_sample_t* fusion);
+static uint8_t check_burnout_condition(bmi_sample_t* bmi);
+static uint8_t check_apogee_condition(fused_sample_t* fusion);
+static uint8_t check_angle_threshold(bmi_sample_t* bmi);
+static uint8_t check_main_altitude(bme_sample_t* bme);
+static uint8_t check_landing_condition(fused_sample_t* fusion);
+
 void deploy_drogue_parachute(void);
 void deploy_main_parachute(void);
-// Drogue parachute deployment state
-static uint8_t drogue_pulse_active = 0;
-static uint32_t drogue_pulse_start_time = 0;
-
-// Main parachute deployment state
-static uint8_t main_pulse_active = 0;
-static uint32_t main_pulse_start_time = 0;
 
 
 
 
+
+// =============================================================================
+// State Transition Function
+// =============================================================================
+
+/**
+ * @brief Transition to a new flight phase
+ * @param new_phase The phase to transition to
+ */
+static void transition_to_phase(FlightPhase_t new_phase)
+{
+    if (current_phase != new_phase) {
+        previous_phase = current_phase;
+        current_phase = new_phase;
+        phase_start_time = HAL_GetTick();
+
+        // Update durum_verisi based on new phase
+        switch (new_phase) {
+            case PHASE_IDLE:           durum_verisi = 1; break;
+            case PHASE_BOOST:          durum_verisi = 2; break;
+            case PHASE_COAST:          durum_verisi = 3; break;
+            case PHASE_APOGEE:         durum_verisi = 4; break;
+            case PHASE_DROGUE_DESCENT: durum_verisi = 5; break;
+            case PHASE_MAIN_DESCENT:   durum_verisi = 6; break;
+            case PHASE_LANDED:         durum_verisi = 7; break;
+            case PHASE_ABORT:          durum_verisi = 8; break;
+        }
+    }
+}
+
+// =============================================================================
+// Initialization Functions
+// =============================================================================
 
 /**
  * @brief Initialize the flight algorithm
@@ -75,153 +160,324 @@ void flight_algorithm_init(void)
  */
 void flight_algorithm_reset(void)
 {
+    // Reset state machine
     current_phase = PHASE_IDLE;
-    is_rising = 0;
-    is_stabilized = 1;
+    previous_phase = PHASE_IDLE;
+
+    // Reset flags
     is_armed = 0;
     drogue_deployed = 0;
     main_deployed = 0;
-    altitude_decrease_count = 0;
-    status_bits = 0;
-    prev_altitude = 0.0f;
-    flight_start_time = 0;
-    deployed_velocity = 1;
-    deployed_angle = 1;
+
+    // Reset counters
     apogee_counter = 0;
-    prev_velocity = 0;
+    burnout_counter = 0;
+    landing_counter = 0;
+
+    // Reset timing
+    flight_start_time = 0;
+    phase_start_time = 0;
+
+    // Reset previous values
+    prev_velocity = 0.0f;
+    prev_altitude = 0.0f;
+
+    // Reset status
+    status_bits = 0;
     durum_verisi = 1;
-    drogue_pulse_active = 0;
-    drogue_pulse_start_time = 0;
-    main_pulse_active = 0;
-    main_pulse_start_time = 0;
-    burnout_counter = 1;
+}
+
+// =============================================================================
+// Condition Check Functions
+// =============================================================================
+
+/**
+ * @brief Check if launch conditions are met
+ * @return 1 if launch detected, 0 otherwise
+ */
+static uint8_t check_launch_condition(bmi_sample_t* bmi, fused_sample_t* fusion)
+{
+    float total_accel = calculate_total_acceleration(bmi);
+
+    // Primary: Acceleration threshold
+    if (total_accel > launch_accel_threshold) {
+        return 1;
+    }
+
+    // Secondary: Velocity threshold (backup)
+    if (fusion->velocity > launch_velocity_threshold) {
+        return 1;
+    }
+
+    return 0;
 }
 
 /**
- * @brief Update flight algorithm with sensor data
+ * @brief Check if burnout conditions are met
+ * @return 1 if burnout detected, 0 otherwise
  */
-void flight_algorithm_update(BME_280_t* bme, bmi088_struct_t* bmi, sensor_fusion_t* sensor_fusion)
+static uint8_t check_burnout_condition(bmi_sample_t* bmi)
 {
-    // Calculate key metrics
-    float total_acceleration = calculate_total_acceleration(bmi);
-    //float theta = sensor_fusion->angle; // Use sensor fusion output
+    uint32_t elapsed = HAL_GetTick() - flight_start_time;
 
-    // Status bits are cumulative - once set they remain set
-    // Each phase builds on the previous phase's status bits
+    // Timeout-based burnout detection
+    if (elapsed > DEFAULT_BURNOUT_TIMEOUT_MS) {
+        return 1;
+    }
 
-    // State machine for flight phases
+    // Acceleration-based burnout detection (negative X-axis acceleration)
+    if (bmi->accel_x < 0.0f) {
+        burnout_counter++;
+        if (burnout_counter >= DEFAULT_BURNOUT_CONFIRM_COUNT) {
+            return 1;
+        }
+    } else {
+        // Reset counter if condition not met
+        if (burnout_counter > 0) {
+            burnout_counter--;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Check if apogee conditions are met
+ * @return 1 if apogee detected, 0 otherwise
+ */
+static uint8_t check_apogee_condition(fused_sample_t* fusion)
+{
+    // Apogee: velocity negative and decreasing
+    if (fusion->velocity < 0.0f && fusion->velocity < prev_velocity) {
+        apogee_counter++;
+        if (apogee_counter >= DEFAULT_APOGEE_CONFIRM_COUNT) {
+            return 1;
+        }
+    } else {
+        // Reset counter with hysteresis
+        if (apogee_counter > 0) {
+            apogee_counter--;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Check if angle threshold is exceeded
+ * @return 1 if angle exceeds threshold, 0 otherwise
+ */
+static uint8_t check_angle_threshold(bmi_sample_t* bmi)
+{
+    return (fabs(bmi->theta) > max_angle_threshold) ? 1 : 0;
+}
+
+/**
+ * @brief Check if main parachute deployment altitude is reached
+ * @return 1 if altitude below threshold, 0 otherwise
+ */
+static uint8_t check_main_altitude(bme_sample_t* bme)
+{
+    return (bme->altitude < main_chute_altitude) ? 1 : 0;
+}
+
+/**
+ * @brief Check if landing conditions are met
+ * @return 1 if landing detected, 0 otherwise
+ */
+static uint8_t check_landing_condition(fused_sample_t* fusion)
+{
+    // Low velocity indicates landing
+    if (fabs(fusion->velocity) < landing_velocity_threshold) {
+        landing_counter++;
+        if (landing_counter >= DEFAULT_LANDING_CONFIRM_COUNT) {
+            return 1;
+        }
+    } else {
+        landing_counter = 0;
+    }
+
+    return 0;
+}
+
+// =============================================================================
+// Main Update Function
+// =============================================================================
+
+/**
+ * @brief Update flight algorithm with sensor data
+ * @param bme Pointer to BME280 data
+ * @param bmi Pointer to BMI088 data
+ * @param sensor_fusion Pointer to fused sensor data
+ */
+void flight_algorithm_update(bme_sample_t* bme, bmi_sample_t* bmi, fused_sample_t* sensor_fusion)
+{
+    // =========================================================================
+    // State Machine
+    // =========================================================================
     switch (current_phase) {
+
+        // ---------------------------------------------------------------------
+        // IDLE: Pre-launch, waiting on pad
+        // Entry: System start or reset
+        // Exit: Launch detected (high acceleration or velocity)
+        // ---------------------------------------------------------------------
         case PHASE_IDLE:
-            // Detect launch using acceleration threshold
-            if (total_acceleration > launch_accel_threshold) {
-                current_phase = PHASE_BOOST;
-                is_rising = 1;
+            if (check_launch_condition(bmi, sensor_fusion)) {
                 flight_start_time = HAL_GetTick();
-                status_bits |= 0x0001; // Set Bit 0: Rocket launch detected
-                durum_verisi = 2;
-            }
-            else if(sensor_fusion->velocity > 50.0){
-            	current_phase = PHASE_BOOST;
-				is_rising = 1;
-				flight_start_time = HAL_GetTick();
-				status_bits |= 0x0001; // Set Bit 0: Rocket launch detected
-				durum_verisi = 2;
+                status_bits |= BIT_LAUNCH_DETECTED;
+                transition_to_phase(PHASE_BOOST);
             }
             break;
 
+        // ---------------------------------------------------------------------
+        // BOOST: Powered flight, motor burning
+        // Entry: Launch detected
+        // Exit: Burnout detected (timeout or acceleration reversal)
+        // ---------------------------------------------------------------------
         case PHASE_BOOST:
-            // After boost phase (typically 7-9 seconds)
-            if (HAL_GetTick() - flight_start_time > 8000) {
-                current_phase = PHASE_COAST;
-                is_stabilized = 1;
-                status_bits |= 0x0002; // Set Bit 1: Motor burn prevention period ended
-                durum_verisi = 3;
-            }
-            if(bmi->datas.acc_x < 0.0 && burnout_counter < 10){
-            	burnout_counter++;
-            }
-            if(burnout_counter == 10){
-                current_phase = PHASE_COAST;
-                is_stabilized = 1;
-                status_bits |= 0x0002; // Set Bit 1: Motor burn prevention period ended
-                durum_verisi = 3;
+            if (check_burnout_condition(bmi)) {
+                status_bits |= BIT_BURNOUT_DETECTED;
+                transition_to_phase(PHASE_COAST);
             }
             break;
 
+        // ---------------------------------------------------------------------
+        // COAST: Unpowered ascent after burnout
+        // Entry: Burnout detected
+        // Exit: Apogee detected OR angle threshold exceeded
+        // ---------------------------------------------------------------------
         case PHASE_COAST:
-            // Check minimum arming altitude
-            if (bme->altitude > min_arming_altitude && !is_armed) {
+            // Check and set arming status
+            if (!is_armed && bme->altitude > min_arming_altitude) {
                 is_armed = 1;
-                status_bits |= 0x0004; // Set Bit 2: Minimum altitude threshold exceeded
-                durum_verisi = 4;
+                status_bits |= BIT_MIN_ALTITUDE_ARMED;
             }
 
-            // Check if angle exceeds threshold
-            if (is_armed && (fabs(bmi->datas.theta) > max_angle_threshold) && deployed_angle) {
-                drogue_deployed = 1;
-                deployed_angle = 0;
-                status_bits |= 0x0008; // Set Bit 3: Rocket body angle exceeds threshold
-                durum_verisi = 5;
-            }
-
-            /*     // Detect altitude decrease (apogee)
-            if (is_armed && sensor_fusion->apogeeDetect == 1 && deployed_velocity) {
-                status_bits |= 0x0010; // Set Bit 4: Rocket altitude started decreasing
-                status_bits |= 0x0020; // Set Bit 5: Drag parachute deployment command generated
-                drogue_deployed = 1;
-                deployed_velocity = 0;
-                // deploy_drogue_parachute(); // Actual deployment command
-            }*/
-
-            if (is_armed && sensor_fusion->velocity < 0.0f && sensor_fusion->velocity < prev_velocity && deployed_velocity) {
-                apogee_counter++;
-                if (apogee_counter >= 9) {  // Confirm apogee after 5 consecutive samples
-                    status_bits |= 0x0010; // Set Bit 4: Rocket altitude started decreasing
-                    status_bits |= 0x0020; // Set Bit 5: Drag parachute deployment command generated
-                    drogue_deployed = 1;
-                    deployed_velocity = 0;
-                    durum_verisi = 6;
+            // Only check deployment conditions if armed
+            if (is_armed) {
+                // Check angle threshold (safety deployment)
+                if (check_angle_threshold(bmi)) {
+                    status_bits |= BIT_ANGLE_THRESHOLD;
+                    status_bits |= BIT_APOGEE_DETECTED;
+                    transition_to_phase(PHASE_APOGEE);
+                    break;
                 }
-            } else {
-                apogee_counter = 0;
-            }
-            prev_velocity = sensor_fusion->velocity;
 
-            // Deploy main parachute at designated altitude
-            if (drogue_deployed && bme->altitude < main_chute_altitude) {
-                current_phase = PHASE_MAIN_DESCENT;
-                status_bits |= 0x0040; // Set Bit 6: Rocket altitude below specified altitude
-                status_bits |= 0x0080; // Set Bit 7: Main parachute deployment command generated
-                main_deployed = 1;
-                drogue_deployed = 0;
-                durum_verisi = 7;
+                // Check apogee (normal deployment)
+                if (check_apogee_condition(sensor_fusion)) {
+                    status_bits |= BIT_APOGEE_DETECTED;
+                    transition_to_phase(PHASE_APOGEE);
+                }
             }
             break;
 
+        // ---------------------------------------------------------------------
+        // APOGEE: Peak altitude reached, deploy drogue
+        // Entry: Apogee detected or angle threshold
+        // Exit: Drogue deployed (immediate transition)
+        // ---------------------------------------------------------------------
+        case PHASE_APOGEE:
+            // Deploy drogue parachute
+            if (!drogue_deployed) {
+                drogue_deployed = 1;
+                status_bits |= BIT_DROGUE_DEPLOYED;
+                // deploy_drogue_parachute(); // Actual hardware deployment
+            }
+            transition_to_phase(PHASE_DROGUE_DESCENT);
+            break;
+
+        // ---------------------------------------------------------------------
+        // DROGUE_DESCENT: Descending with drogue parachute
+        // Entry: Drogue deployed
+        // Exit: Main deployment altitude reached
+        // ---------------------------------------------------------------------
+        case PHASE_DROGUE_DESCENT:
+            if (check_main_altitude(bme)) {
+                status_bits |= BIT_MAIN_ALTITUDE;
+                transition_to_phase(PHASE_MAIN_DESCENT);
+            }
+            break;
+
+        // ---------------------------------------------------------------------
+        // MAIN_DESCENT: Descending with main parachute
+        // Entry: Main deployment altitude reached
+        // Exit: Landing detected
+        // ---------------------------------------------------------------------
         case PHASE_MAIN_DESCENT:
-            // Monitor descent under main parachute
+            // Deploy main parachute
+            if (!main_deployed) {
+                main_deployed = 1;
+                status_bits |= BIT_MAIN_DEPLOYED;
+                // deploy_main_parachute(); // Actual hardware deployment
+            }
+
+            // Check for landing
+            if (check_landing_condition(sensor_fusion)) {
+                status_bits |= BIT_LANDED;
+                transition_to_phase(PHASE_LANDED);
+            }
             break;
 
+        // ---------------------------------------------------------------------
+        // LANDED: Mission complete
+        // Entry: Landing detected
+        // Exit: None (terminal state) or reset
+        // ---------------------------------------------------------------------
         case PHASE_LANDED:
-            // No additional status bits to set after landing
+            // Terminal state - no transitions
+            // System waits for manual reset or power cycle
+            break;
+
+        // ---------------------------------------------------------------------
+        // ABORT: Emergency state
+        // Entry: Critical error or manual abort
+        // Exit: Manual reset required
+        // ---------------------------------------------------------------------
+        case PHASE_ABORT:
+            // Emergency state - all deployments should be triggered
+            if (!drogue_deployed) {
+                drogue_deployed = 1;
+                status_bits |= BIT_DROGUE_DEPLOYED;
+            }
+            if (!main_deployed) {
+                main_deployed = 1;
+                status_bits |= BIT_MAIN_DEPLOYED;
+            }
             break;
     }
+
+    // =========================================================================
+    // Update Previous Values for Next Iteration
+    // =========================================================================
+    prev_velocity = sensor_fusion->velocity;
     prev_altitude = bme->altitude;
 }
 
 
+// =============================================================================
+// Utility Functions
+// =============================================================================
+
 /**
  * @brief Calculate total acceleration magnitude
+ * @param bmi Pointer to BMI088 data
+ * @return Total acceleration in m/s²
  */
-static float calculate_total_acceleration(bmi088_struct_t* bmi)
+static float calculate_total_acceleration(bmi_sample_t* bmi)
 {
-    return sqrtf((bmi->datas.acc_x * bmi->datas.acc_x) +
-                 (bmi->datas.acc_y * bmi->datas.acc_y) +
-                 (bmi->datas.acc_z * bmi->datas.acc_z));
+    return sqrtf((bmi->accel_x * bmi->accel_x) +
+                 (bmi->accel_y * bmi->accel_y) +
+                 (bmi->accel_z * bmi->accel_z));
 }
+
+// =============================================================================
+// Getter Functions
+// =============================================================================
 
 /**
  * @brief Get the current flight phase
+ * @return Current flight phase enum value
  */
 FlightPhase_t flight_algorithm_get_phase(void)
 {
@@ -229,33 +485,88 @@ FlightPhase_t flight_algorithm_get_phase(void)
 }
 
 /**
+ * @brief Get the previous flight phase
+ * @return Previous flight phase enum value
+ */
+FlightPhase_t flight_algorithm_get_previous_phase(void)
+{
+    return previous_phase;
+}
+
+/**
  * @brief Get the current status bits
+ * @return 16-bit status flags
  */
 uint16_t flight_algorithm_get_status_bits(void)
 {
     return status_bits;
 }
 
-uint8_t flight_algorithm_get_durum_verisi(void)
-{
-    return durum_verisi;
-}
-
 /**
- * @brief Set flight parameters
+ * @brief Get flight start time
+ * @return Flight start timestamp in milliseconds
  */
-void flight_algorithm_set_parameters(float launch_accel_threshold_param,
-                                   float min_arming_altitude_param,
-                                   float main_chute_altitude_param,
-                                   float max_angle_threshold_param)
-{
-    launch_accel_threshold = launch_accel_threshold_param;
-    min_arming_altitude = min_arming_altitude_param;
-    main_chute_altitude = main_chute_altitude_param;
-    max_angle_threshold = max_angle_threshold_param;
-}
-
 uint32_t flight_algorithm_get_start_time(void)
 {
     return flight_start_time;
+}
+
+/**
+ * @brief Check if system is armed
+ * @return 1 if armed, 0 otherwise
+ */
+uint8_t flight_algorithm_is_armed(void)
+{
+    return is_armed;
+}
+
+/**
+ * @brief Check if drogue is deployed
+ * @return 1 if deployed, 0 otherwise
+ */
+uint8_t flight_algorithm_is_drogue_deployed(void)
+{
+    return drogue_deployed;
+}
+
+/**
+ * @brief Check if main is deployed
+ * @return 1 if deployed, 0 otherwise
+ */
+uint8_t flight_algorithm_is_main_deployed(void)
+{
+    return main_deployed;
+}
+
+// =============================================================================
+// Setter Functions
+// =============================================================================
+
+/**
+ * @brief Set flight parameters
+ * @param launch_accel Launch acceleration threshold (m/s²)
+ * @param min_altitude Minimum arming altitude (m)
+ * @param main_altitude Main parachute deployment altitude (m)
+ * @param max_angle Maximum angle threshold (degrees)
+ */
+void flight_algorithm_set_parameters(float launch_accel,
+                                     float min_altitude,
+                                     float main_altitude,
+                                     float max_angle)
+{
+    launch_accel_threshold = launch_accel;
+    min_arming_altitude = min_altitude;
+    main_chute_altitude = main_altitude;
+    max_angle_threshold = max_angle;
+}
+
+/**
+ * @brief Trigger abort mode
+ * @note This will deploy all parachutes immediately
+ */
+void flight_algorithm_abort(void)
+{
+    if (current_phase != PHASE_IDLE && current_phase != PHASE_LANDED) {
+        transition_to_phase(PHASE_ABORT);
+    }
 }

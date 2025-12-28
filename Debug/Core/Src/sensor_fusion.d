@@ -34,9 +34,24 @@ Core/Src/sensor_fusion.o: ../Core/Src/sensor_fusion.c \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
- ../Core/Inc/bmi088.h ../Core/Inc/kalman.h ../Core/Inc/queternion.h \
- ../Core/Inc/quaternion.h ../Core/Inc/flight_algorithm.h \
- ../Core/Inc/sensor_fusion.h
+ ../Core/Inc/bmi088.h ../Core/Inc/sensor_mailbox.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h \
+ ../Core/Inc/FreeRTOSConfig.h \
+ C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_Party/SEGGER/OS/SEGGER_SYSVIEW_FreeRTOS.h \
+ C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_Party/SEGGER/SEGGER/SEGGER_SYSVIEW.h \
+ C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_Party/SEGGER/SEGGER/SEGGER.h \
+ C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_Party/SEGGER/Config/Global.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/portmacro.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h \
+ ../Core/Inc/kalman.h ../Core/Inc/queternion.h ../Core/Inc/quaternion.h \
+ ../Core/Inc/flight_algorithm.h ../Core/Inc/sensor_fusion.h
 ../Core/Inc/sensor_fusion.h:
 ../Core/Inc/bme280.h:
 ../Core/Inc/main.h:
@@ -75,6 +90,22 @@ Core/Src/sensor_fusion.o: ../Core/Src/sensor_fusion.c \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
 ../Core/Inc/bmi088.h:
+../Core/Inc/sensor_mailbox.h:
+../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h:
+../Core/Inc/FreeRTOSConfig.h:
+C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_Party/SEGGER/OS/SEGGER_SYSVIEW_FreeRTOS.h:
+C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_Party/SEGGER/SEGGER/SEGGER_SYSVIEW.h:
+C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_Party/SEGGER/SEGGER/SEGGER.h:
+C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_Party/SEGGER/Config/Global.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h:
+../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/portmacro.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/task.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/list.h:
 ../Core/Inc/kalman.h:
 ../Core/Inc/queternion.h:
 ../Core/Inc/quaternion.h:

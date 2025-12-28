@@ -2,3 +2,4 @@
 ../Core/Src/sensor_fusion.c:73:16:detect_accel_failure	7
 ../Core/Src/sensor_fusion.c:127:6:sensor_fusion_init	2
 ../Core/Src/sensor_fusion.c:152:6:sensor_fusion_update_kalman	11
+../Core/Src/sensor_fusion.c:223:6:sensor_fusion_update_imu_only	9

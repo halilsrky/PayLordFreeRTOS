@@ -48,17 +48,24 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h \
+ ../Core/Inc/adc.h ../Core/Inc/main.h ../Core/Inc/dma.h \
  ../FATFS/App/fatfs.h ../Middlewares/Third_Party/FatFs/src/ff.h \
  ../Middlewares/Third_Party/FatFs/src/integer.h ../FATFS/Target/ffconf.h \
  ../Middlewares/Third_Party/FatFs/src/ff_gen_drv.h \
  ../Middlewares/Third_Party/FatFs/src/diskio.h \
  ../Middlewares/Third_Party/FatFs/src/ff.h ../FATFS/Target/user_diskio.h \
- ../Core/Inc/bme280.h ../Core/Inc/main.h ../Core/Inc/bmi088.h \
- ../Core/Inc/l86_gnss.h ../Core/Inc/e22_lib.h ../Core/Inc/packet.h \
- ../Core/Inc/bmi088.h ../Core/Inc/bme280.h ../Core/Inc/l86_gnss.h \
- ../Core/Inc/flight_algorithm.h ../Core/Inc/sensor_fusion.h \
+ ../Core/Inc/i2c.h ../Core/Inc/spi.h ../Core/Inc/tim.h \
+ ../Core/Inc/usart.h ../Core/Inc/gpio.h ../Core/Inc/bme280.h \
+ ../Core/Inc/bmi088.h ../Core/Inc/l86_gnss.h ../Core/Inc/e22_lib.h \
+ ../Core/Inc/packet.h ../Core/Inc/bmi088.h ../Core/Inc/bme280.h \
+ ../Core/Inc/l86_gnss.h ../Core/Inc/flight_algorithm.h \
+ ../Core/Inc/sensor_fusion.h ../Core/Inc/sensor_mailbox.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h \
+ ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h \
  ../Core/Inc/data_logger.h ../Core/Inc/queternion.h \
- ../Core/Inc/sensor_fusion.h ../Core/Inc/flight_algorithm.h
+ ../Core/Inc/sensor_fusion.h ../Core/Inc/flight_algorithm.h \
+ ../Core/Inc/sensor_mailbox.h
 ../Core/Inc/main.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 ../Core/Inc/stm32f4xx_hal_conf.h:
@@ -109,6 +116,9 @@ C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_P
 ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h:
+../Core/Inc/adc.h:
+../Core/Inc/main.h:
+../Core/Inc/dma.h:
 ../FATFS/App/fatfs.h:
 ../Middlewares/Third_Party/FatFs/src/ff.h:
 ../Middlewares/Third_Party/FatFs/src/integer.h:
@@ -117,8 +127,12 @@ C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_P
 ../Middlewares/Third_Party/FatFs/src/diskio.h:
 ../Middlewares/Third_Party/FatFs/src/ff.h:
 ../FATFS/Target/user_diskio.h:
+../Core/Inc/i2c.h:
+../Core/Inc/spi.h:
+../Core/Inc/tim.h:
+../Core/Inc/usart.h:
+../Core/Inc/gpio.h:
 ../Core/Inc/bme280.h:
-../Core/Inc/main.h:
 ../Core/Inc/bmi088.h:
 ../Core/Inc/l86_gnss.h:
 ../Core/Inc/e22_lib.h:
@@ -128,7 +142,12 @@ C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_P
 ../Core/Inc/l86_gnss.h:
 ../Core/Inc/flight_algorithm.h:
 ../Core/Inc/sensor_fusion.h:
+../Core/Inc/sensor_mailbox.h:
+../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h:
+../Middlewares/Third_Party/FreeRTOS/Source/include/task.h:
 ../Core/Inc/data_logger.h:
 ../Core/Inc/queternion.h:
 ../Core/Inc/sensor_fusion.h:
 ../Core/Inc/flight_algorithm.h:
+../Core/Inc/sensor_mailbox.h:

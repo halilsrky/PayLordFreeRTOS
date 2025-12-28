@@ -1,4 +1,4 @@
 ../Core/Src/data_logger.c:33:6:data_logger_init	8	static
 ../Core/Src/data_logger.c:54:6:log_normal_packet_data	24	static
-../Core/Src/data_logger.c:97:6:flush_packet_buffer	16	static
-../Core/Src/data_logger.c:126:6:force_flush_buffer	8	static
+../Core/Src/data_logger.c:96:6:flush_packet_buffer	16	static
+../Core/Src/data_logger.c:125:6:force_flush_buffer	8	static

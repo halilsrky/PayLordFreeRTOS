@@ -149,7 +149,7 @@ void sensor_fusion_init()
 /**
  * @brief Update sensor fusion with new measurements (Kalman filter)
  */
-void sensor_fusion_update_kalman(BME_280_t* BME, bmi088_struct_t* BMI, sensor_fusion_t* sensor)
+void sensor_fusion_update_kalman(bme_sample_t* BME, bmi_sample_t* BMI, fused_sample_t* sensor)
 {
     // Get current time for automatic delta calculation
     uint32_t current_time = HAL_GetTick();
@@ -181,13 +181,13 @@ void sensor_fusion_update_kalman(BME_280_t* BME, bmi088_struct_t* BMI, sensor_fu
     }
 
     // Calculate vertical acceleration by compensating for gravity using IMU orientation
-    float angle_rad = BMI->datas.theta * (M_PI / 180.0f);  // dereceyse radyana çevir
+    float angle_rad = BMI->theta * (M_PI / 180.0f);  // dereceyse radyana çevir
 
     // Yerçekimi ivmesinin lokal z eksenindeki bileşeni
     float g_local_z = 9.81f * cosf(angle_rad);
 
     // Gerçek ivmeyi hesapla:
-    float accel_z_corrected = BMI->datas.acc_z - g_local_z;
+    float accel_z_corrected = BMI->accel_z - g_local_z;
 
     // İvme sensörü arıza tespiti
     accel_failure_detected = detect_accel_failure(accel_z_corrected);
@@ -210,8 +210,65 @@ void sensor_fusion_update_kalman(BME_280_t* BME, bmi088_struct_t* BMI, sensor_fu
     if (initialized) {
         // HATA DÜZELTİLDİ: accel_failure_detected yerine gerçek ivme değeri kullanılıyor
         sensor->filtered_altitude = KalmanFilter_Update(&kalman, BME->altitude, accel_z_corrected, time_sec);
-        sensor->apogeeDetect = KalmanFilter_IsApogeeDetected(&kalman);
+        sensor->apogee_detected = KalmanFilter_IsApogeeDetected(&kalman);
         sensor->velocity = Kalman_Get_Velocity(&kalman);
         sensor->accel_failure = accel_failure_detected;
+    }
+}
+
+/**
+ * @brief Update sensor fusion with IMU only (no barometer data)
+ * @note Used when BME280 data is not available (timeout)
+ */
+void sensor_fusion_update_imu_only(bmi_sample_t* BMI, fused_sample_t* sensor)
+{
+    // Get current time for automatic delta calculation
+    uint32_t current_time = HAL_GetTick();
+
+    // Calculate time difference in seconds
+    float time_sec;
+
+    if (last_kalman_update_time == 0) {
+        last_kalman_update_time = current_time;
+        time_sec = 0.01f;
+    } else {
+        uint32_t time_diff = current_time - last_kalman_update_time;
+        time_sec = time_diff / 1000.0f;
+
+        if (time_sec <= 0.0f || time_sec > 1.0f) {
+            time_sec = 0.01f;
+        }
+    }
+
+    last_kalman_update_time = current_time;
+
+    if (BMI == NULL || sensor == NULL) {
+        return;
+    }
+
+    // Calculate vertical acceleration
+    float angle_rad = BMI->theta * (M_PI / 180.0f);
+    float g_local_z = 9.81f * cosf(angle_rad);
+    float accel_z_corrected = BMI->accel_z - g_local_z;
+
+    // Limit extreme values
+    if (fabsf(accel_z_corrected) > 500.0f) {
+        accel_z_corrected = (accel_z_corrected > 0) ? 500.0f : -500.0f;
+    }
+
+    if (initialized) {
+        // IMU-only prediction: integrate acceleration to estimate altitude change
+        // Use very high altitude measurement noise since we have no barometer
+        float saved_alt_noise = kalman.measurement_noise_alt;
+        kalman.measurement_noise_alt = 10000.0f;  // Very high = ignore altitude measurement
+        
+        // Use last known altitude for prediction (Kalman will rely on acceleration)
+        sensor->filtered_altitude = KalmanFilter_Update(&kalman, sensor->filtered_altitude, accel_z_corrected, time_sec);
+        sensor->apogee_detected = KalmanFilter_IsApogeeDetected(&kalman);
+        sensor->velocity = Kalman_Get_Velocity(&kalman);
+        sensor->accel_failure = 0;  // BME timeout, not accel failure
+        
+        // Restore original noise value
+        kalman.measurement_noise_alt = saved_alt_noise;
     }
 }

@@ -174,6 +174,7 @@ typedef struct bmi088_flag
 	uint8_t isGyroUpdated, isAccelUpdated;
 	uint8_t isAccelDmaComplete, isGyroDmaComplete;
 	uint8_t isDmaTransferActive;
+	uint8_t isAccelPending, isGyroPending; // Pending requests when DMA is busy
 }bmi088_flag_t;
 
 typedef struct bmi088_offsets

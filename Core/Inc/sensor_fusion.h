@@ -11,6 +11,7 @@
 #include "bme280.h"
 #include "bmi088.h"
 #include <stdint.h>
+#include "sensor_mailbox.h"
 
 /**
  * @brief Sensor fusion output structure
@@ -27,7 +28,8 @@ typedef struct {
 } sensor_fusion_t;
 
 void sensor_fusion_init();
-void sensor_fusion_update_kalman(BME_280_t* BME, bmi088_struct_t* BMI, sensor_fusion_t* sensor);
-void sensor_fusion_update_mahony(bmi088_struct_t* BMI, sensor_fusion_t* sensor);
+void sensor_fusion_update_kalman(bme_sample_t* BME, bmi_sample_t* BMI, fused_sample_t* sensor);
+void sensor_fusion_update_imu_only(bmi_sample_t* BMI, fused_sample_t* sensor);
+void sensor_fusion_update_mahony(bmi_sample_t* BMI, fused_sample_t* sensor);
 
 #endif /* INC_SENSOR_FUSION_H_ */
