@@ -51,7 +51,8 @@ Core/Src/flight_algorithm.o: ../Core/Src/flight_algorithm.c \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h \
- ../Core/Inc/queternion.h ../Core/Inc/bme280.h ../Core/Inc/main.h
+ ../Core/Inc/queternion.h ../Core/Inc/bme280.h ../Core/Inc/main.h \
+ ../Core/Inc/test_hal_interface.h
 ../Core/Inc/flight_algorithm.h:
 ../Core/Inc/bme280.h:
 ../Core/Inc/main.h:
@@ -110,3 +111,4 @@ C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_P
 ../Core/Inc/queternion.h:
 ../Core/Inc/bme280.h:
 ../Core/Inc/main.h:
+../Core/Inc/test_hal_interface.h:

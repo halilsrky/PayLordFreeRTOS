@@ -40,6 +40,7 @@
 #include "queternion.h"
 #include "bme280.h"
 #include "main.h"
+#include "test_hal_interface.h"
 #include <math.h>
 
 // =============================================================================
@@ -127,7 +128,7 @@ static void transition_to_phase(FlightPhase_t new_phase)
     if (current_phase != new_phase) {
         previous_phase = current_phase;
         current_phase = new_phase;
-        phase_start_time = HAL_GetTick();
+        phase_start_time = hal_get_tick();
 
         // Update durum_verisi based on new phase
         switch (new_phase) {
@@ -218,7 +219,7 @@ static uint8_t check_launch_condition(bmi_sample_t* bmi, fused_sample_t* fusion)
  */
 static uint8_t check_burnout_condition(bmi_sample_t* bmi)
 {
-    uint32_t elapsed = HAL_GetTick() - flight_start_time;
+    uint32_t elapsed = hal_get_tick() - flight_start_time;
 
     // Timeout-based burnout detection
     if (elapsed > DEFAULT_BURNOUT_TIMEOUT_MS) {
@@ -324,7 +325,7 @@ void flight_algorithm_update(bme_sample_t* bme, bmi_sample_t* bmi, fused_sample_
         // ---------------------------------------------------------------------
         case PHASE_IDLE:
             if (check_launch_condition(bmi, sensor_fusion)) {
-                flight_start_time = HAL_GetTick();
+                flight_start_time = hal_get_tick();
                 status_bits |= BIT_LAUNCH_DETECTED;
                 transition_to_phase(PHASE_BOOST);
             }

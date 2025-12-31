@@ -164,12 +164,6 @@ float hmc1021_gauss = 0.0f;
 volatile uint8_t bmi088_accel_data_ready = 0;  // EXTI4 - Accelerometer data ready
 volatile uint8_t bmi088_gyro_data_ready = 0;   // EXTI3 - Gyroscope data ready
 
-/*==================== FREERTOS SYNCHRONIZATION ====================*/
-// BMI088 uses thread flags for synchronization; no semaphore required
-
-// I2C bus mutex for thread-safe access to I2C1 (shared by BME280 and BMI088)
-osMutexId_t i2cMutexHandle = NULL;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/

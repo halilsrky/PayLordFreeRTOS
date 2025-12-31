@@ -35,6 +35,9 @@ C_SRCS += \
 ../Core/Src/uart_handler.c \
 ../Core/Src/usart.c 
 
+O_SRCS += \
+../Core/Src/kalman.o 
+
 OBJS += \
 ./Core/Src/adc.o \
 ./Core/Src/bme280.o \

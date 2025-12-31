@@ -6,12 +6,14 @@
  */
 
 #include "bmi088.h"
+#include "bmi088_conversions.h"
 #include "main.h"
 #include "math.h"
 #include "stdlib.h"
 #include "stdint.h"
 #include "queternion.h"
 #include "quaternion.h"
+#include "test_hal_interface.h"
 
 //#define SELFTEST_ENABLED
 
@@ -29,7 +31,7 @@ static uint32_t gyro_freq_last_time = 0;
 static float accel_frequency_hz = 0.0f;
 static float gyro_frequency_hz = 0.0f;
 
-// Delta time için HAL_GetTick() kullanımı
+// Delta time için hal_get_tick() kullanımı (testable via interface)
 static uint32_t last_hal_tick = 0;
 
 // Statik offset bellek alanı (FreeRTOS'ta calloc yerine)
@@ -331,7 +333,7 @@ void bmi088_process_accel_data(bmi088_struct_t* BMI)
 
 	// Debug: Accelerometer okuma frekansı hesaplama
 	accel_read_count++;
-	current_time = HAL_GetTick();
+	current_time = hal_get_tick();
 	if (current_time - accel_freq_last_time >= 1000) { // Her 1 saniyede bir hesapla
 		accel_frequency_hz = (float)accel_read_count * 1000.0f / (current_time - accel_freq_last_time);
 		accel_read_count = 0;
@@ -365,7 +367,7 @@ void bmi088_process_gyro_data(bmi088_struct_t* BMI)
 
 	// Debug: Gyroscope okuma frekansı hesaplama
 	gyro_read_count++;
-	current_time = HAL_GetTick();
+	current_time = hal_get_tick();
 	if (current_time - gyro_freq_last_time >= 1000) { // Her 1 saniyede bir hesapla
 		gyro_frequency_hz = (float)gyro_read_count * 1000.0f / (current_time - gyro_freq_last_time);
 		gyro_read_count = 0;
@@ -380,8 +382,8 @@ void bmi088_process_gyro_data(bmi088_struct_t* BMI)
 	BMI->datas.gyro_y = (((float)gyro_y_16 / 32767.0) * (float)(2000 >> BMI->device_config.gyro_range) - BMI->device_config.offsets->gyro_offset[1]) * DEG_TO_RAD;
 	BMI->datas.gyro_z = (((float)gyro_z_16 / 32767.0) * (float)(2000 >> BMI->device_config.gyro_range) - BMI->device_config.offsets->gyro_offset[2]) * DEG_TO_RAD;
 
-	// Delta time hesaplama HAL_GetTick() ile (gyro processing'de yapılsın)
-	current_hal_tick = HAL_GetTick();
+	// Delta time hesaplama hal_get_tick() ile (gyro processing'de yapılsın)
+	current_hal_tick = hal_get_tick();
 	if(is_starded)
 	{
 		BMI->datas.delta_time = (float)(current_hal_tick - last_hal_tick) / 1000.0f; // ms to seconds
@@ -425,13 +427,13 @@ uint8_t bmi088_getGyroChipId(bmi088_struct_t* BMI)
 void get_offset(bmi088_struct_t* BMI)
 {
 	int offsetCounter = 0;
-	uint32_t timeout_start = HAL_GetTick();
+	uint32_t timeout_start = hal_get_tick();
 	const uint32_t TIMEOUT_MS = 10000; // 10 saniye timeout
 
 	while(1)
 	{
 		// Timeout kontrolü
-		if(HAL_GetTick() - timeout_start > TIMEOUT_MS)
+		if(hal_get_tick() - timeout_start > TIMEOUT_MS)
 		{
 
 			return;
