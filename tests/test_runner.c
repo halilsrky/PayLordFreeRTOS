@@ -22,10 +22,8 @@
 
 extern void run_kalman_tests(void);
 extern void run_bmi088_conversion_tests(void);
-
-/* Note: flight_algorithm tests disabled - requires HAL mocking */
-/* extern void run_flight_algorithm_tests(void); */
-/* extern void run_apogee_logic_tests(void); */
+extern void run_flight_algorithm_tests(void);
+extern void run_apogee_logic_tests(void);
 
 /* ============================================================================
  *                         RESULT OUTPUT
@@ -36,14 +34,14 @@ extern void run_bmi088_conversion_tests(void);
  * @note Bu tek printf kullanımı - sadece final sonuç için
  */
 static void print_results(void) {
-    char summary[128];
-    test_format_summary(summary, sizeof(summary));
-    
     printf("\n");
     printf("========================================\n");
     printf("          UNIT TEST RESULTS\n");
     printf("========================================\n");
-    printf("%s\n", summary);
+    printf("TESTS: %d PASS: %d FAIL: %d\n", 
+           test_get_total_count(), 
+           test_get_pass_count(), 
+           test_get_fail_count());
     printf("========================================\n");
     
     if (test_all_passed()) {
@@ -92,8 +90,19 @@ int main(int argc, char* argv[]) {
     printf("\n[GROUP] BMI088 Conversion Tests (Production Code)...\n");
     run_bmi088_conversion_tests();
     
-    /* Note: Flight Algorithm tests require full HAL mocking infrastructure */
-    /* TODO: Implement HAL mock layer for flight_algorithm testing */
+    /* ======================================================================
+     * TEST GROUP 3: Flight Algorithm State Machine (Testable version)
+     * Tests: testable/flight_algorithm_testable.c
+     * ====================================================================== */
+    printf("\n[GROUP] Flight Algorithm Tests (Testable Code)...\n");
+    run_flight_algorithm_tests();
+    
+    /* ======================================================================
+     * TEST GROUP 4: Apogee Detection Logic (Testable version)
+     * Tests: testable/kalman_testable.c + flight_algorithm_testable.c
+     * ====================================================================== */
+    printf("\n[GROUP] Apogee Logic Tests (Testable Code)...\n");
+    run_apogee_logic_tests();
     
     /* Print final results */
     print_results();

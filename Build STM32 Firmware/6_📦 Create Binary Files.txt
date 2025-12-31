@@ -1,6 +1,0 @@
-﻿2025-12-31T15:22:44.2666818Z ##[group]Run arm-none-eabi-size build/PayLordFreeRTOS.elf
-2025-12-31T15:22:44.2667238Z [36;1marm-none-eabi-size build/PayLordFreeRTOS.elf[0m
-2025-12-31T15:22:44.2698768Z shell: /usr/bin/bash -e {0}
-2025-12-31T15:22:44.2698998Z ##[endgroup]
-2025-12-31T15:22:44.2755098Z    text	   data	    bss	    dec	    hex	filename
-2025-12-31T15:22:44.2755674Z  143352	    552	  62344	 206248	  325a8	build/PayLordFreeRTOS.elf

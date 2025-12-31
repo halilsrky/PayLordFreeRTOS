@@ -69,6 +69,19 @@ int test_summary(void);
  */
 void test_fail_internal(const char* file, int line, const char* msg);
 
+/**
+ * @brief Test sonuç erişim fonksiyonları
+ */
+int test_get_pass_count(void);
+int test_get_fail_count(void);
+int test_get_total_count(void);
+int test_get_skip_count(void);
+const char* test_get_last_fail_file(void);
+int test_get_last_fail_line(void);
+const char* test_get_last_fail_msg(void);
+int test_format_summary(char* buf, int buf_size);
+int test_all_passed(void);
+
 /* ============================================================================
  *                         ASSERT MAKROLARI
  * ============================================================================ */

@@ -38,9 +38,10 @@ FRAMEWORK_DIR = framework
 TEST_CASES_DIR = test_cases
 VECTORS_DIR = vectors
 MOCKS_DIR = mocks
+TESTABLE_DIR = testable
 
 # Include paths - Production headers first!
-INCLUDES = -I$(PROD_INC_DIR) -I. -I$(FRAMEWORK_DIR) -I$(VECTORS_DIR) -I$(MOCKS_DIR)
+INCLUDES = -I$(PROD_INC_DIR) -I. -I$(FRAMEWORK_DIR) -I$(VECTORS_DIR) -I$(MOCKS_DIR) -I$(TESTABLE_DIR)
 
 # ==============================================================================
 #                              SOURCE FILES
@@ -57,19 +58,23 @@ MOCK_SRCS = $(MOCKS_DIR)/hal_mock.c
 PRODUCTION_SRCS = \
     $(PROD_SRC_DIR)/kalman.c
 
+# Testable versions (HAL-independent wrappers for testing)
+TESTABLE_SRCS = \
+    testable/kalman_testable.c \
+    testable/flight_algorithm_testable.c
+
 # Test cases
 TEST_SRCS = \
     $(TEST_CASES_DIR)/test_kalman.c \
-    $(TEST_CASES_DIR)/test_bmi088_conversion.c
-
-# Note: test_flight_algorithm.c requires mocking due to complex dependencies
-# Note: test_apogee_logic.c tests Kalman-based apogee detection
+    $(TEST_CASES_DIR)/test_bmi088_conversion.c \
+    $(TEST_CASES_DIR)/test_flight_algorithm.c \
+    $(TEST_CASES_DIR)/test_apogee_logic.c
 
 # Main runner
 RUNNER_SRC = test_runner.c
 
 # All sources
-ALL_SRCS = $(FRAMEWORK_SRCS) $(MOCK_SRCS) $(PRODUCTION_SRCS) $(TEST_SRCS) $(RUNNER_SRC)
+ALL_SRCS = $(FRAMEWORK_SRCS) $(MOCK_SRCS) $(PRODUCTION_SRCS) $(TESTABLE_SRCS) $(TEST_SRCS) $(RUNNER_SRC)
 
 # Object files
 OBJS = $(ALL_SRCS:.c=.o)
@@ -107,6 +112,7 @@ ifeq ($(OS),Windows_NT)
 	-del /Q *.o 2>nul
 	-del /Q $(FRAMEWORK_DIR)\*.o 2>nul
 	-del /Q $(TEST_CASES_DIR)\*.o 2>nul
+	-del /Q $(TESTABLE_DIR)\*.o 2>nul
 	-del /Q $(MOCKS_DIR)\*.o 2>nul
 	-del /Q $(PROD_SRC_DIR)\*.o 2>nul
 else
@@ -114,6 +120,7 @@ else
 	-rm -f *.o
 	-rm -f $(FRAMEWORK_DIR)/*.o
 	-rm -f $(TEST_CASES_DIR)/*.o
+	-rm -f $(TESTABLE_DIR)/*.o
 	-rm -f $(MOCKS_DIR)/*.o
 	-rm -f $(PROD_SRC_DIR)/*.o
 endif
