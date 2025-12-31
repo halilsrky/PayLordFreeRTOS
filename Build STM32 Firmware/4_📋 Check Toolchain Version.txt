@@ -1,0 +1,16 @@
+﻿2025-12-31T15:22:37.5433981Z ##[group]Run arm-none-eabi-gcc --version
+2025-12-31T15:22:37.5434325Z [36;1marm-none-eabi-gcc --version[0m
+2025-12-31T15:22:37.5434586Z [36;1mmake --version[0m
+2025-12-31T15:22:37.5468019Z shell: /usr/bin/bash -e {0}
+2025-12-31T15:22:37.5468240Z ##[endgroup]
+2025-12-31T15:22:37.5530559Z arm-none-eabi-gcc (15:13.2.rel1-2) 13.2.1 20231009
+2025-12-31T15:22:37.5531123Z Copyright (C) 2023 Free Software Foundation, Inc.
+2025-12-31T15:22:37.5531747Z This is free software; see the source for copying conditions.  There is NO
+2025-12-31T15:22:37.5532210Z warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+2025-12-31T15:22:37.5532687Z 
+2025-12-31T15:22:37.5552000Z GNU Make 4.3
+2025-12-31T15:22:37.5552348Z Built for x86_64-pc-linux-gnu
+2025-12-31T15:22:37.5552985Z Copyright (C) 1988-2020 Free Software Foundation, Inc.
+2025-12-31T15:22:37.5553510Z License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+2025-12-31T15:22:37.5553965Z This is free software: you are free to change and redistribute it.
+2025-12-31T15:22:37.5554368Z There is NO WARRANTY, to the extent permitted by law.

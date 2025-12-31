@@ -1,0 +1,122 @@
+﻿2025-12-31T15:22:37.5644272Z ##[group]Run make clean
+2025-12-31T15:22:37.5644527Z [36;1mmake clean[0m
+2025-12-31T15:22:37.5644781Z [36;1mmake -j$(nproc)  # Paralel derleme (hızlı)[0m
+2025-12-31T15:22:37.5677780Z shell: /usr/bin/bash -e {0}
+2025-12-31T15:22:37.5678010Z ##[endgroup]
+2025-12-31T15:22:37.5744280Z rm -fR build
+2025-12-31T15:22:37.5848975Z CC Core/Src/adc.c
+2025-12-31T15:22:37.5850197Z CC Core/Src/bme280.c
+2025-12-31T15:22:37.5852693Z CC Core/Src/bmi088.c
+2025-12-31T15:22:37.5853888Z CC Core/Src/data_logger.c
+2025-12-31T15:22:37.6714319Z Core/Src/bme280.c:26:17: warning: 'last_freq_check_time' defined but not used [-Wunused-variable]
+2025-12-31T15:22:37.6715741Z    26 | static uint32_t last_freq_check_time = 0;
+2025-12-31T15:22:37.6716437Z       |                 ^~~~~~~~~~~~~~~~~~~~
+2025-12-31T15:22:37.6717340Z Core/Src/bme280.c:25:17: warning: 'execution_count' defined but not used [-Wunused-variable]
+2025-12-31T15:22:37.6718277Z    25 | static uint32_t execution_count = 0;
+2025-12-31T15:22:37.6719595Z       |                 ^~~~~~~~~~~~~~~
+2025-12-31T15:22:38.0008227Z CC Core/Src/dma.c
+2025-12-31T15:22:38.0217158Z CC Core/Src/e22_lib.c
+2025-12-31T15:22:38.0596587Z CC Core/Src/flight_algorithm.c
+2025-12-31T15:22:38.0988103Z Core/Src/e22_lib.c:11:13: warning: 'view_e22_response' defined but not used [-Wunused-function]
+2025-12-31T15:22:38.0989214Z    11 | static void view_e22_response(UART_HandleTypeDef* lora_uart_hndl, UART_HandleTypeDef* serial_uart_hndl)
+2025-12-31T15:22:38.0989940Z       |             ^~~~~~~~~~~~~~~~~
+2025-12-31T15:22:38.1226285Z CC Core/Src/freertos.c
+2025-12-31T15:22:38.3719364Z CC Core/Src/gpio.c
+2025-12-31T15:22:38.5244312Z CC Core/Src/i2c.c
+2025-12-31T15:22:38.5434523Z CC Core/Src/kalman.c
+2025-12-31T15:22:38.6343660Z CC Core/Src/l86_gnss.c
+2025-12-31T15:22:38.6393174Z CC Core/Src/main.c
+2025-12-31T15:22:38.7255321Z Core/Src/l86_gnss.c: In function 'get_GPGGA_data':
+2025-12-31T15:22:38.7257660Z Core/Src/l86_gnss.c:139:69: warning: format '%u' expects argument of type 'unsigned int *', but argument 8 has type 'uint8_t *' {aka 'unsigned char *'} [-Wformat=]
+2025-12-31T15:22:38.7260323Z   139 |                         sscanf(current_data, "GPGGA,%f,%f,%c,%f,%c,%u,%u,%f,%f,M,%f,M,,",
+2025-12-31T15:22:38.7261976Z       |                                                                    ~^
+2025-12-31T15:22:38.7263695Z       |                                                                     |
+2025-12-31T15:22:38.7265231Z       |                                                                     unsigned int *
+2025-12-31T15:22:38.7266757Z       |                                                                    %hhu
+2025-12-31T15:22:38.7268499Z   140 |                                         &gps_data_->non_fixed_time, &gps_data_->non_fixed_latitude, &gps_data_->N_S,
+2025-12-31T15:22:38.7270493Z   141 |                                         &gps_data_->non_fixed_longitude, &gps_data_->E_W, &gps_data_->fix_status, &gps_data_->satellites_in_use,
+2025-12-31T15:22:38.7274435Z       |                                                                                           ~~~~~~~~~~~~~~~~~~~~~~
+2025-12-31T15:22:38.7274926Z       |                                                                                           |
+2025-12-31T15:22:38.7275421Z       |                                                                                           uint8_t * {aka unsigned char *}
+2025-12-31T15:22:38.7276425Z Core/Src/l86_gnss.c:139:72: warning: format '%u' expects argument of type 'unsigned int *', but argument 9 has type 'uint8_t *' {aka 'unsigned char *'} [-Wformat=]
+2025-12-31T15:22:38.7277515Z   139 |                         sscanf(current_data, "GPGGA,%f,%f,%c,%f,%c,%u,%u,%f,%f,M,%f,M,,",
+2025-12-31T15:22:38.7278068Z       |                                                                       ~^
+2025-12-31T15:22:38.7278498Z       |                                                                        |
+2025-12-31T15:22:38.7278941Z       |                                                                        unsigned int *
+2025-12-31T15:22:38.7279843Z       |                                                                       %hhu
+2025-12-31T15:22:38.7280474Z   140 |                                         &gps_data_->non_fixed_time, &gps_data_->non_fixed_latitude, &gps_data_->N_S,
+2025-12-31T15:22:38.7281364Z   141 |                                         &gps_data_->non_fixed_longitude, &gps_data_->E_W, &gps_data_->fix_status, &gps_data_->satellites_in_use,
+2025-12-31T15:22:38.7282113Z       |                                                                                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2025-12-31T15:22:38.7282754Z       |                                                                                                                   |
+2025-12-31T15:22:38.7283270Z       |                                                                                                                   uint8_t * {aka unsigned char *}
+2025-12-31T15:22:38.7488311Z CC Core/Src/packet.c
+2025-12-31T15:22:38.7724310Z Core/Src/main.c:133:13: warning: 'uart_buffer' defined but not used [-Wunused-variable]
+2025-12-31T15:22:38.7725080Z   133 | static char uart_buffer[128];
+2025-12-31T15:22:38.7725492Z       |             ^~~~~~~~~~~
+2025-12-31T15:22:38.9313058Z CC Core/Src/quaternion.c
+2025-12-31T15:22:39.0145092Z CC Core/Src/queternion.c
+2025-12-31T15:22:39.0636583Z CC Core/Src/sensor_fusion.c
+2025-12-31T15:22:39.1525661Z CC Core/Src/sensor_mailbox.c
+2025-12-31T15:22:39.1849252Z CC Core/Src/spi.c
+2025-12-31T15:22:39.4545969Z CC Core/Src/stm32f4xx_hal_msp.c
+2025-12-31T15:22:39.4878019Z CC Core/Src/stm32f4xx_hal_timebase_tim.c
+2025-12-31T15:22:39.5624350Z CC Core/Src/stm32f4xx_it.c
+2025-12-31T15:22:39.5669651Z CC Core/Src/syscalls.c
+2025-12-31T15:22:39.6364208Z CC Core/Src/sysmem.c
+2025-12-31T15:22:39.6794561Z CC Core/Src/system_stm32f4xx.c
+2025-12-31T15:22:39.8266898Z CC Core/Src/test_modes.c
+2025-12-31T15:22:39.8671441Z CC Core/Src/tim.c
+2025-12-31T15:22:39.9344196Z CC Core/Src/uart_handler.c
+2025-12-31T15:22:40.0563401Z CC Core/Src/usart.c
+2025-12-31T15:22:40.2466393Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c
+2025-12-31T15:22:40.2560807Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c
+2025-12-31T15:22:40.3512848Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc_ex.c
+2025-12-31T15:22:40.4384309Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c
+2025-12-31T15:22:40.6337868Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c
+2025-12-31T15:22:40.6958004Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma_ex.c
+2025-12-31T15:22:40.7740401Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_exti.c
+2025-12-31T15:22:40.8534719Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash.c
+2025-12-31T15:22:41.0483599Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ex.c
+2025-12-31T15:22:41.1160535Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ramfunc.c
+2025-12-31T15:22:41.1566633Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c
+2025-12-31T15:22:41.2483283Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c.c
+2025-12-31T15:22:41.4528854Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c
+2025-12-31T15:22:41.4904943Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr.c
+2025-12-31T15:22:41.5607090Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr_ex.c
+2025-12-31T15:22:41.8160892Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c
+2025-12-31T15:22:41.8749224Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c
+2025-12-31T15:22:41.9448198Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c
+2025-12-31T15:22:41.9722679Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c
+2025-12-31T15:22:42.2366531Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c
+2025-12-31T15:22:42.3310662Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c
+2025-12-31T15:22:42.4730294Z CC Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_adc.c
+2025-12-31T15:22:42.5009152Z CC FATFS/App/fatfs.c
+2025-12-31T15:22:42.6910707Z CC FATFS/Target/user_diskio.c
+2025-12-31T15:22:42.7246376Z CC FATFS/Target/user_diskio_spi.c
+2025-12-31T15:22:42.8790371Z CC Middlewares/Third_Party/FatFs/src/diskio.c
+2025-12-31T15:22:42.8915020Z CC Middlewares/Third_Party/FatFs/src/ff.c
+2025-12-31T15:22:43.0923375Z CC Middlewares/Third_Party/FatFs/src/ff_gen_drv.c
+2025-12-31T15:22:43.1515887Z CC Middlewares/Third_Party/FatFs/src/option/syscall.c
+2025-12-31T15:22:43.2823167Z CC Middlewares/Third_Party/FreeRTOS/Source/croutine.c
+2025-12-31T15:22:43.3253984Z CC Middlewares/Third_Party/FreeRTOS/Source/event_groups.c
+2025-12-31T15:22:43.4201056Z CC Middlewares/Third_Party/FreeRTOS/Source/list.c
+2025-12-31T15:22:43.4768583Z CC Middlewares/Third_Party/FreeRTOS/Source/queue.c
+2025-12-31T15:22:43.4810982Z CC Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.c
+2025-12-31T15:22:43.5392170Z CC Middlewares/Third_Party/FreeRTOS/Source/tasks.c
+2025-12-31T15:22:43.5977061Z CC Middlewares/Third_Party/FreeRTOS/Source/timers.c
+2025-12-31T15:22:43.6261525Z CC Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c
+2025-12-31T15:22:43.6436808Z CC Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c
+2025-12-31T15:22:43.7127755Z CC Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c
+2025-12-31T15:22:43.7206214Z CC Middlewares/Third_Party/SEGGER/Config/SEGGER_SYSVIEW_Config_FreeRTOS.c
+2025-12-31T15:22:43.7600097Z CC Middlewares/Third_Party/SEGGER/OS/SEGGER_SYSVIEW_FreeRTOS.c
+2025-12-31T15:22:43.7642742Z CC Middlewares/Third_Party/SEGGER/SEGGER/SEGGER_RTT.c
+2025-12-31T15:22:43.7833410Z CC Middlewares/Third_Party/SEGGER/SEGGER/SEGGER_SYSVIEW.c
+2025-12-31T15:22:43.8339042Z AS Core/Startup/startup_stm32f446retx.s
+2025-12-31T15:22:44.0927332Z LINK PayLordFreeRTOS.elf
+2025-12-31T15:22:44.2566095Z 
+2025-12-31T15:22:44.2574833Z ✅ Build successful!
+2025-12-31T15:22:44.2586302Z    text	   data	    bss	    dec	    hex	filename
+2025-12-31T15:22:44.2586945Z  143352	    552	  62344	 206248	  325a8	build/PayLordFreeRTOS.elf
+2025-12-31T15:22:44.2594253Z 
+2025-12-31T15:22:44.2601480Z HEX build/PayLordFreeRTOS.hex
+2025-12-31T15:22:44.2606440Z BIN build/PayLordFreeRTOS.bin

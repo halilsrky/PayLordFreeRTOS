@@ -1,0 +1,31 @@
+﻿2025-12-31T15:22:01.1376348Z Current runner version: '2.330.0'
+2025-12-31T15:22:01.1419283Z ##[group]Runner Image Provisioner
+2025-12-31T15:22:01.1420153Z Hosted Compute Agent
+2025-12-31T15:22:01.1420714Z Version: 20251211.462
+2025-12-31T15:22:01.1421309Z Commit: 6cbad8c2bb55d58165063d031ccabf57e2d2db61
+2025-12-31T15:22:01.1421947Z Build Date: 2025-12-11T16:28:49Z
+2025-12-31T15:22:01.1423224Z Worker ID: {5b4750ac-0f68-41ed-a1d6-7cf884f92a35}
+2025-12-31T15:22:01.1423945Z ##[endgroup]
+2025-12-31T15:22:01.1424419Z ##[group]Operating System
+2025-12-31T15:22:01.1425339Z Ubuntu
+2025-12-31T15:22:01.1426066Z 24.04.3
+2025-12-31T15:22:01.1428079Z LTS
+2025-12-31T15:22:01.1428598Z ##[endgroup]
+2025-12-31T15:22:01.1429258Z ##[group]Runner Image
+2025-12-31T15:22:01.1430021Z Image: ubuntu-24.04
+2025-12-31T15:22:01.1430557Z Version: 20251215.174.1
+2025-12-31T15:22:01.1431808Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20251215.174/images/ubuntu/Ubuntu2404-Readme.md
+2025-12-31T15:22:01.1435087Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20251215.174
+2025-12-31T15:22:01.1436644Z ##[endgroup]
+2025-12-31T15:22:01.1437986Z ##[group]GITHUB_TOKEN Permissions
+2025-12-31T15:22:01.1439831Z Contents: read
+2025-12-31T15:22:01.1440371Z Metadata: read
+2025-12-31T15:22:01.1440832Z Packages: read
+2025-12-31T15:22:01.1442235Z ##[endgroup]
+2025-12-31T15:22:01.1444689Z Secret source: Actions
+2025-12-31T15:22:01.1445382Z Prepare workflow directory
+2025-12-31T15:22:01.1799179Z Prepare all required actions
+2025-12-31T15:22:01.1838965Z Getting action download info
+2025-12-31T15:22:01.5928369Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2025-12-31T15:22:01.6892600Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2025-12-31T15:22:01.9900256Z Complete job name: Build STM32 Firmware

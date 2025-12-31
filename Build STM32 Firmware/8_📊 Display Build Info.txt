@@ -1,0 +1,18 @@
+﻿2025-12-31T15:22:45.6210320Z ##[group]Run echo "✅ Build completed successfully!"
+2025-12-31T15:22:45.6210704Z [36;1mecho "✅ Build completed successfully!"[0m
+2025-12-31T15:22:45.6210977Z [36;1mecho "📦 Firmware size:"[0m
+2025-12-31T15:22:45.6211260Z [36;1marm-none-eabi-size build/PayLordFreeRTOS.elf[0m
+2025-12-31T15:22:45.6211544Z [36;1mecho ""[0m
+2025-12-31T15:22:45.6211733Z [36;1mecho "📁 Generated files:"[0m
+2025-12-31T15:22:45.6212053Z [36;1mls -lh build/*.elf build/*.bin build/*.hex 2>/dev/null || true[0m
+2025-12-31T15:22:45.6243863Z shell: /usr/bin/bash -e {0}
+2025-12-31T15:22:45.6244097Z ##[endgroup]
+2025-12-31T15:22:45.6291645Z ✅ Build completed successfully!
+2025-12-31T15:22:45.6292016Z 📦 Firmware size:
+2025-12-31T15:22:45.6302708Z    text	   data	    bss	    dec	    hex	filename
+2025-12-31T15:22:45.6303046Z  143352	    552	  62344	 206248	  325a8	build/PayLordFreeRTOS.elf
+2025-12-31T15:22:45.6304731Z 
+2025-12-31T15:22:45.6304930Z 📁 Generated files:
+2025-12-31T15:22:45.6320528Z -rwxr-xr-x 1 runner runner 141K Dec 31 15:22 build/PayLordFreeRTOS.bin
+2025-12-31T15:22:45.6321263Z -rwxr-xr-x 1 runner runner 2.2M Dec 31 15:22 build/PayLordFreeRTOS.elf
+2025-12-31T15:22:45.6321928Z -rw-r--r-- 1 runner runner 396K Dec 31 15:22 build/PayLordFreeRTOS.hex

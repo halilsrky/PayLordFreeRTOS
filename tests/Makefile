@@ -102,12 +102,21 @@ test: $(TARGET)
 
 clean:
 	@echo "Cleaning..."
+ifeq ($(OS),Windows_NT)
 	-del /Q $(TARGET) 2>nul
 	-del /Q *.o 2>nul
 	-del /Q $(FRAMEWORK_DIR)\*.o 2>nul
 	-del /Q $(TEST_CASES_DIR)\*.o 2>nul
 	-del /Q $(MOCKS_DIR)\*.o 2>nul
 	-del /Q $(PROD_SRC_DIR)\*.o 2>nul
+else
+	-rm -f $(TARGET)
+	-rm -f *.o
+	-rm -f $(FRAMEWORK_DIR)/*.o
+	-rm -f $(TEST_CASES_DIR)/*.o
+	-rm -f $(MOCKS_DIR)/*.o
+	-rm -f $(PROD_SRC_DIR)/*.o
+endif
 	@echo "Clean complete"
 
 help:

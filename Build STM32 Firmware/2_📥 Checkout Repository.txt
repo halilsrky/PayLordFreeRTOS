@@ -1,0 +1,89 @@
+﻿2025-12-31T15:22:02.0593180Z ##[group]Run actions/checkout@v4
+2025-12-31T15:22:02.0594027Z with:
+2025-12-31T15:22:02.0594410Z   submodules: recursive
+2025-12-31T15:22:02.0594866Z   repository: halilsrky/PayLordFreeRTOS
+2025-12-31T15:22:02.0595516Z   token: ***
+2025-12-31T15:22:02.0595884Z   ssh-strict: true
+2025-12-31T15:22:02.0596252Z   ssh-user: git
+2025-12-31T15:22:02.0596627Z   persist-credentials: true
+2025-12-31T15:22:02.0597053Z   clean: true
+2025-12-31T15:22:02.0597442Z   sparse-checkout-cone-mode: true
+2025-12-31T15:22:02.0597898Z   fetch-depth: 1
+2025-12-31T15:22:02.0598265Z   fetch-tags: false
+2025-12-31T15:22:02.0598640Z   show-progress: true
+2025-12-31T15:22:02.0599020Z   lfs: false
+2025-12-31T15:22:02.0599379Z   set-safe-directory: true
+2025-12-31T15:22:02.0599996Z ##[endgroup]
+2025-12-31T15:22:02.1706910Z Syncing repository: halilsrky/PayLordFreeRTOS
+2025-12-31T15:22:02.1708767Z ##[group]Getting Git version info
+2025-12-31T15:22:02.1709548Z Working directory is '/home/runner/work/PayLordFreeRTOS/PayLordFreeRTOS'
+2025-12-31T15:22:02.1710678Z [command]/usr/bin/git version
+2025-12-31T15:22:02.1802594Z git version 2.52.0
+2025-12-31T15:22:02.1828915Z ##[endgroup]
+2025-12-31T15:22:02.1854159Z Temporarily overriding HOME='/home/runner/work/_temp/7ad37994-55cc-4805-98c7-e88ff0c3a0c1' before making global git config changes
+2025-12-31T15:22:02.1860147Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-31T15:22:02.1862235Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/PayLordFreeRTOS/PayLordFreeRTOS
+2025-12-31T15:22:02.1903819Z Deleting the contents of '/home/runner/work/PayLordFreeRTOS/PayLordFreeRTOS'
+2025-12-31T15:22:02.1908378Z ##[group]Initializing the repository
+2025-12-31T15:22:02.1913369Z [command]/usr/bin/git init /home/runner/work/PayLordFreeRTOS/PayLordFreeRTOS
+2025-12-31T15:22:02.2024556Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-12-31T15:22:02.2026152Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2025-12-31T15:22:02.2027689Z hint: to use in all of your new repositories, which will suppress this warning,
+2025-12-31T15:22:02.2029112Z hint: call:
+2025-12-31T15:22:02.2029689Z hint:
+2025-12-31T15:22:02.2030417Z hint: 	git config --global init.defaultBranch <name>
+2025-12-31T15:22:02.2031084Z hint:
+2025-12-31T15:22:02.2031641Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-12-31T15:22:02.2032713Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-12-31T15:22:02.2033407Z hint:
+2025-12-31T15:22:02.2033757Z hint: 	git branch -m <name>
+2025-12-31T15:22:02.2034171Z hint:
+2025-12-31T15:22:02.2034719Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-12-31T15:22:02.2035736Z Initialized empty Git repository in /home/runner/work/PayLordFreeRTOS/PayLordFreeRTOS/.git/
+2025-12-31T15:22:02.2045520Z [command]/usr/bin/git remote add origin https://github.com/halilsrky/PayLordFreeRTOS
+2025-12-31T15:22:02.2083892Z ##[endgroup]
+2025-12-31T15:22:02.2084691Z ##[group]Disabling automatic garbage collection
+2025-12-31T15:22:02.2090090Z [command]/usr/bin/git config --local gc.auto 0
+2025-12-31T15:22:02.2122849Z ##[endgroup]
+2025-12-31T15:22:02.2123631Z ##[group]Setting up auth
+2025-12-31T15:22:02.2133353Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-12-31T15:22:02.2166647Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-12-31T15:22:02.2531023Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-31T15:22:02.2560423Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-12-31T15:22:02.2776448Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-31T15:22:02.2809276Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2025-12-31T15:22:02.3029984Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-12-31T15:22:02.3063641Z ##[endgroup]
+2025-12-31T15:22:02.3065025Z ##[group]Fetching the repository
+2025-12-31T15:22:02.3074080Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +d5ccafe30cd5cc3a11e35175128570676e2c2bb2:refs/remotes/origin/main
+2025-12-31T15:22:03.2600486Z From https://github.com/halilsrky/PayLordFreeRTOS
+2025-12-31T15:22:03.2601733Z  * [new ref]         d5ccafe30cd5cc3a11e35175128570676e2c2bb2 -> origin/main
+2025-12-31T15:22:03.2639519Z ##[endgroup]
+2025-12-31T15:22:03.2640841Z ##[group]Determining the checkout info
+2025-12-31T15:22:03.2642869Z ##[endgroup]
+2025-12-31T15:22:03.2646622Z [command]/usr/bin/git sparse-checkout disable
+2025-12-31T15:22:03.2691290Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-12-31T15:22:03.2718210Z ##[group]Checking out the ref
+2025-12-31T15:22:03.2724214Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2025-12-31T15:22:03.3787185Z Switched to a new branch 'main'
+2025-12-31T15:22:03.3789134Z branch 'main' set up to track 'origin/main'.
+2025-12-31T15:22:03.3802756Z ##[endgroup]
+2025-12-31T15:22:03.3803888Z ##[group]Setting up auth for fetching submodules
+2025-12-31T15:22:03.3808047Z [command]/usr/bin/git config --global http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-12-31T15:22:03.3845467Z [command]/usr/bin/git config --global --unset-all url.https://github.com/.insteadOf
+2025-12-31T15:22:03.3874320Z [command]/usr/bin/git config --global --add url.https://github.com/.insteadOf git@github.com:
+2025-12-31T15:22:03.3903540Z [command]/usr/bin/git config --global --add url.https://github.com/.insteadOf org-177554958@github.com:
+2025-12-31T15:22:03.3930526Z ##[endgroup]
+2025-12-31T15:22:03.3932073Z ##[group]Fetching submodules
+2025-12-31T15:22:03.3933925Z [command]/usr/bin/git submodule sync --recursive
+2025-12-31T15:22:03.4156168Z [command]/usr/bin/git -c protocol.version=2 submodule update --init --force --depth=1 --recursive
+2025-12-31T15:22:03.4376742Z [command]/usr/bin/git submodule foreach --recursive git config --local gc.auto 0
+2025-12-31T15:22:03.4590647Z ##[endgroup]
+2025-12-31T15:22:03.4591973Z ##[group]Persisting credentials for submodules
+2025-12-31T15:22:03.4597417Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'url\.https\:\/\/github\.com\/\.insteadOf' && git config --local --unset-all 'url.https://github.com/.insteadOf' || :"
+2025-12-31T15:22:03.4813350Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local 'http.https://github.com/.extraheader' 'AUTHORIZATION: basic ***' && git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2025-12-31T15:22:03.5027887Z [command]/usr/bin/git submodule foreach --recursive git config --local --add 'url.https://github.com/.insteadOf' 'git@github.com:'
+2025-12-31T15:22:03.5241374Z [command]/usr/bin/git submodule foreach --recursive git config --local --add 'url.https://github.com/.insteadOf' 'org-177554958@github.com:'
+2025-12-31T15:22:03.5452314Z ##[endgroup]
+2025-12-31T15:22:03.5485730Z [command]/usr/bin/git log -1 --format=%H
+2025-12-31T15:22:03.5506358Z d5ccafe30cd5cc3a11e35175128570676e2c2bb2
