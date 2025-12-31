@@ -32,20 +32,16 @@ jobs:
         arm-none-eabi-gcc --version
         make --version
     
-    # 4. Projeyi derle
+    # 4. Projeyi derle (Root Makefile kullan)
     - name: 🏗️ Build Project
       run: |
-        cd Debug
         make clean
         make -j$(nproc)  # Paralel derleme (hızlı)
     
     # 5. Binary dosyaları oluştur (.bin ve .hex)
     - name: 📦 Create Binary Files
       run: |
-        cd Debug
-        arm-none-eabi-objcopy -O binary PayLordFreeRTOS.elf PayLordFreeRTOS.bin
-        arm-none-eabi-objcopy -O ihex PayLordFreeRTOS.elf PayLordFreeRTOS.hex
-        arm-none-eabi-size PayLordFreeRTOS.elf
+        arm-none-eabi-size build/PayLordFreeRTOS.elf
     
     # 6. Build sonuçlarını artifact olarak kaydet
     - name: 📤 Upload Build Artifacts
@@ -53,10 +49,10 @@ jobs:
       with:
         name: firmware-${{ github.sha }}
         path: |
-          Debug/PayLordFreeRTOS.elf
-          Debug/PayLordFreeRTOS.bin
-          Debug/PayLordFreeRTOS.hex
-          Debug/PayLordFreeRTOS.map
+          build/PayLordFreeRTOS.elf
+          build/PayLordFreeRTOS.bin
+          build/PayLordFreeRTOS.hex
+          build/PayLordFreeRTOS.map
         retention-days: 30  # 30 gün sakla
     
     # 7. Build bilgilerini göster
@@ -64,7 +60,7 @@ jobs:
       run: |
         echo "✅ Build completed successfully!"
         echo "📦 Firmware size:"
-        arm-none-eabi-size Debug/PayLordFreeRTOS.elf
+        arm-none-eabi-size build/PayLordFreeRTOS.elf
         echo ""
         echo "📁 Generated files:"
-        ls -lh Debug/*.elf Debug/*.bin Debug/*.hex 2>/dev/null || true
+        ls -lh build/*.elf build/*.bin build/*.hex 2>/dev/null || true
