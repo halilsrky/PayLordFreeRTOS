@@ -2,7 +2,7 @@
 
 **Teknofest Roket Yarışması Test ve Doğrulama Sistemi**
 
-Bu klasör, SKYRTOS uçuş bilgisayarının test edilmesi için geliştirilmiş profesyonel bir Ground Station uygulaması içerir. Teknofest yarışmasında hakemlerin sistemimizi test etmesi için tasarlanmıştır.
+Bu klasör, SKYRTOS uçuş bilgisayarının test edilmesi için geliştirilmiş profesyonel bir Ground Station uygulaması içerir. Teknofest yarışmasındaki Sit Sut testlerinden ilham alınarak yapılmıştır.
 
 ---
 
