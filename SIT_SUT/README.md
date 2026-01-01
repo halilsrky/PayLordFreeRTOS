@@ -12,7 +12,6 @@ Bu klasör, SKYRTOS uçuş bilgisayarının test edilmesi için geliştirilmiş 
 - [Test Modları](#-test-modları)
 - [Kurulum](#-kurulum)
 - [Kullanım](#-kullanım)
-- [Uygulama Ekranları](#-uygulama-ekranları)
 - [Paket Protokolü](#-paket-protokolü)
 - [Dosya Yapısı](#-dosya-yapısı)
 

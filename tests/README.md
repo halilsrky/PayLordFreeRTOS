@@ -67,14 +67,6 @@ tests/
     └── hal_stub.h               # HAL_GetTick stub
 ```
 
-## Kurallar
-
-1. **printf YASAK** - Assertion-based test
-2. **Global state YASAK** - Her test kendi state'ini oluşturur
-3. **Zaman bağımlılığı YASAK** - dt parametrik
-4. **Floating point tolerance** - EPSILON = 1e-4f
-5. **Her test izole** - Setup/Teardown ile reset
-
 ## Safety-Critical Notlar
 
 - Apogee detection testleri en az 3 farklı senaryo içermeli

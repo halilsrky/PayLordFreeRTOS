@@ -1,15 +1,15 @@
-# 🚀 PayLord - SkyLord2 Uçuş Bilgisayarı
+# 🚀 SKYRTOS - STM32F446 Flight Computer
 
 <div align="center">
 
 ![STM32](https://img.shields.io/badge/STM32-F446RET6-blue?style=for-the-badge&logo=stmicroelectronics)
 ![FreeRTOS](https://img.shields.io/badge/FreeRTOS-Real--Time-green?style=for-the-badge)
 ![LoRa](https://img.shields.io/badge/LoRa-E22-orange?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
+![Build](https://img.shields.io/badge/Build-Passing-brightgreen?style=for-the-badge)
 
-**Roket telemetri ve uçuş kontrol sistemi için gelişmiş gömülü yazılım projesi**
+**Roket telemetri ve uçuş kontrol sistemi - Teknofest Roket Yarışması**
 
-[Özellikler](#-özellikler) • [Hızlı Başlangıç](#-hızlı-başlangıç) • [Donanım](#%EF%B8%8F-donanım-bileşenleri) • [Yazılım Mimarisi](#-yazılım-mimarisi) • [Dokümantasyon](#-dokümantasyon)
+[Özellikler](#-özellikler) • [Donanım](#%EF%B8%8F-donanım) • [Yazılım](#-yazılım-mimarisi) • [CI/CD](#-cicd) • [Test Sistemi](#-test-sistemi-sitsut)
 
 </div>
 
@@ -19,34 +19,30 @@
 
 - [Genel Bakış](#-genel-bakış)
 - [Özellikler](#-özellikler)
-- [Donanım Bileşenleri](#%EF%B8%8F-donanım-bileşenleri)
+- [Donanım](#%EF%B8%8F-donanım)
 - [Yazılım Mimarisi](#-yazılım-mimarisi)
-- [Hızlı Başlangıç](#-hızlı-başlangıç)
 - [Proje Yapısı](#-proje-yapısı)
 - [Sensör Entegrasyonu](#-sensör-entegrasyonu)
-- [İletişim Protokolleri](#-i̇letişim-protokolleri)
 - [Uçuş Algoritması](#-uçuş-algoritması)
 - [Veri Kayıt Sistemi](#-veri-kayıt-sistemi)
-- [Geliştirme](#-geliştirme)
 - [CI/CD](#-cicd)
-- [Test ve Hata Ayıklama](#-test-ve-hata-ayıklama)
-- [Katkıda Bulunma](#-katkıda-bulunma)
-- [Lisans](#-lisans)
+- [Test Sistemi (SIT/SUT)](#-test-sistemi-sitsut)
+- [Geliştirme](#-geliştirme)
 
 ---
 
 ## 🌟 Genel Bakış
 
-**PayLord - SkyLord2** roket sistemleri için tasarlanmış, gerçek zamanlı veri toplama, işleme ve telemetri iletimi yapabilen profesyonel bir uçuş bilgisayarı yazılımıdır. STM32F446RET6 mikrodenetleyici üzerinde FreeRTOS işletim sistemi ile çalışır.
+**SKYRTOS** (Sky Real-Time Operating System), roket sistemleri için tasarlanmış profesyonel bir uçuş bilgisayarı firmware'idir. STM32F446RET6 mikrodenetleyici üzerinde FreeRTOS işletim sistemi ile çalışır ve Teknofest Roket Yarışması için geliştirilmiştir.
 
-### 🎯 Temel Amaçlar
+### 🎯 Temel Yetenekler
 
-- **Gerçek Zamanlı Veri Toplama**: Yüksek frekanslı sensör verilerinin kesintisiz toplanması
-- **Sensör Füzyonu**: Çoklu sensör verilerinin Kalman filtresi ile birleştirilmesi
-- **Uçuş Durumu Tespiti**: Roketin uçuş fazlarının otomatik algılanması
-- **Uzun Menzilli Telemetri**: LoRa teknolojisi ile güvenilir veri iletimi
-- **Veri Kayıt**: SD kart üzerine yüksek hızlı veri kaydı
-- **Pozisyon Takibi**: GPS/GNSS ile konum belirleme
+- **Gerçek Zamanlı Veri İşleme**: FreeRTOS tabanlı çoklu görev mimarisi
+- **Sensör Füzyonu**: Kalman filtresi ile optimal durum tahmini
+- **Uçuş Fazı Algılama**: Otomatik launch, apogee, landing detection
+- **Uzun Menzilli Telemetri**: LoRa ile 3-8km kablosuz iletişim
+- **Yüksek Hızlı Veri Kaydı**: SD karta FatFS ile log yazma
+- **Test Altyapısı**: SIT/SUT modları ile sistem doğrulama
 
 ---
 
@@ -90,82 +86,61 @@
 
 ---
 
-## 🛠️ Donanım Bileşenleri
+## 🛠️ Donanım
 
-### 🎯 Mikrodenetleyici
-| Bileşen | Model | Özellikler |
-|---------|-------|------------|
-| **MCU** | STM32F446RET6 | ARM Cortex-M4, 180MHz, 512KB Flash, 128KB RAM |
-| **FPU** | ✓ | Donanım kayan nokta birimi |
-| **DMA** | ✓ | 2x DMA kontrolcü |
+### Mikrodenetleyici
+- **MCU**: STM32F446RET6 (ARM Cortex-M4, 180MHz, 512KB Flash, 128KB RAM)
+- **FPU**: Hardware floating-point unit
+- **DMA**: 2x DMA controller
 
-### 📊 Sensörler
-| Sensör | Model | Arayüz | Ölçüm | Frekans |
-|--------|-------|--------|-------|---------|
-| **Barometrik** | BME280 | I²C | Basınç, sıcaklık, nem | 100Hz |
-| **IMU** | BMI088 | SPI | 3-axis accel + gyro | 1000Hz |
-| **Manyetometre** | HMC1021 | Analog | 1-axis magnetic field | 10Hz |
-| **GPS/GNSS** | L86 | UART | Konum, hız, zaman | 1Hz |
+### Sensörler
+| Sensör | Model | Arayüz | Ölçüm |
+|--------|-------|--------|-------|
+| Barometrik | BME280 | I²C | Basınç, sıcaklık, nem |
+| IMU | BMI088 | SPI | 3-axis accel + gyro |
+| Manyetometre | HMC1021 | Analog | 1-axis magnetic field |
+| GPS | L86 | UART | Konum, hız |
 
-### 📡 İletişim Modülleri
-| Modül | Model | Protokol | Menzil | Frekans |
-|-------|-------|----------|--------|---------|
-| **LoRa** | E22 | UART | 3-8km | 433/868/915 MHz |
-| **Debug** | UART | RS232 | - | 115200 baud |
-
-### 💾 Depolama
-| Bileşen | Arayüz | Kapasite | Hız |
-|---------|--------|----------|-----|
-| **SD Kart** | SPI | 2GB - 32GB | Class 10 önerilir |
+### İletişim
+- **LoRa**: E22 modülü (433/868/915 MHz, 3-8km menzil)
+- **Debug**: UART (115200 baud)
+- **Depolama**: SD kart (SPI, FAT32)
 
 ---
 
 ## 🏗️ Yazılım Mimarisi
 
-### 📐 Katmanlı Mimari
+### FreeRTOS Task Yapısı
+
+| Task | Öncelik | Periyot | Görev |
+|------|---------|---------|-------|
+| SensorTask | Yüksek | 10ms | BME280/BMI088 okuma |
+| FusionTask | Yüksek | 10ms | Kalman filtre + sensör füzyon |
+| FlightTask | Orta | 100ms | Uçuş fazı algılama |
+| TelemetryTask | Orta | 100ms | LoRa veri gönderimi |
+| LoggerTask | Düşük | 100ms | SD kart veri yazma |
+| TestModeTask | Orta | 100ms | SIT/SUT test modları |
+
+### Katmanlı Mimari
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                  APPLICATION LAYER                       │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │   Flight     │  │   Sensor     │  │    Data      │  │
-│  │  Algorithm   │  │   Fusion     │  │   Logger     │  │
-│  └──────────────┘  └──────────────┘  └──────────────┘  │
-└─────────────────────────────────────────────────────────┘
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│                    MIDDLEWARE LAYER                      │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │   FreeRTOS   │  │    FATFS     │  │   Packet     │  │
-│  │     RTOS     │  │   FileSystem │  │   Protocol   │  │
-│  └──────────────┘  └──────────────┘  └──────────────┘  │
-└─────────────────────────────────────────────────────────┘
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│                    DRIVER LAYER                          │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │   BME280     │  │   BMI088     │  │     E22      │  │
-│  │   BMI088     │  │   L86 GNSS   │  │   LoRa       │  │
-│  └──────────────┘  └──────────────┘  └──────────────┘  │
-└─────────────────────────────────────────────────────────┘
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│                      HAL LAYER                           │
-│             STM32 Hardware Abstraction Layer             │
-│         (I²C, SPI, UART, ADC, TIM, GPIO, DMA)           │
-└─────────────────────────────────────────────────────────┘
+Application Layer
+  ├── Flight Algorithm    (Uçuş fazı tespiti)
+  ├── Sensor Fusion       (Kalman + Quaternion)
+  └── Data Logger         (SD kart yönetimi)
+        ↓
+Middleware Layer
+  ├── FreeRTOS           (RTOS kernel)
+  ├── FATFS              (Dosya sistemi)
+  └── Packet Protocol    (Telemetri formatı)
+        ↓
+Driver Layer
+  ├── BME280/BMI088      (Sensör driver'ları)
+  ├── E22 LoRa           (İletişim driver)
+  └── L86 GNSS           (GPS driver)
+        ↓
+HAL Layer (STM32 Hardware Abstraction)
 ```
-
-### 🔄 FreeRTOS Task Mimarisi
-
-| Task İsmi | Öncelik | Periyot | Görev |
-|-----------|---------|---------|-------|
-| **SensorTask** | Yüksek | 10ms | Sensör verilerini okuma |
-| **FusionTask** | Yüksek | 10ms | Sensör füzyon algoritması |
-| **FlightTask** | Orta | 100ms | Uçuş durumu analizi |
-| **TelemetryTask** | Orta | 100ms | LoRa ile veri gönderimi |
-| **LoggerTask** | Düşük | 100ms | SD karta veri yazma |
-| **GNSSTask** | Düşük | 1s | GPS verisi işleme |
 
 ---
 
@@ -268,64 +243,50 @@ Detaylı pin yapılandırması için [PayLordFreeRTOS.ioc](PayLordFreeRTOS.ioc) 
 ## 📁 Proje Yapısı
 
 ```
-PayLordFreeRTOS/
+SKYRTOS/
 ├── Core/
 │   ├── Inc/                      # Header dosyaları
-│   │   ├── main.h               # Ana program başlıkları
-│   │   ├── FreeRTOSConfig.h     # FreeRTOS yapılandırma
-│   │   ├── bme280.h             # BME280 sensör API
-│   │   ├── bmi088.h             # BMI088 IMU API
-│   │   ├── l86_gnss.h           # L86 GPS API
-│   │   ├── e22_lib.h            # E22 LoRa API
-│   │   ├── sensor_fusion.h      # Sensör füzyon algoritmaları
-│   │   ├── flight_algorithm.h   # Uçuş kontrol algoritması
-│   │   ├── kalman.h             # Kalman filtresi
-│   │   ├── quaternion.h         # Quaternion matematik
-│   │   ├── packet.h             # Telemetri paketi
-│   │   └── data_logger.h        # Veri kayıt sistemi
+│   │   ├── bme280.h, bmi088.h   # Sensör API'leri
+│   │   ├── sensor_fusion.h      # Kalman + Quaternion
+│   │   ├── flight_algorithm.h   # Uçuş algılama
+│   │   ├── e22_lib.h            # LoRa driver
+│   │   ├── data_logger.h        # SD kart sistemi
+│   │   ├── uart_handler.h       # UART iletişim
+│   │   └── test_modes.h         # SIT/SUT testleri
 │   │
 │   └── Src/                      # Kaynak dosyaları
-│       ├── main.c               # Ana uygulama
-│       ├── freertos.c           # FreeRTOS task'ları
-│       ├── stm32f4xx_it.c       # Interrupt handler'ları
-│       ├── stm32f4xx_hal_msp.c  # HAL MSP yapılandırması
-│       ├── bme280.c             # BME280 driver
-│       ├── bmi088.c             # BMI088 driver
-│       ├── l86_gnss.c           # L86 GPS driver
-│       ├── e22_lib.c            # E22 LoRa driver
-│       ├── sensor_fusion.c      # Sensör füzyon implementasyonu
-│       ├── flight_algorithm.c   # Uçuş algoritması
+│       ├── main.c, freertos.c   # Ana uygulama + tasks
+│       ├── bme280.c, bmi088.c   # Sensör driver'ları
+│       ├── sensor_fusion.c      # Füzyon algoritmaları
+│       ├── flight_algorithm.c   # Uçuş mantığı
 │       ├── kalman.c             # Kalman filtresi
-│       ├── quaternion.c         # Quaternion işlemleri
-│       ├── packet.c             # Paket protokolü
-│       ├── data_logger.c        # SD kart veri kaydı
-│       ├── uart_handler.c       # UART iletişim
+│       ├── quaternion.c         # Quaternion matematik
+│       ├── packet.c             # Telemetri protokolü
+│       ├── data_logger.c        # Veri kayıt sistemi
+│       ├── uart_handler.c       # Test iletişimi
 │       └── test_modes.c         # Test rutinleri
 │
 ├── Drivers/                      # STM32 HAL Driver'ları
-│   ├── STM32F4xx_HAL_Driver/    # HAL kütüphaneleri
-│   └── CMSIS/                    # CMSIS kütüphaneleri
-│
 ├── FATFS/                        # FAT dosya sistemi
-│   ├── App/                      # FATFS uygulama katmanı
-│   └── Target/                   # SD kart interface
+├── Middlewares/Third_Party/
+│   ├── FreeRTOS/                # RTOS kernel
+│   └── SEGGER/                  # SystemView profiling
 │
-├── Middlewares/
-│   └── Third_Party/
-│       ├── FreeRTOS/            # FreeRTOS kaynak kodu
-│       └── SEGGER/              # SystemView profiling
+├── SIT_SUT/                      # Test sistemi
+│   ├── telemetry_app/           # Python Ground Station
+│   ├── Datas/                   # Test CSV'leri
+│   └── logs/                    # Test sonuçları
+│
+├── tests/                        # Unit testler
+│   ├── test_kalman.c
+│   ├── test_flight_algorithm.c
+│   └── test_apogee_logic.c
 │
 ├── docs/                         # Dokümantasyon
-│   ├── QUICK-START.md           # Hızlı başlangıç kılavuzu
-│   ├── ARCHITECTURE.md          # Mimari dokümantasyonu
 │   └── CI-CD-GUIDE.md           # CI/CD kılavuzu
 │
 ├── build/                        # Build çıktıları
-├── Debug/                        # Debug yapılandırması
-│
-├── STM32F446RETX_FLASH.ld       # Flash linker script
-├── STM32F446RETX_RAM.ld         # RAM linker script
-├── PayLordFreeRTOS.ioc          # STM32CubeMX yapılandırma
+├── Makefile                      # Build sistemi
 └── README.md                     # Bu dosya
 ```
 
