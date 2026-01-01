@@ -226,12 +226,17 @@ TEST_CASE(test_apogee_rapid_deceleration) {
     setup();
     
     /* Simulate very rapid deceleration (emergency braking scenario) */
-    kf.x[1] = 200.0f;
-    kf.x[2] = -30.0f;  /* Heavy deceleration */
+    kf.x[1] = 200.0f;      /* Initial velocity: 200 m/s upward */
+    kf.x[2] = -30.0f;      /* Heavy deceleration: -30 m/s^2 */
+    kf.prev_velocity = 200.0f;
     
-    for (int i = 0; i < 30; i++) {
-        float simulated_alt = 2000.0f + (200.0f - i * 10.0f) * 0.01f;
-        KalmanFilter_Testable_Update(&kf, simulated_alt, -100.0f, 0.01f);
+    /* Simulate updates where velocity decreases rapidly then goes negative */
+    for (int i = 0; i < 25; i++) {
+        /* Velocity decreases: 200 -> 170 -> 140 ... -> -10 (at i=21) */
+        kf.x[1] = 200.0f - (float)i * 10.0f;
+        kf.prev_velocity = kf.x[1];
+        float simulated_alt = 3000.0f + (200.0f * i - 5.0f * i * i) * 0.01f;
+        KalmanFilter_Testable_Update(&kf, simulated_alt, -30.0f, 0.01f);
     }
     
     /* Should eventually detect apogee */
