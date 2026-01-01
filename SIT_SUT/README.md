@@ -207,6 +207,14 @@ pip install matplotlib  # (Opsiyonel - grafik için)
 [12:35:60] Event: Landing (Altitude: 0.0 m)
 ```
 
+**Event Marker'ları:**
+- 🟢 **Launch** - Yeşil nokta
+- 🔵 **Burnout** - Mavi nokta
+- 🔴 **Apogee** - Kırmızı nokta
+- 🟡 **Drogue** - Sarı nokta
+- 🟠 **Main** - Turuncu nokta
+- ⚫ **Landing** - Siyah nokta
+
 ### 4. Log Kaydetme
 
 SUT modunda test sonuçları otomatik olarak kaydedilir:
@@ -223,61 +231,6 @@ Log içeriği:
 
 ---
 
-## 🖼️ Uygulama Ekranları
-
-### Ana Kontrol Paneli
-
-![Control Panel](Control_Panel.png)
-
-**Özellikler:**
-- Serial port seçimi
-- Baud rate ayarı
-- Connect/Disconnect
-- SIT/SUT mod seçimi
-- Connection status indicator
-
----
-
-### SIT Mode Ekranı
-
-![SIT Mode](SIT_Mode.png)
-
-**Özellikler:**
-- Real-time telemetri gösterimi
-- 8 kanallı veri görüntüleme
-- Packet rate göstergesi
-- Log window
-- Stop kontrolü
-
-**Veri Alanları:**
-- **Altitude** - Barometrik yükseklik (m)
-- **Pressure** - Atmosfer basıncı (hPa)
-- **Accel X/Y/Z** - İvme (m/s²)
-- **Gyro X/Y/Z** - Açısal hız (°/s)
-
----
-
-### SUT Mode Ekranı
-
-![SUT Mode](SUT_Mode.png)
-
-**Özellikler:**
-- Real-time altitude grafiği
-- Event marker'ları
-- CSV data replay
-- Status bits gösterimi
-- Event log
-- Data export
-
-**Event Marker'ları:**
-- 🟢 **Launch** - Yeşil nokta
-- 🔵 **Burnout** - Mavi nokta
-- 🔴 **Apogee** - Kırmızı nokta
-- 🟡 **Drogue** - Sarı nokta
-- 🟠 **Main** - Turuncu nokta
-- ⚫ **Landing** - Siyah nokta
-
----
 
 ## 📡 Paket Protokolü
 
@@ -367,7 +320,7 @@ SIT_SUT/
 ├── Control_Panel.png            # Ana ekran görseli
 ├── SIT_Mode.png                 # SIT test ekranı
 ├── SUT_Mode.png                 # SUT test ekranı
-├── requirements.txt             # Python bağımlılıkları
+|
 │
 ├── telemetry_app/               # Python Ground Station
 │   ├── app.py                   # Ana uygulama
@@ -379,11 +332,9 @@ SIT_SUT/
 │   └── widgets.py               # UI bileşenleri
 │
 ├── Datas/                       # Test verileri
-│   ├── ukb_gurultu_senaryolari/ # Teknofest test senaryoları
-│   │   ├── az_gurultulu.csv
-│   │   ├── orta_gurultulu.csv
-│   │   └── cok_gurultulu.csv
-│   └── custom_flights/          # Özel uçuş senaryoları
+│   ├── cok_gurultulu.csv
+│   └── az_gurultulu.csv
+│
 │
 └── logs/                        # Test logları
     └── SUT_flight_log_*.csv     # Otomatik kayıtlar
@@ -509,84 +460,6 @@ Hakemler tarafından sağlanan test senaryoları:
 
 ---
 
-## 🐛 Sorun Giderme
-
-### Problem: Serial port bulunamıyor
-
-**Çözüm:**
-```bash
-# Windows
-chcp 65001  # Unicode encoding
-mode  # COM portlarını listele
-
-# Linux
-ls /dev/ttyUSB*
-sudo chmod 666 /dev/ttyUSB0
-
-# Python'da kontrol
-python -m serial.tools.list_ports
-```
-
-### Problem: Paket alınamıyor
-
-**Kontrol listesi:**
-- ✅ STM32 board bağlı mı?
-- ✅ Doğru COM port seçildi mi?
-- ✅ Baud rate 115200 mi?
-- ✅ STM32 firmware güncel mi?
-- ✅ UART2 pin bağlantıları doğru mu?
-
-### Problem: SUT event'leri yanlış
-
-**Debug adımları:**
-1. CSV verisini kontrol edin
-2. Flight algorithm threshold'larını gözden geçirin
-3. Kalman filtre parametrelerini ayarlayın
-4. Log dosyasını analiz edin
-
----
-
-## 📊 Performans Metrikleri
-
-| Metrik | Hedef | Ölçülen |
-|--------|-------|---------|
-| **Paket Rate (SIT)** | 10 Hz | ~10 Hz |
-| **Paket Rate (SUT)** | 10 Hz | ~10 Hz |
-| **Latency** | <50 ms | ~20 ms |
-| **Packet Loss** | <1% | <0.1% |
-| **Event Detection** | ±5 m | ±2 m |
-| **Apogee Accuracy** | ±10 m | ±5 m |
-
----
-
-## 🎯 Teknofest Hazırlık Checklist
-
-### Test Öncesi
-
-- [ ] STM32 board şarjlı ve hazır
-- [ ] Laptop şarjlı
-- [ ] USB kablosu yanında
-- [ ] Ground Station uygulaması çalışıyor
-- [ ] Teknofest test CSV'leri yüklü
-- [ ] Backup firmware hazır
-- [ ] Test logları temiz
-
-### Test Sırasında
-
-- [ ] Hakemlere sistemi anlatın
-- [ ] SIT testi başarıyla tamamlayın
-- [ ] SUT testi tüm senaryolarda geçin
-- [ ] Event timing'lerini gösterin
-- [ ] Log kayıtlarını sunun
-
-### Test Sonrası
-
-- [ ] Test loglarını kaydedin
-- [ ] Hakem feedback'ini not alın
-- [ ] Sorunları dokümante edin
-- [ ] İyileştirmeleri planlayın
-
----
 
 ## 🤝 Katkıda Bulunma
 
@@ -596,6 +469,8 @@ Bu test sistemi sürekli geliştirilmektedir. Katkılarınız için:
 2. Pull request gönderin
 3. Yeni test senaryoları ekleyin
 4. Dokümantasyonu iyileştirin
+
+---
 
 
 ## 📞 İletişim
