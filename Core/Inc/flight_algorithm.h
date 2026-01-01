@@ -53,7 +53,7 @@ typedef enum {
 #define DEFAULT_LANDING_VELOCITY          2.0f    // m/s - Landing detection threshold
 #define DEFAULT_BURNOUT_TIMEOUT_MS        8000    // ms - Maximum boost phase duration
 #define DEFAULT_APOGEE_CONFIRM_COUNT      9       // samples - Apogee confirmation count
-#define DEFAULT_BURNOUT_CONFIRM_COUNT     10      // samples - Burnout confirmation count
+#define DEFAULT_BURNOUT_CONFIRM_COUNT     5      // samples - Burnout confirmation count
 #define DEFAULT_LANDING_CONFIRM_COUNT     50      // samples - Landing confirmation count
 
 /**

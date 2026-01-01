@@ -227,7 +227,7 @@ static uint8_t check_burnout_condition(bmi_sample_t* bmi)
     }
 
     // Acceleration-based burnout detection (negative X-axis acceleration)
-    if (bmi->accel_x < 0.0f) {
+    if (bmi->accel_z < 0.0f) {
         burnout_counter++;
         if (burnout_counter >= DEFAULT_BURNOUT_CONFIRM_COUNT) {
             return 1;

@@ -45,34 +45,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := PayLordFreeRTOS
+BUILD_ARTIFACT_NAME := SKYRTOS
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-PayLordFreeRTOS.elf \
+SKYRTOS.elf \
 
 MAP_FILES += \
-PayLordFreeRTOS.map \
+SKYRTOS.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-PayLordFreeRTOS.list \
+SKYRTOS.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: PayLordFreeRTOS.elf secondary-outputs
+main-build: SKYRTOS.elf secondary-outputs
 
 # Tool invocations
-PayLordFreeRTOS.elf PayLordFreeRTOS.map: $(OBJS) $(USER_OBJS) C:\Users\Halil\STM32CubeIDE\workspace_1.14.1\PayLordFreeRTOS\STM32F446RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "PayLordFreeRTOS.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Halil\STM32CubeIDE\workspace_1.14.1\PayLordFreeRTOS\STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="PayLordFreeRTOS.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
+SKYRTOS.elf SKYRTOS.map: $(OBJS) $(USER_OBJS) C:\Users\Halil\STM32CubeIDE\workspace_1.14.1\SKYRTOS\STM32F446RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "SKYRTOS.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Halil\STM32CubeIDE\workspace_1.14.1\SKYRTOS\STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="SKYRTOS.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -81,14 +81,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-PayLordFreeRTOS.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "PayLordFreeRTOS.list"
+SKYRTOS.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "SKYRTOS.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) PayLordFreeRTOS.elf PayLordFreeRTOS.list PayLordFreeRTOS.map default.size.stdout
+	-$(RM) SKYRTOS.elf SKYRTOS.list SKYRTOS.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)

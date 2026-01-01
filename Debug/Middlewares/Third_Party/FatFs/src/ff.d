@@ -39,10 +39,10 @@ Middlewares/Third_Party/FatFs/src/ff.o: \
  ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h \
  ../Core/Inc/FreeRTOSConfig.h \
- C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_Party/SEGGER/OS/SEGGER_SYSVIEW_FreeRTOS.h \
- C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_Party/SEGGER/SEGGER/SEGGER_SYSVIEW.h \
- C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_Party/SEGGER/SEGGER/SEGGER.h \
- C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_Party/SEGGER/Config/Global.h \
+ C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/SKYRTOS/Middlewares/Third_Party/SEGGER/OS/SEGGER_SYSVIEW_FreeRTOS.h \
+ C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/SKYRTOS/Middlewares/Third_Party/SEGGER/SEGGER/SEGGER_SYSVIEW.h \
+ C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/SKYRTOS/Middlewares/Third_Party/SEGGER/SEGGER/SEGGER.h \
+ C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/SKYRTOS/Middlewares/Third_Party/SEGGER/Config/Global.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h \
  ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h \
@@ -93,10 +93,10 @@ Middlewares/Third_Party/FatFs/src/ff.o: \
 ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h:
 ../Core/Inc/FreeRTOSConfig.h:
-C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_Party/SEGGER/OS/SEGGER_SYSVIEW_FreeRTOS.h:
-C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_Party/SEGGER/SEGGER/SEGGER_SYSVIEW.h:
-C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_Party/SEGGER/SEGGER/SEGGER.h:
-C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/PayLordFreeRTOS/Middlewares/Third_Party/SEGGER/Config/Global.h:
+C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/SKYRTOS/Middlewares/Third_Party/SEGGER/OS/SEGGER_SYSVIEW_FreeRTOS.h:
+C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/SKYRTOS/Middlewares/Third_Party/SEGGER/SEGGER/SEGGER_SYSVIEW.h:
+C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/SKYRTOS/Middlewares/Third_Party/SEGGER/SEGGER/SEGGER.h:
+C:/Users/Halil/STM32CubeIDE/workspace_1.14.1/SKYRTOS/Middlewares/Third_Party/SEGGER/Config/Global.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h:
 ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h:

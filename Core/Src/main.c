@@ -18,7 +18,7 @@
 
 /**
   ******************************************************************************
-  * SkyLord2 Flight Computer - Main Application
+  * SKYRTOS Flight Computer - Main Application
   *
   * This application implements a comprehensive flight computer system for rocket
   * telemetry and control, featuring:
