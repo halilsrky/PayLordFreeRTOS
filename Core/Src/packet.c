@@ -268,7 +268,7 @@ void addDataPacketSit(bme_sample_t* BME, bmi_sample_t* BMI){
   sit_paket[8] = basinc_float32_uint8_donusturucu.array[0];
 
   FLOAT32_UINT8_DONUSTURUCU ivme_x_float32_uint8_donusturucu;
-  ivme_x_float32_uint8_donusturucu.sayi = (float)round2(BMI->accel_z); // Ivme X degerinin atamasini yapiyoruz.
+  ivme_x_float32_uint8_donusturucu.sayi = (float)round2(BMI->accel_x); // Ivme X degerinin atamasini yapiyoruz.
   sit_paket[9] = ivme_x_float32_uint8_donusturucu.array[3];
   sit_paket[10] = ivme_x_float32_uint8_donusturucu.array[2];
   sit_paket[11] = ivme_x_float32_uint8_donusturucu.array[1];
@@ -282,7 +282,7 @@ void addDataPacketSit(bme_sample_t* BME, bmi_sample_t* BMI){
   sit_paket[16] = ivme_y_float32_uint8_donusturucu.array[0];
 
   FLOAT32_UINT8_DONUSTURUCU ivme_z_float32_uint8_donusturucu;
-  ivme_z_float32_uint8_donusturucu.sayi = (float)round2(-BMI->accel_x); // Ivme Z degerinin atamasini yapiyoruz.
+  ivme_z_float32_uint8_donusturucu.sayi = (float)round2(-BMI->accel_z); // Ivme Z degerinin atamasini yapiyoruz.
   sit_paket[17] = ivme_z_float32_uint8_donusturucu.array[3];
   sit_paket[18] = ivme_z_float32_uint8_donusturucu.array[2];
   sit_paket[19] = ivme_z_float32_uint8_donusturucu.array[1];

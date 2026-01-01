@@ -23,11 +23,13 @@ jobs:
     
     - name: 🧪 Run Static Analysis
       run: |
+        echo "🔍 Running Cppcheck static analysis..."
         cppcheck --enable=all --inconclusive --std=c11 \
           --suppress=missingIncludeSystem \
           --suppress=unmatchedSuppression \
           --quiet \
           Core/Src/ Core/Inc/ 2>&1 | tee cppcheck-report.txt
+        echo "✅ Static analysis completed!"
     
     - name: 📊 Upload Analysis Report
       uses: actions/upload-artifact@v4
@@ -37,10 +39,10 @@ jobs:
         path: cppcheck-report.txt
         retention-days: 30
     
-    # Kod istatistikleri
+    # Kod istatistikleri ve metrikler
     - name: 📈 Code Statistics
       run: |
-        echo "=== Code Statistics ==="
+        echo "=== SKYRTOS Code Statistics ==="
         echo ""
         echo "📁 Source Files:"
         find Core/Src -name "*.c" | wc -l
@@ -48,8 +50,10 @@ jobs:
         echo "📄 Header Files:"
         find Core/Inc -name "*.h" | wc -l
         echo ""
-        echo "📝 Lines of Code:"
+        echo "📝 Total Lines of Code:"
         find Core/Src -name "*.c" -exec wc -l {} + | tail -1
         echo ""
-        echo "📋 Detailed File Sizes:"
+        echo "📋 Top 10 Largest Files:"
         find Core/Src -name "*.c" -exec wc -l {} + | sort -rn | head -10
+        echo ""
+        echo "✅ Code statistics completed!"

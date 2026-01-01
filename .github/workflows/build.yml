@@ -36,12 +36,12 @@ jobs:
     - name: 🏗️ Build Project
       run: |
         make clean
-        make -j$(nproc)  # Paralel derleme (hızlı)
+        make -j$(nproc)  # Paralel derleme (tüm CPU core'larını kullan)
     
-    # 5. Binary dosyaları oluştur (.bin ve .hex)
+    # 5. Binary dosyaları oluştur ve boyutunu göster
     - name: 📦 Create Binary Files
       run: |
-        arm-none-eabi-size build/PayLordFreeRTOS.elf
+        arm-none-eabi-size build/SKYRTOS.elf
     
     # 6. Build sonuçlarını artifact olarak kaydet
     - name: 📤 Upload Build Artifacts
@@ -49,10 +49,10 @@ jobs:
       with:
         name: firmware-${{ github.sha }}
         path: |
-          build/PayLordFreeRTOS.elf
-          build/PayLordFreeRTOS.bin
-          build/PayLordFreeRTOS.hex
-          build/PayLordFreeRTOS.map
+          build/SKYRTOS.elf
+          build/SKYRTOS.bin
+          build/SKYRTOS.hex
+          build/SKYRTOS.map
         retention-days: 30  # 30 gün sakla
     
     # 7. Build bilgilerini göster
@@ -60,7 +60,9 @@ jobs:
       run: |
         echo "✅ Build completed successfully!"
         echo "📦 Firmware size:"
-        arm-none-eabi-size build/PayLordFreeRTOS.elf
+        arm-none-eabi-size build/SKYRTOS.elf
         echo ""
         echo "📁 Generated files:"
         ls -lh build/*.elf build/*.bin build/*.hex 2>/dev/null || true
+        echo ""
+        echo "🚀 SKYRTOS firmware ready for deployment!"

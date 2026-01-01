@@ -32,15 +32,19 @@ jobs:
     # 4. Unit testleri derle
     - name: 🏗️ Build Unit Tests
       run: |
+        echo "🔨 Building unit tests..."
         cd tests
         make clean
         make build
+        echo "✅ Unit tests built successfully!"
     
     # 5. Testleri çalıştır
     - name: 🧪 Run Unit Tests
       run: |
+        echo "🚀 Running SKYRTOS unit tests..."
         cd tests
         make test
+        echo "✅ All tests completed!"
     
     # 6. Test sonuçlarını artifact olarak kaydet
     - name: 📤 Upload Test Results
@@ -56,5 +60,11 @@ jobs:
     - name: 📊 Display Test Summary
       if: always()
       run: |
+        echo "═══════════════════════════════════"
+        echo "📊 SKYRTOS Unit Test Summary"
+        echo "═══════════════════════════════════"
+        echo ""
         echo "✅ Unit test execution completed!"
-        echo "Check the test output above for detailed results."
+        echo "📝 Check the test output above for detailed results."
+        echo "📦 Test artifacts uploaded for review."
+        echo ""

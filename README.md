@@ -732,28 +732,62 @@ void test_lora_range(void) {
 
 ## 🔄 CI/CD
 
-Proje GitHub Actions ile otomatik CI/CD pipeline'a sahiptir.
+Proje **3 adet GitHub Actions workflow** ile tam otomatik CI/CD pipeline'a sahiptir:
 
-### Workflow'lar
+### 🏗️ 1. Build Workflow
+![Build Status](https://github.com/halilsrky/PayLord/actions/workflows/build.yml/badge.svg)
 
-#### Build Workflow (`.github/workflows/build.yml`)
-- Her push ve PR'da otomatik derleme
-- ARM GCC toolchain kurulumu
-- Firmware binary oluşturma
-- Artifact olarak yükleme
+**Ne yapar:**
+- STM32 firmware'ini derler (ARM GCC)
+- `.elf`, `.bin`, `.hex` dosyalarını oluşturur
+- Firmware boyutunu raporlar
+- Artifact olarak saklar (30 gün)
 
-#### Code Quality Workflow (`.github/workflows/code-quality.yml`)
-- Statik kod analizi
-- Coding standard kontrolü
+**Ne zaman:** Her push, PR, veya manuel tetikleme
+
+### 🔍 2. Code Quality Workflow
+![Code Quality](https://github.com/halilsrky/PayLord/actions/workflows/code-quality.yml/badge.svg)
+
+**Ne yapar:**
+- Cppcheck ile statik kod analizi
 - Memory leak detection
+- Coding standard kontrolü
+- Kod istatistikleri (satır sayısı, dosya sayısı)
 
-### Build Artifacts İndirme
+**Ne zaman:** Her push ve PR
 
-1. [GitHub Actions](https://github.com/halilsrky/PayLord/actions) sayfasına gidin
-2. Başarılı build'i seçin
-3. **Artifacts** bölümünden firmware'i indirin
+### 🧪 3. Unit Tests Workflow
+![Tests](https://github.com/halilsrky/PayLord/actions/workflows/unit-tests.yml/badge.svg)
 
-Detaylar için: [docs/CI-CD-GUIDE.md](docs/CI-CD-GUIDE.md)
+**Ne yapar:**
+- Unit testleri derler
+- Testleri çalıştırır
+- Test sonuçlarını raporlar
+- Test coverage analizi
+
+**Ne zaman:** Her push, PR, veya manuel tetikleme
+
+### 📦 Artifact İndirme
+
+1. [GitHub Actions](https://github.com/halilsrky/PayLord/actions) → Başarılı workflow
+2. "Artifacts" bölümünden:
+   - `firmware-xxxxx` → Derlenen firmware
+   - `cppcheck-report` → Kod analizi
+   - `test-results-xxxxx` → Test sonuçları
+
+### 📚 Detaylı Dokümantasyon
+
+**Kapsamlı CI/CD rehberi için:**  
+👉 [docs/CI-CD-COMPLETE-GUIDE.md](docs/CI-CD-COMPLETE-GUIDE.md)
+
+Bu rehber içerir:
+- CI/CD temel kavramları
+- Her workflow'un detaylı açıklaması
+- Hızlı başlangıç kılavuzu
+- Sorun giderme (troubleshooting)
+- Makefile kullanımı
+- Best practices
+- İleri seviye özellikler
 
 ---
 
@@ -871,44 +905,16 @@ Katkılarınızı bekliyoruz! Lütfen şu adımları izleyin:
 - `test`: Test ekleme
 - `chore`: Build/tool değişiklikleri
 
----
-
-## 📄 Lisans
-
-Bu proje **MIT License** altında lisanslanmıştır.
-
-```
-MIT License
-
-Copyright (c) 2025 Halil Ibrahim Sarıkaya
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
 
 ---
 
 ## 👥 İletişim ve Destek
 
 ### Geliştirici
-**Halil Ibrahim Sarıkaya**
+**Halil Sarıkaya**
 - GitHub: [@halilsrky](https://github.com/halilsrky)
 - Proje: [PayLord](https://github.com/halilsrky/PayLord)
+- LinkedIn: www.linkedin.com/in/halil-sarıkaya-3a777321b
 
 ### Destek Kanalları
 - **Issues**: Hata raporları ve özellik istekleri için [GitHub Issues](https://github.com/halilsrky/PayLord/issues)
