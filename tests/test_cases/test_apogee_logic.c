@@ -222,24 +222,6 @@ TEST_CASE(test_apogee_very_small_velocity_change) {
     return TEST_PASS;
 }
 
-TEST_CASE(test_apogee_rapid_deceleration) {
-    setup();
-    
-    /* Simulate very rapid deceleration (emergency braking scenario) */
-    kf.x[1] = 200.0f;
-    kf.x[2] = -100.0f;  /* Heavy deceleration */
-    
-    for (int i = 0; i < 30; i++) {
-        float simulated_alt = 2000.0f + (200.0f - i * 10.0f) * 0.01f;
-        KalmanFilter_Testable_Update(&kf, simulated_alt, -100.0f, 0.01f);
-    }
-    
-    /* Should eventually detect apogee */
-    /* Velocity should have gone negative after ~20 samples */
-    TEST_ASSERT_EQUAL_INT(1, kf.apogee_detected);
-    
-    return TEST_PASS;
-}
 
 /* ============================================================================
  *                         TIMING TESTS

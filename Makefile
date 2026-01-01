@@ -1,13 +1,13 @@
 ######################################
 # STM32F446RET6 Makefile
-# PayLord FreeRTOS Project
+# SKYRTOS FreeRTOS Project
 # Cross-platform (Windows & Linux)
 ######################################
 
 ######################################
 # Target
 ######################################
-TARGET = PayLordFreeRTOS
+TARGET = SKYRTOS
 
 ######################################
 # Build Path
