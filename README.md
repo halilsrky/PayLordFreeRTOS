@@ -2,117 +2,117 @@
 
 <div align="center">
 
-**Roket telemetri ve uçuş kontrol sistemi - Teknofest Roket Yarışması**
+**Rocket telemetry and flight control system - Teknofest Rocket Competition**
 
-[Özellikler](#-özellikler) • [Donanım](#-donanım) • [Yazılım](#-yazılım-mimarisi) • [CI/CD](#-cicd) • [Test Sistemi](#-test-sistemi-sitsut)
+[Features](#-features) • [Hardware](#-hardware) • [Software](#-software-architecture) • [CI/CD](#-cicd) • [Test System](#-test-system-sitsut)
 
 </div>
 
 ---
 
-## 🌟 Genel Bakış
+## 🌟 Overview
 
-**SKYRTOS** (Sky Real-Time Operating System), roket sistemleri için tasarlanmış profesyonel bir uçuş bilgisayarı firmware'idir. STM32F446RET6 mikrodenetleyici üzerinde FreeRTOS işletim sistemi ile çalışır ve Teknofest Roket Yarışması için geliştirilmiştir.
+**SKYRTOS** (Sky Real-Time Operating System) is a professional flight computer firmware designed for rocket systems. It runs on STM32F446RET6 microcontroller with FreeRTOS operating system and is developed for Teknofest Rocket Competition.
 
-### 🎯 Temel Yetenekler
+### 🎯 Core Capabilities
 
-- **Gerçek Zamanlı Veri İşleme**: FreeRTOS tabanlı çoklu görev mimarisi
-- **Sensör Füzyonu**: Kalman filtresi ile optimal durum tahmini
-- **Uçuş Fazı Algılama**: Otomatik launch, apogee, landing detection
-- **Uzun Menzilli Telemetri**: LoRa ile 3-8km kablosuz iletişim
-- **Yüksek Hızlı Veri Kaydı**: SD karta FatFS ile log yazma
-- **Test Altyapısı**: SIT/SUT modları ile sistem doğrulama
+- **Real-Time Data Processing**: FreeRTOS-based multitasking architecture
+- **Sensor Fusion**: Optimal state estimation with Kalman filter
+- **Flight Phase Detection**: Automatic launch, apogee, landing detection
+- **Long-Range Telemetry**: 3-8km wireless communication via LoRa
+- **High-Speed Data Logging**: SD card logging with FatFS
+- **Test Infrastructure**: System validation with SIT/SUT modes
 
 ---
 
-## ✨ Özellikler
+## ✨ Features
 
-### 🎛️ Sensör Yönetimi
-- ✅ **BME280**: Barometrik sensör (basınç, sıcaklık, nem)
-- ✅ **BMI088**: 6 eksenli IMU (3-axis accel + gyro)
-- ✅ **HMC1021**: Manyetometre
-- ✅ **L86 GPS**: Konum ve navigasyon
-- ✅ **Kalman Filtreleme**: Sensör gürültü azaltma
+### 🎛️ Sensor Management
+- ✅ **BME280**: Barometric sensor (pressure, temperature, humidity)
+- ✅ **BMI088**: 6-axis IMU (3-axis accel + gyro)
+- ✅ **HMC1021**: Magnetometer
+- ✅ **L86 GPS**: Position and navigation
+- ✅ **Kalman Filtering**: Sensor noise reduction
 
-### 📡 İletişim
-- ✅ **E22 LoRa**: Uzun menzilli telemetri (433/868/915 MHz)
-- ✅ **UART**: Debug ve test modları
-- ✅ **Paket Protokolü**: Özelleştirilmiş telemetri formatı
+### 📡 Communication
+- ✅ **E22 LoRa**: Long-range telemetry (433/868/915 MHz)
+- ✅ **UART**: Debug and test modes
+- ✅ **Packet Protocol**: Custom telemetry format
 
-### 🧮 Algoritmalar
-- ✅ **Quaternion Sensör Füzyonu**: Orientation hesaplama
-- ✅ **Kalman Filtreleme**: Optimal durum tahmini
-- ✅ **Uçuş Fazı Tespiti**: 8 fazlı otomatik algılama
-- ✅ **Matematiksel Modeller**: İleri düzey hesaplama
+### 🧮 Algorithms
+- ✅ **Quaternion Sensor Fusion**: Orientation calculation
+- ✅ **Kalman Filtering**: Optimal state estimation
+- ✅ **Flight Phase Detection**: 8-phase automatic detection
+- ✅ **Mathematical Models**: Advanced calculations
 
-### 💾 Veri Yönetimi
-- ✅ **FATFS**: FAT32 dosya sistemi
-- ✅ **SD Kart**: Yüksek hızlı SPI veri kaydı
-- ✅ **Binary/CSV Format**: Esnek log formatları
+### 💾 Data Management
+- ✅ **FATFS**: FAT32 file system
+- ✅ **SD Card**: High-speed SPI data logging
+- ✅ **Binary/CSV Format**: Flexible log formats
 
-### ⚡ İşletim Sistemi
-- ✅ **FreeRTOS**: Gerçek zamanlı çoklu görev
-- ✅ **Task Bazlı Mimari**: Modüler ve ölçeklenebilir
-- ✅ **Öncelik Tabanlı Zamanlama**: Kritik görev garantisi
+### ⚡ Operating System
+- ✅ **FreeRTOS**: Real-time multitasking
+- ✅ **Task-Based Architecture**: Modular and scalable
+- ✅ **Priority-Based Scheduling**: Critical task guarantee
 
 ### 🔍 Debugging
-- ✅ **SEGGER SystemView**: Gerçek zamanlı sistem analizi
-- ✅ **RTT**: Yüksek hızlı debug çıkışı
-- ✅ **Test Modları**: SIT/SUT donanım ve yazılım testleri
+- ✅ **SEGGER SystemView**: Real-time system analysis
+- ✅ **RTT**: High-speed debug output
+- ✅ **Test Modes**: SIT/SUT hardware and software tests
 
 ---
 
-## 🛠️ Donanım
+## 🛠️ Hardware
 
-### Mikrodenetleyici
+### Microcontroller
 - **MCU**: STM32F446RET6 (ARM Cortex-M4, 180MHz, 512KB Flash, 128KB RAM)
 - **FPU**: Hardware floating-point unit
 - **DMA**: 2x DMA controller
 
-### Sensörler
-| Sensör | Model | Arayüz | Ölçüm |
-|--------|-------|--------|-------|
-| Barometrik | BME280 | I²C | Basınç, sıcaklık, nem |
+### Sensors
+| Sensor | Model | Interface | Measurement |
+|--------|-------|-----------|-------------|
+| Barometric | BME280 | I²C | Pressure, temperature, humidity |
 | IMU | BMI088 | SPI | 3-axis accel + gyro |
-| Manyetometre | HMC1021 | Analog | 1-axis magnetic field |
-| GPS | L86 | UART | Konum, hız |
+| Magnetometer | HMC1021 | Analog | 1-axis magnetic field |
+| GPS | L86 | UART | Position, velocity |
 
-### İletişim
-- **LoRa**: E22 modülü (433/868/915 MHz, 3-8km menzil)
+### Communication
+- **LoRa**: E22 module (433/868/915 MHz, 3-8km range)
 - **Debug**: UART (115200 baud)
-- **Depolama**: SD kart (SPI, FAT32)
+- **Storage**: SD card (SPI, FAT32)
 
 ---
 
-## 🏗️ Yazılım Mimarisi
+## 🏗️ Software Architecture
 
-### FreeRTOS Task Yapısı
+### FreeRTOS Task Structure
 
-| Task | Öncelik | Periyot | Görev |
-|------|---------|---------|-------|
-| SensorTask | Yüksek | 10ms | BME280/BMI088 okuma |
-| FusionTask | Yüksek | 10ms | Kalman filtre + sensör füzyon |
-| FlightTask | Orta | 100ms | Uçuş fazı algılama |
-| TelemetryTask | Orta | 100ms | LoRa veri gönderimi |
-| LoggerTask | Düşük | 100ms | SD kart veri yazma |
-| TestModeTask | Orta | 100ms | SIT/SUT test modları |
+| Task | Priority | Period | Function |
+|------|----------|--------|----------|
+| SensorTask | High | 10ms | BME280/BMI088 reading |
+| FusionTask | High | 10ms | Kalman filter + sensor fusion |
+| FlightTask | Medium | 100ms | Flight phase detection |
+| TelemetryTask | Medium | 100ms | LoRa data transmission |
+| LoggerTask | Low | 100ms | SD card data writing |
+| TestModeTask | Medium | 100ms | SIT/SUT test modes |
 
-### Katmanlı Mimari
+### Layered Architecture
 
 ```
 Application Layer
-  ├── Flight Algorithm    (Uçuş fazı tespiti)
+  ├── Flight Algorithm    (Flight phase detection)
   ├── Sensor Fusion       (Kalman + Quaternion)
-  └── Data Logger         (SD kart yönetimi)
+  └── Data Logger         (SD card management)
         ↓
 Middleware Layer
   ├── FreeRTOS           (RTOS kernel)
-  ├── FATFS              (Dosya sistemi)
-  └── Packet Protocol    (Telemetri formatı)
+  ├── FATFS              (File system)
+  └── Packet Protocol    (Telemetry format)
         ↓
 Driver Layer
-  ├── BME280/BMI088      (Sensör driver'ları)
-  ├── E22 LoRa           (İletişim driver)
+  ├── BME280/BMI088      (Sensor drivers)
+  ├── E22 LoRa           (Communication driver)
   └── L86 GNSS           (GPS driver)
         ↓
 HAL Layer (STM32 Hardware Abstraction)
@@ -120,61 +120,61 @@ HAL Layer (STM32 Hardware Abstraction)
 
 ---
 
-## 📁 Proje Yapısı
+## 📁 Project Structure
 
 ```
 SKYRTOS/
 ├── Core/
-│   ├── Inc/                      # Header dosyaları
-│   │   ├── bme280.h, bmi088.h   # Sensör API'leri
+│   ├── Inc/                      # Header files
+│   │   ├── bme280.h, bmi088.h   # Sensor APIs
 │   │   ├── sensor_fusion.h      # Kalman + Quaternion
-│   │   ├── flight_algorithm.h   # Uçuş algılama
+│   │   ├── flight_algorithm.h   # Flight detection
 │   │   ├── e22_lib.h            # LoRa driver
-│   │   ├── data_logger.h        # SD kart sistemi
-│   │   ├── uart_handler.h       # UART iletişim
-│   │   └── test_modes.h         # SIT/SUT testleri
+│   │   ├── data_logger.h        # SD card system
+│   │   ├── uart_handler.h       # UART communication
+│   │   └── test_modes.h         # SIT/SUT tests
 │   │
-│   └── Src/                      # Kaynak dosyaları
-│       ├── main.c, freertos.c   # Ana uygulama + tasks
-│       ├── bme280.c, bmi088.c   # Sensör driver'ları
-│       ├── sensor_fusion.c      # Füzyon algoritmaları
-│       ├── flight_algorithm.c   # Uçuş mantığı
-│       ├── kalman.c             # Kalman filtresi
-│       ├── quaternion.c         # Quaternion matematik
-│       ├── packet.c             # Telemetri protokolü
-│       ├── data_logger.c        # Veri kayıt sistemi
-│       ├── uart_handler.c       # Test iletişimi
-│       └── test_modes.c         # Test rutinleri
+│   └── Src/                      # Source files
+│       ├── main.c, freertos.c   # Main application + tasks
+│       ├── bme280.c, bmi088.c   # Sensor drivers
+│       ├── sensor_fusion.c      # Fusion algorithms
+│       ├── flight_algorithm.c   # Flight logic
+│       ├── kalman.c             # Kalman filter
+│       ├── quaternion.c         # Quaternion math
+│       ├── packet.c             # Telemetry protocol
+│       ├── data_logger.c        # Data logging system
+│       ├── uart_handler.c       # Test communication
+│       └── test_modes.c         # Test routines
 │
-├── Drivers/                      # STM32 HAL Driver'ları
-├── FATFS/                        # FAT dosya sistemi
+├── Drivers/                      # STM32 HAL Drivers
+├── FATFS/                        # FAT file system
 ├── Middlewares/Third_Party/
 │   ├── FreeRTOS/                # RTOS kernel
 │   └── SEGGER/                  # SystemView profiling
 │
-├── SIT_SUT/                      # Test sistemi
+├── SIT_SUT/                      # Test system
 │   ├── telemetry_app/           # Python Ground Station
-│   ├── Datas/                   # Test CSV'leri
-│   └── logs/                    # Test sonuçları
+│   ├── Datas/                   # Test CSVs
+│   └── logs/                    # Test results
 │
-├── tests/                        # Unit testler
+├── tests/                        # Unit tests
 │   ├── test_kalman.c
 │   ├── test_flight_algorithm.c
 │   └── test_apogee_logic.c
 │
-├── docs/                         # Dokümantasyon
-│   └── CI-CD-GUIDE.md           # CI/CD kılavuzu
+├── docs/                         # Documentation
+│   └── CI-CD-GUIDE.md           # CI/CD guide
 │
-├── build/                        # Build çıktıları
-├── Makefile                      # Build sistemi
-└── README.md                     # Bu dosya
+├── build/                        # Build outputs
+├── Makefile                      # Build system
+└── README.md                     # This file
 ```
 
 ---
 
-## 🎛️ Sensör Entegrasyonu
+## 🎛️ Sensor Integration
 
-### BME280 - Barometrik Sensör
+### BME280 - Barometric Sensor
 ```c
 BME_280_t sensor;
 BME280_Init(&sensor, &hi2c1, BME280_I2C_ADDRESS_0);
@@ -184,7 +184,7 @@ float temperature = BME280_ReadTemperature(&sensor); // °C
 float altitude = BME280_CalculateAltitude(pressure); // m
 ```
 
-### BMI088 - 6 Eksenli IMU
+### BMI088 - 6-Axis IMU
 ```c
 bmi088_struct_t imu;
 BMI088_Init(&imu, &hspi1);
@@ -195,7 +195,7 @@ float accel_z = imu.accel.z;  // m/s²
 float gyro_x = imu.gyro.x;    // rad/s
 ```
 
-### E22 - LoRa Modülü
+### E22 - LoRa Module
 ```c
 E22_Init(&huart2);
 E22_SetFrequency(433.0); // MHz
@@ -207,53 +207,53 @@ E22_Transmit(telemetry_packet, sizeof(telemetry_packet));
 
 ---
 
-## 🧮 Uçuş Algoritması
+## 🧮 Flight Algorithm
 
-### Uçuş Fazları
+### Flight Phases
 
-| Faz | Geçiş Kriteri | Aksiyon |
-|-----|---------------|---------|
-| IDLE | Sistem hazır | Beklemede |
-| ARMED | Sensör kontrolü OK | Launch için hazır |
-| POWERED | Accel > 3g | Motor yanıyor |
-| COASTING | Accel < 1.5g | Motor söndü |
-| APOGEE | Velocity < 0 | En yüksek nokta |
-| DROGUE_DESCENT | Apogee + delay | Drogue paraşüt aç |
-| MAIN_DESCENT | Altitude < 300m | Ana paraşüt aç |
-| LANDED | Stable 5s | İniş tamamlandı |
+| Phase | Transition Criteria | Action |
+|-------|---------------------|---------|
+| IDLE | System ready | Waiting |
+| ARMED | Sensor check OK | Ready for launch |
+| POWERED | Accel > 3g | Motor burning |
+| COASTING | Accel < 1.5g | Motor burnout |
+| APOGEE | Velocity < 0 | Highest point |
+| DROGUE_DESCENT | Apogee + delay | Deploy drogue parachute |
+| MAIN_DESCENT | Altitude < 300m | Deploy main parachute |
+| LANDED | Stable 5s | Landing completed |
 
-### Sensör Füzyon
+### Sensor Fusion
 
-**Kalman Filtresi (Altitude):**
+**Kalman Filter (Altitude):**
 ```c
 kalman_t kf;
 kalman_init(&kf, initial_altitude);
 
-// Her döngüde
+// Every loop
 float altitude_filtered = kalman_update(&kf, bme_altitude);
 ```
 
-**Quaternion Füzyon (Orientation):**
+**Quaternion Fusion (Orientation):**
 ```c
 quaternion_t q;
 quaternion_init(&q);
 
-// IMU verileriyle güncelle
+// Update with IMU data
 quaternion_update(&q, gyro_x, gyro_y, gyro_z, dt);
 quaternion_normalize(&q);
 ```
 
 ---
 
-## 💾 Veri Kayıt Sistemi
+## 💾 Data Logging System
 
-### FATFS Konfigürasyonu
-- **Dosya Sistemi**: FAT32
-- **Sektör Boyutu**: 512 bytes
-- **Yazma Hızı**: ~500 KB/s
-- **Kayıt Frekansı**: 10Hz
+### FATFS Configuration
+- **File System**: FAT32
+- **Sector Size**: 512 bytes
+- **Write Speed**: ~500 KB/s
+- **Logging Frequency**: 10Hz
 
-### Veri Formatı
+### Data Format
 
 **Binary Format:**
 ```c
@@ -268,7 +268,7 @@ typedef struct {
 } __attribute__((packed)) LogEntry_t;
 ```
 
-**Kullanım:**
+**Usage:**
 ```c
 DataLogger_Init();
 LogEntry_t entry = {/* ... */};
@@ -280,67 +280,67 @@ DataLogger_Close();
 
 ## 🔄 CI/CD
 
-Proje **GitHub Actions** ile tam otomatik CI/CD pipeline'a sahiptir:
+The project has a fully automated CI/CD pipeline with **GitHub Actions**:
 
 ### 🏗️ Build Workflow
-- STM32 firmware'ini derler (ARM GCC)
-- `.elf`, `.bin`, `.hex` oluşturur
-- Firmware boyutunu raporlar
-- 30 gün artifact saklama
+- Compiles STM32 firmware (ARM GCC)
+- Generates `.elf`, `.bin`, `.hex`
+- Reports firmware size
+- 30-day artifact retention
 
 ### 🔍 Code Quality Workflow
-- Cppcheck ile statik analiz
+- Static analysis with Cppcheck
 - Memory leak detection
-- Kod istatistikleri
-- Coding standard kontrolü
+- Code statistics
+- Coding standard checks
 
 ### 🧪 Unit Tests Workflow
-- Unit testleri derler ve çalıştırır
-- Test coverage analizi
-- Test sonuçlarını raporlar
+- Compiles and runs unit tests
+- Test coverage analysis
+- Reports test results
 
-**Her push/PR'da otomatik çalışır:**
+**Runs automatically on every push/PR:**
 ```bash
 git push origin main
-# → Build + Code Quality + Unit Tests (paralel)
+# → Build + Code Quality + Unit Tests (parallel)
 ```
 
-### 📦 Artifact İndirme
+### 📦 Artifact Download
 
-[GitHub Actions](https://github.com/halilsrky/SKYRTOS/actions) → Başarılı workflow:
-- `firmware-xxxxx` → Derlenen firmware (`.elf`, `.bin`, `.hex`)
-- `cppcheck-report` → Kod analizi
-- `test-results-xxxxx` → Test sonuçları
+[GitHub Actions](https://github.com/halilsrky/SKYRTOS/actions) → Successful workflow:
+- `firmware-xxxxx` → Compiled firmware (`.elf`, `.bin`, `.hex`)
+- `cppcheck-report` → Code analysis
+- `test-results-xxxxx` → Test results
 
-**Detaylı dokümantasyon:** [docs/CI-CD-GUIDE.md](docs/CI-CD-GUIDE.md)
+**Detailed documentation:** [docs/CI-CD-GUIDE.md](docs/CI-CD-GUIDE.md)
 
 ---
 
-## 🧪 Test Sistemi (SIT/SUT)
+## 🧪 Test System (SIT/SUT)
 
-SKYRTOS, Teknofest Roket Yarışması için iki test moduna sahiptir:
+SKYRTOS has two test modes for Teknofest Rocket Competition:
 
 ### 1️⃣ SIT Mode (Sensor Interface Test)
 
-**Amaç:** Fiziksel sensörlerin doğru çalışıp çalışmadığını test etmek.
+**Purpose:** Test if physical sensors are working correctly.
 
 ```
 STM32 Sensors → UART → Ground Station → Real-time Display
      ↓
-BME280/BMI088 (Gerçek donanım okuma)
+BME280/BMI088 (Real hardware reading)
 ```
 
-**Ne test eder:**
-- ✅ Sensör okuma bütünlüğü
-- ✅ UART iletişim
-- ✅ Kalibrasyon doğruluğu
-- ✅ Real-time telemetri
+**What it tests:**
+- ✅ Sensor reading integrity
+- ✅ UART communication
+- ✅ Calibration accuracy
+- ✅ Real-time telemetry
 
-**Kullanım:**
+**Usage:**
 ```bash
 cd SIT_SUT/telemetry_app
 python app.py
-# → "Start SIT" butonuna tıkla
+# → Click "Start SIT" button
 ```
 
 ![SIT Mode](SIT_SUT/SIT_Mode.png)
@@ -349,7 +349,7 @@ python app.py
 
 ### 2️⃣ SUT Mode (System Under Test)
 
-**Amaç:** Uçuş algoritmalarını sentetik verilerle test etmek.
+**Purpose:** Test flight algorithms with synthetic data.
 
 ```
 CSV File → Ground Station → UART → STM32 Algorithms
@@ -361,52 +361,52 @@ CSV File → Ground Station → UART → STM32 Algorithms
                                 Ground Station Display
 ```
 
-**Ne test eder:**
-- ✅ Uçuş fazı algılama algoritması
-- ✅ Kalman filtre performansı
-- ✅ Apogee detection doğruluğu
-- ✅ Paraşüt açma logic
-- ✅ Algorithm robustness (gürültülü veri)
+**What it tests:**
+- ✅ Flight phase detection algorithm
+- ✅ Kalman filter performance
+- ✅ Apogee detection accuracy
+- ✅ Parachute deployment logic
+- ✅ Algorithm robustness (noisy data)
 
-**Event'ler:**
-| Bit | Event | Açıklama |
-|-----|-------|----------|
-| 0 | Launch Detect | Kalkış algılandı |
-| 1 | Motor Burnout | Motor yanması bitti |
-| 2 | Apogee Detect | En yüksek nokta |
-| 3 | Drogue Deploy | İlk paraşüt açıldı |
-| 4 | Main Deploy | Ana paraşüt açıldı |
-| 5 | Landing | İniş yapıldı |
+**Events:**
+| Bit | Event | Description |
+|-----|-------|-------------|
+| 0 | Launch Detect | Launch detected |
+| 1 | Motor Burnout | Motor burnout completed |
+| 2 | Apogee Detect | Highest point |
+| 3 | Drogue Deploy | Drogue parachute deployed |
+| 4 | Main Deploy | Main parachute deployed |
+| 5 | Landing | Landing completed |
 
-**Kullanım:**
+**Usage:**
 ```bash
 cd SIT_SUT/telemetry_app
 python app.py
-# → CSV dosyası seç
-# → "Start SUT" butonuna tıkla
-# → Event'leri real-time grafikte izle
+# → Select CSV file
+# → Click "Start SUT" button
+# → Monitor events in real-time graph
 ```
 
 ![SUT Mode](SIT_SUT/SUT_Mode.png)
 
-**Test Senaryoları:**
-- `az_gurultulu.csv` - Düşük gürültü (σ = 0.5m)
-- `orta_gurultulu.csv` - Orta gürültü (σ = 2.0m)
-- `cok_gurultulu.csv` - Yüksek gürültü (σ = 5.0m)
+**Test Scenarios:**
+- `az_gurultulu.csv` - Low noise (σ = 0.5m)
+- `orta_gurultulu.csv` - Medium noise (σ = 2.0m)
+- `cok_gurultulu.csv` - High noise (σ = 5.0m)
 
-**Detaylı dokümantasyon:** [SIT_SUT/README.md](SIT_SUT/README.md)
+**Detailed documentation:** [SIT_SUT/README.md](SIT_SUT/README.md)
 
 ---
 
-## 🔧 Geliştirme
+## 🔧 Development
 
-### Derleme
+### Build
 
 ```bash
-# Komut satırından
+# From command line
 make clean && make -j$(nproc)
 
-# STM32CubeIDE'den
+# From STM32CubeIDE
 # Project → Build Project (Ctrl+B)
 ```
 
@@ -426,28 +426,28 @@ arm-none-eabi-gdb build/SKYRTOS.elf
 (gdb) continue
 ```
 
-### Yeni Sensör/Driver Ekleme
+### Adding New Sensor/Driver
 
-1. `Core/Inc/` ve `Core/Src/` içine driver dosyalarını ekleyin
-2. `Makefile`'da `C_SOURCES` ve `C_INCLUDES` güncelleyin:
+1. Add driver files to `Core/Inc/` and `Core/Src/`
+2. Update `C_SOURCES` and `C_INCLUDES` in `Makefile`:
    ```makefile
    C_SOURCES = \
    Core/Src/main.c \
-   Core/Src/yeni_driver.c \    # ← YENİ
+   Core/Src/new_driver.c \    # ← NEW
    ...
    ```
-3. `freertos.c` içinde yeni task oluşturun (gerekirse)
-4. Build edin: `make clean && make`
+3. Create new task in `freertos.c` (if needed)
+4. Build: `make clean && make`
 
 ---
 
-## 📚 Dokümantasyon
+## 📚 Documentation
 
-- **[CI/CD Kılavuzu](docs/CI-CD-GUIDE.md)** - Otomatik build sistemi
-- **[SIT/SUT Test Rehberi](SIT_SUT/README.md)** - Test sistemi dokümantasyonu
-- **[Unit Test Rehberi](tests/README.md)** - Unit test altyapısı
+- **[CI/CD Guide](docs/CI-CD-GUIDE.md)** - Automated build system
+- **[SIT/SUT Test Guide](SIT_SUT/README.md)** - Test system documentation
+- **[Unit Test Guide](tests/README.md)** - Unit test infrastructure
 
-### Datasheet'ler
+### Datasheets
 - [STM32F446RE](https://www.st.com/resource/en/datasheet/stm32f446re.pdf)
 - [BME280](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme280-ds002.pdf)
 - [BMI088](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmi088-ds001.pdf)
@@ -460,6 +460,6 @@ arm-none-eabi-gdb build/SKYRTOS.elf
 
 **SKYRTOS** - 🚀
 
-**Geliştirici:** @halilsrky | **LinkedIn:** [Halil Sarıkaya](https://www.linkedin.com/in/halil-sarıkaya-3a777321b)
+**Developer:** @halilsrky | **LinkedIn:** [Halil Sarıkaya](https://www.linkedin.com/in/halil-sarıkaya-3a777321b)
 
 </div>

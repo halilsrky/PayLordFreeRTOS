@@ -101,7 +101,7 @@ const osThreadAttr_t gnssTask_attributes = {
 osThreadId_t telemetryTaskHandle;
 const osThreadAttr_t telemetryTask_attributes = {
   .name = "telemetryTask",
-  .stack_size = 384 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 
